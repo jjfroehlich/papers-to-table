@@ -20,9 +20,13 @@ normalized/
   evidence.jsonl
 summaries/
   validation_report.json
+exports/
+  draft_filled_table.csv
 ```
 
 `review/review_package.json` is the browser package. `normalized/proposals.jsonl` and `normalized/evidence.jsonl` are the durable generated streams used by decision application and generated validation.
+
+`exports/draft_filled_table.csv` is generated from proposed values before review. It is an unreviewed draft convenience output, not an accepted-values export.
 
 ## Proposal Shape
 
@@ -98,10 +102,25 @@ Decision/export artifacts are generated only after review or explicit automation
 review/decisions.jsonl
 exports/final_table.csv
 exports/audit_log_*.json
+exports/diagnostics_*.json
+exports/reviewed_bundle/
+  filled_table_reviewed.csv
+  manifest.json
+  review/
+    decisions.jsonl
+    proposals.jsonl
+    evidence.jsonl
+  audit/
+    audit_log_*.json
+    diagnostics_*.json
+    reviewer_summary.json
+    validation_report.json
 summaries/reviewer_summary.json
 ```
 
 Only accepted and accepted-with-edit values populate `exports/final_table.csv`. Rejected, confirmed-no-data, and undecided values remain in decision/audit artifacts but do not fill exported cells.
+
+`exports/reviewed_bundle/` is the cleaned shareable folder and intentionally excludes copied source PDFs, the source table, schema files, review HTML, and PDF.js assets.
 
 The source table is never modified in place.
 

@@ -125,6 +125,8 @@ def _print_summary(summary: dict[str, Any], *, as_json: bool) -> None:
     print(f"validation_status: {summary['validation_status']}")
     print(f"review_index: {Path(summary['review_index_path']).resolve()}")
     print(f"review_package: {Path(summary['review_package_path']).resolve()}")
+    if summary.get("draft_filled_table_path"):
+        print(f"draft_filled_table: {Path(summary['draft_filled_table_path']).resolve()}")
     if summary.get("review_url"):
         print(f"review_url: {summary['review_url']}")
     else:

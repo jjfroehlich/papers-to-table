@@ -18,6 +18,8 @@
       --danger: #be123c;
       --ok: #047857;
       --shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+      --left-pane-width: 340px;
+      --right-pane-width: 430px;
       font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
@@ -41,18 +43,16 @@
     .btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
     .btn.accept { background: var(--ok); border-color: var(--ok); color: #fff; }
     .btn.danger { color: var(--danger); }
-    .layout {
-      height: calc(100vh - 66px); min-height: 620px; display: grid;
-      grid-template-columns: minmax(260px, 23vw) minmax(360px, 1fr) minmax(360px, 34vw);
-      gap: 0; padding: 10px;
-    }
+    .layout { height: calc(100vh - 66px); min-height: 620px; display: flex; gap: 0; padding: 10px; overflow: hidden; }
     .pane {
       min-height: 0; background: var(--panel); border: 1px solid var(--border);
       overflow: hidden; display: flex; flex-direction: column;
     }
-    .pane.left { border-radius: 10px 0 0 10px; border-right: 0; }
-    .pane.middle { border-radius: 0; }
-    .pane.right { border-radius: 0 10px 10px 0; border-left: 0; }
+    .pane.left { width: var(--left-pane-width); flex: 0 0 var(--left-pane-width); border-radius: 10px 0 0 10px; border-right: 0; background: #f8fafc; }
+    .pane.middle { flex: 1 1 auto; min-width: 280px; border-radius: 0; }
+    .pane.right { width: var(--right-pane-width); flex: 0 0 var(--right-pane-width); border-radius: 0 10px 10px 0; border-left: 0; }
+    .resize-handle { width: 6px; flex: 0 0 6px; cursor: col-resize; background: #eef2f7; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .resize-handle:hover, .resize-handle.active { background: #cbd5e1; }
     .pane-head { flex: 0 0 auto; padding: 12px; border-bottom: 1px solid var(--border); background: #fbfcfe; }
     .pane-title { margin: 0 0 8px; font-size: 12px; color: #475467; text-transform: uppercase; font-weight: 750; letter-spacing: .08em; }
     .seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
@@ -100,10 +100,15 @@
     .hl { position: absolute; pointer-events: none; background: rgba(250, 204, 21, .28); border: 2px solid rgba(180, 83, 9, .78); border-radius: 2px; }
     .hl.approx { background: rgba(249, 115, 22, .12); border: 2px dashed rgba(194, 65, 12, .75); }
     .viewer-note { margin: 10px; padding: 10px; border: 1px solid #fedf89; border-radius: 8px; background: #fffaeb; color: #92400e; font-size: 12px; }
+    .bulk-confirm { display: none; width: 100%; border: 1px solid #fedf89; border-radius: 8px; background: #fffaeb; color: #92400e; padding: 10px; font-size: 12px; }
+    .bulk-confirm.visible { display: block; }
+    .bulk-confirm .bulk-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .empty { padding: 24px; color: var(--muted); text-align: center; font-size: 14px; }
     @media (max-width: 1050px) {
-      .layout { height: auto; min-height: 0; grid-template-columns: 1fr; }
+      .layout { height: auto; min-height: 0; display: block; overflow: visible; }
       .pane { min-height: 420px; border: 1px solid var(--border) !important; border-radius: 10px !important; margin-bottom: 10px; }
+      .pane.left, .pane.right { width: auto; flex-basis: auto; }
+      .resize-handle { display: none; }
     }
   </style>
 </head>
@@ -123,10 +128,10 @@ window.__REVIEW_PACKAGE__ = __REVIEW_PACKAGE_JSON__;
     </div>
     <button class="btn" id="download-decisions">Download decisions</button>
     <button class="btn primary" id="write-decisions">Write decisions</button>
-    <button class="btn accept" id="export-csv">Export CSV</button>
+    <button class="btn accept" id="export-bundle">Export reviewed bundle</button>
   </div>
 </header>
-<main class="layout">
+<main class="layout" id="workspace-layout">
   <section class="pane left">
     <div class="pane-head">
       <p class="pane-title">Review list</p>
@@ -146,6 +151,7 @@ window.__REVIEW_PACKAGE__ = __REVIEW_PACKAGE_JSON__;
     </div>
     <div class="scroll" id="list"></div>
   </section>
+  <div class="resize-handle" id="resize-left" role="separator" aria-orientation="vertical" aria-label="Resize proposal list"></div>
   <section class="pane middle">
     <div class="scroll detail-scroll" id="detail"></div>
     <div class="action-bar">
@@ -155,13 +161,23 @@ window.__REVIEW_PACKAGE__ = __REVIEW_PACKAGE_JSON__;
       <button class="btn" id="no-data">Confirm no data</button>
       <button class="btn accept" id="accept">Accept</button>
       <button class="btn" id="next-proposal">Next</button>
+      <button class="btn" id="bulk-accept">Bulk accept pending</button>
       <div class="edit-row" id="edit-row">
         <input id="edit-value" placeholder="Corrected value">
         <button class="btn primary" id="save-edit">Save edit</button>
         <button class="btn" id="cancel-edit">Cancel</button>
       </div>
+      <div class="bulk-confirm" id="bulk-confirm">
+        <strong id="bulk-confirm-title">Bulk accept pending proposals?</strong>
+        <div>Only pending proposals in the current visible view will be accepted. Decisions are recorded with decision_source=human_bulk_accept.</div>
+        <div class="bulk-actions">
+          <button class="btn accept" id="confirm-bulk-accept">Confirm bulk accept</button>
+          <button class="btn" id="cancel-bulk-accept">Cancel</button>
+        </div>
+      </div>
     </div>
   </section>
+  <div class="resize-handle" id="resize-right" role="separator" aria-orientation="vertical" aria-label="Resize evidence panel"></div>
   <section class="pane right">
     <div class="pdf-toolbar">
       <button class="btn" id="pdf-prev">Prev page</button>
@@ -178,6 +194,12 @@ window.__REVIEW_PACKAGE__ = __REVIEW_PACKAGE_JSON__;
 const pkg = window.__REVIEW_PACKAGE__;
 const served = location.protocol.startsWith("http") && ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
 const localKey = `papersToTable.agentKit.decisions.${pkg.run_id}`;
+const layoutKey = `papersToTable.agentKit.layout.${pkg.run_id}`;
+const LEFT_PANE_MIN = 200;
+const LEFT_PANE_MAX = 760;
+const RIGHT_PANE_MIN = 240;
+const RIGHT_PANE_MAX = 960;
+const CENTER_PANE_MIN = 280;
 const state = {
   mode: "queue",
   filter: "pending",
@@ -191,11 +213,35 @@ const state = {
   pages: 0,
   zoom: 1.25,
   renderToken: 0,
+  resizeTarget: null,
+  leftPaneWidth: readStoredLayout().leftPaneWidth,
+  rightPaneWidth: readStoredLayout().rightPaneWidth,
   saveStatusKind: served ? "ready" : "download",
   saveStatusDetail: served
     ? "Localhost writeback is available."
     : "Decisions are saved only in this browser until downloaded."
 };
+
+function readStoredLayout() {
+  const fallback = {leftPaneWidth: 340, rightPaneWidth: 430};
+  try {
+    const parsed = JSON.parse(localStorage.getItem(layoutKey) || "{}");
+    return {
+      leftPaneWidth: Number.isFinite(Number(parsed.leftPaneWidth)) ? Number(parsed.leftPaneWidth) : fallback.leftPaneWidth,
+      rightPaneWidth: Number.isFinite(Number(parsed.rightPaneWidth)) ? Number(parsed.rightPaneWidth) : fallback.rightPaneWidth
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function storeLayout() {
+  try {
+    localStorage.setItem(layoutKey, JSON.stringify({leftPaneWidth: state.leftPaneWidth, rightPaneWidth: state.rightPaneWidth}));
+  } catch {
+    // Non-critical; layout remains usable with defaults.
+  }
+}
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -245,6 +291,12 @@ function proposalMatches(proposal) {
 
 function visibleProposals() {
   return (pkg.proposals || []).filter(proposalMatches);
+}
+
+function visiblePendingProposalIds() {
+  return visibleProposals()
+    .filter((proposal) => proposal.review_bucket !== "diagnostic" && decisionValue(proposal) === "pending")
+    .map((proposal) => proposal.proposal_id);
 }
 
 function loadLocalDecisions() {
@@ -345,7 +397,12 @@ function render() {
   document.getElementById("run-summary").textContent =
     `${pkg.run_id} - ${prog.reviewed} / ${prog.total} reviewed - ${prog.pending} pending`;
   document.getElementById("write-decisions").disabled = !served;
-  document.getElementById("export-csv").disabled = !served;
+  document.getElementById("export-bundle").disabled = !served;
+  const bulkIds = visiblePendingProposalIds();
+  document.getElementById("bulk-accept").disabled = bulkIds.length === 0;
+  document.getElementById("bulk-accept").textContent = bulkIds.length
+    ? `Bulk accept ${bulkIds.length} pending`
+    : "Bulk accept pending";
   renderSaveStatus();
   renderList();
   renderDetail();
@@ -578,7 +635,70 @@ async function writeDecisions() {
   }
 }
 
-async function exportCsv() {
+function showBulkConfirm() {
+  const count = visiblePendingProposalIds().length;
+  if (!count) return;
+  document.getElementById("bulk-confirm-title").textContent =
+    `Bulk accept ${count} pending proposal${count === 1 ? "" : "s"}?`;
+  document.getElementById("bulk-confirm").classList.add("visible");
+}
+
+function hideBulkConfirm() {
+  document.getElementById("bulk-confirm").classList.remove("visible");
+}
+
+async function bulkAcceptVisible() {
+  const proposalIds = visiblePendingProposalIds();
+  if (!proposalIds.length) {
+    hideBulkConfirm();
+    return;
+  }
+  hideBulkConfirm();
+  const decidedAt = new Date().toISOString();
+  if (served) {
+    setSaveStatus("syncing", `Bulk accepting ${proposalIds.length} pending proposal(s)...`);
+    renderSaveStatus();
+    try {
+      const response = await fetch("/api/bulk-accept", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({proposal_ids: proposalIds})
+      });
+      if (!response.ok) throw new Error(await response.text());
+      const payload = await response.json();
+      for (const decision of payload.decisions || []) {
+        state.decisions[decision.proposal_id] = decision;
+      }
+      storeLocalDecisions();
+      setSaveStatus("server", `Bulk accepted ${payload.accepted_count || 0} pending proposal(s) in review/decisions.jsonl.`);
+    } catch (error) {
+      setSaveStatus("error", `Bulk accept failed; no new server decisions were written: ${error.message || error}`);
+    }
+    render();
+    return;
+  }
+
+  for (const proposalId of proposalIds) {
+    const proposal = proposalById(proposalId);
+    if (!proposal || latestDecision(proposal)) continue;
+    state.decisions[proposalId] = {
+      review_decision_id: `rev_${proposalId}_${Date.now()}`,
+      run_id: pkg.run_id,
+      proposal_id: proposalId,
+      cell_id: proposal.cell_id,
+      decision: "accepted",
+      decision_source: "human_bulk_accept",
+      edited_value: null,
+      reviewer_note: "Bulk accepted in the standalone review UI.",
+      decided_at: decidedAt
+    };
+  }
+  storeLocalDecisions();
+  setSaveStatus("download", "Bulk decisions are saved only in this browser until downloaded.");
+  render();
+}
+
+async function exportReviewedBundle() {
   if (!served) {
     downloadDecisions();
     return;
@@ -590,7 +710,7 @@ async function exportCsv() {
     return;
   }
   const payload = await response.json();
-  alert(`Exported ${payload.accepted_changes_count} accepted value(s) to ${payload.final_table_path}`);
+  alert(`Exported ${payload.accepted_changes_count} accepted value(s) to ${payload.reviewed_bundle_path || payload.final_table_path}`);
 }
 
 async function loadPdfJs() {
@@ -648,6 +768,8 @@ async function renderCurrentPage(evidence) {
   const page = await state.pdfDoc.getPage(state.page);
   if (token !== state.renderToken) return;
   const viewport = page.getViewport({scale: state.zoom});
+  const [xMin, yMin, xMax, yMax] = page.view;
+  const pageBounds = {xMin, yMin, width: xMax - xMin, height: yMax - yMin};
   stage.innerHTML = '<div class="canvas-wrap"><canvas id="pdf-canvas"></canvas></div>';
   const canvas = document.getElementById("pdf-canvas");
   const wrap = stage.querySelector(".canvas-wrap");
@@ -662,7 +784,16 @@ async function renderCurrentPage(evidence) {
     quoteMatch = buildQuoteHighlightMatch(content.items, viewport, text);
   }
   let boxes = quoteMatch.boxes;
-  if (!boxes.length) boxes = regionBoxes(evidence, viewport);
+  let highlightKind = boxes.length ? "quote" : "";
+  if (!boxes.length) {
+    boxes = regionBoxes(evidence?.exact_highlight_regions || [], evidence, viewport, pageBounds, false);
+    highlightKind = boxes.length ? "exact" : "";
+  }
+  if (!boxes.length) {
+    boxes = regionBoxes(evidence?.approximate_highlight_regions || [], evidence, viewport, pageBounds, true);
+    highlightKind = boxes.length ? "approx" : "";
+  }
+  let firstHighlight = null;
   for (const box of boxes) {
     const div = document.createElement("div");
     div.className = `hl ${box.approx ? "approx" : ""}`;
@@ -671,6 +802,14 @@ async function renderCurrentPage(evidence) {
     div.style.width = `${box.w}px`;
     div.style.height = `${box.h}px`;
     wrap.appendChild(div);
+    if (!firstHighlight) firstHighlight = div;
+  }
+  if (firstHighlight) {
+    stage.scrollTo({
+      top: Math.max(firstHighlight.offsetTop - stage.clientHeight * 0.25, 0),
+      left: Math.max(firstHighlight.offsetLeft - stage.clientWidth * 0.25, 0),
+      behavior: "smooth"
+    });
   }
   const pdf = pdfById(evidence.pdf_id);
   document.getElementById("pdf-page").textContent = `${pdf?.label || evidence.pdf_id}, page ${state.page} / ${state.pages}`;
@@ -679,6 +818,11 @@ async function renderCurrentPage(evidence) {
     const note = document.createElement("div");
     note.className = "viewer-note";
     note.textContent = "Partial quote match highlighted; verify the highlighted span against the evidence text.";
+    stage.appendChild(note);
+  } else if (text && !quoteMatch.boxes.length && boxes.length) {
+    const note = document.createElement("div");
+    note.className = "viewer-note";
+    note.textContent = `${highlightKind === "exact" ? "Exact region" : "Approximate region"} fallback shown because the quote text did not match rendered PDF text.`;
     stage.appendChild(note);
   } else if (text && !quoteMatch.boxes.length && !boxes.length) {
     const note = document.createElement("div");
@@ -693,7 +837,16 @@ function clamp(value, min, max) {
 }
 
 function normalizeSearchText(text) {
-  return String(text || "").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
+  return String(text || "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/\u00a0/g, " ")
+    .replace(/[“”„‟«»]/g, '"')
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[‐‑‒–—−]/g, "-")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function tokenizeSearchText(text) {
@@ -822,19 +975,81 @@ function multiply(a, b) {
   ];
 }
 
-function regionBoxes(evidence, viewport) {
-  const regions = evidence?.exact_highlight_regions || evidence?.approximate_highlight_regions || [];
-  return regions.filter((region) => Number(region.page || evidence.page_number) === state.page).map((region) => {
-    const normalized = Math.max(Math.abs(region.x0), Math.abs(region.x1), Math.abs(region.y0), Math.abs(region.y1)) <= 1.05;
-    if (normalized) {
-      const x0 = Math.min(region.x0, region.x1);
-      const x1 = Math.max(region.x0, region.x1);
-      const y0 = Math.min(region.y0, region.y1);
-      const y1 = Math.max(region.y0, region.y1);
-      return {x: x0 * viewport.width, y: (1 - y1) * viewport.height, w: (x1 - x0) * viewport.width, h: (y1 - y0) * viewport.height, approx: true};
-    }
-    return {x: region.x0 * state.zoom, y: viewport.height - region.y1 * state.zoom, w: (region.x1 - region.x0) * state.zoom, h: (region.y1 - region.y0) * state.zoom, approx: true};
-  });
+function regionBoxes(regions, evidence, viewport, pageBounds, approx) {
+  return (regions || [])
+    .filter((region) => Number(region.page || evidence?.page_number) === state.page)
+    .map((region) => computeRegionBox(region, viewport, pageBounds, approx))
+    .filter((box) => box.w > 0.5 && box.h > 0.5);
+}
+
+function computeRegionBox(region, viewport, pageBounds, approx) {
+  const raw = [region.x0, region.y0, region.x1, region.y1].map(Number);
+  if (raw.some((value) => !Number.isFinite(value))) return {x: 0, y: 0, w: 0, h: 0, approx};
+  const [rawX0, rawY0, rawX1, rawY1] = raw;
+  const normalized = Math.max(Math.abs(rawX0), Math.abs(rawX1), Math.abs(rawY0), Math.abs(rawY1)) <= 1.05;
+  if (normalized) {
+    const xMin = clamp(Math.min(rawX0, rawX1), 0, 1);
+    const xMax = clamp(Math.max(rawX0, rawX1), 0, 1);
+    const yMin = clamp(Math.min(rawY0, rawY1), 0, 1);
+    const yMax = clamp(Math.max(rawY0, rawY1), 0, 1);
+    return {
+      x: xMin * viewport.width,
+      y: (1 - yMax) * viewport.height,
+      w: (xMax - xMin) * viewport.width,
+      h: (yMax - yMin) * viewport.height,
+      approx
+    };
+  }
+  const bounds = pageBounds || {xMin: 0, yMin: 0, width: viewport.width / state.zoom, height: viewport.height / state.zoom};
+  const xMin = clamp(Math.min(rawX0, rawX1), bounds.xMin, bounds.xMin + bounds.width);
+  const xMax = clamp(Math.max(rawX0, rawX1), bounds.xMin, bounds.xMin + bounds.width);
+  const yMin = clamp(Math.min(rawY0, rawY1), bounds.yMin, bounds.yMin + bounds.height);
+  const yMax = clamp(Math.max(rawY0, rawY1), bounds.yMin, bounds.yMin + bounds.height);
+  const scaleX = viewport.width / Math.max(bounds.width, 1);
+  const scaleY = viewport.height / Math.max(bounds.height, 1);
+  const x = (xMin - bounds.xMin) * scaleX;
+  const y = ((bounds.yMin + bounds.height) - yMax) * scaleY;
+  return {
+    x: clamp(x, 0, viewport.width),
+    y: clamp(y, 0, viewport.height),
+    w: clamp((xMax - xMin) * scaleX, 0, viewport.width - clamp(x, 0, viewport.width)),
+    h: clamp((yMax - yMin) * scaleY, 0, viewport.height - clamp(y, 0, viewport.height)),
+    approx
+  };
+}
+
+function applyLayout() {
+  document.documentElement.style.setProperty("--left-pane-width", `${state.leftPaneWidth}px`);
+  document.documentElement.style.setProperty("--right-pane-width", `${state.rightPaneWidth}px`);
+}
+
+function startResize(target) {
+  state.resizeTarget = target;
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
+  document.getElementById(target === "left" ? "resize-left" : "resize-right").classList.add("active");
+}
+
+function stopResize() {
+  if (!state.resizeTarget) return;
+  document.getElementById(state.resizeTarget === "left" ? "resize-left" : "resize-right").classList.remove("active");
+  state.resizeTarget = null;
+  document.body.style.cursor = "";
+  document.body.style.userSelect = "";
+  storeLayout();
+}
+
+function resizePane(event) {
+  if (!state.resizeTarget) return;
+  const rect = document.getElementById("workspace-layout").getBoundingClientRect();
+  if (state.resizeTarget === "left") {
+    const maxWidth = Math.min(LEFT_PANE_MAX, rect.width - state.rightPaneWidth - CENTER_PANE_MIN);
+    state.leftPaneWidth = clamp(event.clientX - rect.left, LEFT_PANE_MIN, maxWidth);
+  } else {
+    const maxWidth = Math.min(RIGHT_PANE_MAX, rect.width - state.leftPaneWidth - CENTER_PANE_MIN);
+    state.rightPaneWidth = clamp(rect.right - event.clientX, RIGHT_PANE_MIN, maxWidth);
+  }
+  applyLayout();
 }
 
 document.getElementById("mode-queue").addEventListener("click", () => {
@@ -866,9 +1081,12 @@ document.getElementById("save-edit").addEventListener("click", () => {
 document.getElementById("cancel-edit").addEventListener("click", () => document.getElementById("edit-row").classList.remove("visible"));
 document.getElementById("prev-proposal").addEventListener("click", () => moveSelection(-1));
 document.getElementById("next-proposal").addEventListener("click", () => moveSelection(1));
+document.getElementById("bulk-accept").addEventListener("click", showBulkConfirm);
+document.getElementById("confirm-bulk-accept").addEventListener("click", bulkAcceptVisible);
+document.getElementById("cancel-bulk-accept").addEventListener("click", hideBulkConfirm);
 document.getElementById("download-decisions").addEventListener("click", downloadDecisions);
 document.getElementById("write-decisions").addEventListener("click", writeDecisions);
-document.getElementById("export-csv").addEventListener("click", exportCsv);
+document.getElementById("export-bundle").addEventListener("click", exportReviewedBundle);
 document.getElementById("pdf-prev").addEventListener("click", async () => {
   if (!state.pdfDoc) return;
   state.page = Math.max(1, state.page - 1);
@@ -887,7 +1105,12 @@ document.getElementById("zoom-in").addEventListener("click", async () => {
   state.zoom = Math.min(2.5, +(state.zoom + .15).toFixed(2));
   await renderCurrentPage(currentProposal()?.evidence?.find((item) => item.evidence_id === state.selectedEvidenceId));
 });
+document.getElementById("resize-left").addEventListener("mousedown", () => startResize("left"));
+document.getElementById("resize-right").addEventListener("mousedown", () => startResize("right"));
+window.addEventListener("mousemove", resizePane);
+window.addEventListener("mouseup", stopResize);
 
+applyLayout();
 await loadServerDecisions();
 render();
 </script>

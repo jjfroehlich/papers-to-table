@@ -2,7 +2,7 @@
 
 `skills/papers-to-table-agent-kit/` is a standalone skill for agents that extract structured information from research publications, scientific PDFs, and technical documents into evidence-backed tables.
 
-The kit gives light extraction guidance and standardizes the handoff from agent extraction to human review: agents provide `review_input.json`, PDFs, and optional table/schema inputs; kit scripts generate the local review UI, normalized artifacts, decisions, audit logs, and accepted-only exports.
+The kit gives light extraction guidance and standardizes the handoff from agent extraction to human review: agents provide `review_input.json`, PDFs, and optional table/schema inputs; kit scripts generate the local review UI, normalized artifacts, an unreviewed draft filled table, decisions, audit logs, accepted-only exports, and a cleaned reviewed bundle.
 
 For document-to-table extraction, the default deliverable is the formal review package, not only `_filled.csv` outputs. Draft filled CSVs are allowed as secondary convenience files, but `_filled.csv` alone is incomplete unless the user explicitly requested CSV-only extraction. When a research report or synthesis benefits from it, accepted values can also be rendered as a concise summarizing table in addition to CSV outputs.
 
@@ -107,7 +107,11 @@ normalized/
   evidence.jsonl
 summaries/
   validation_report.json
+exports/
+  draft_filled_table.csv
 ```
+
+`exports/draft_filled_table.csv` is an unreviewed agent draft produced from proposed values so there is a usable table before review. It is not a human-reviewed output.
 
 After review/export, the kit writes:
 
@@ -115,10 +119,25 @@ After review/export, the kit writes:
 review/decisions.jsonl
 exports/final_table.csv
 exports/audit_log_*.json
+exports/diagnostics_*.json
+exports/reviewed_bundle/
+  filled_table_reviewed.csv
+  manifest.json
+  review/
+    decisions.jsonl
+    proposals.jsonl
+    evidence.jsonl
+  audit/
+    audit_log_*.json
+    diagnostics_*.json
+    reviewer_summary.json
+    validation_report.json
 summaries/reviewer_summary.json
 ```
 
 `exports/final_table.csv` includes only accepted and accepted-with-edit values. Rejected, pending, and confirmed-no-data proposals are preserved in audit artifacts but are not exported as filled values.
+
+`exports/reviewed_bundle/` is the cleaned folder for downstream use. It excludes copied PDFs, source tables, schemas, PDF.js assets, and review HTML.
 
 ## Applying Decisions
 

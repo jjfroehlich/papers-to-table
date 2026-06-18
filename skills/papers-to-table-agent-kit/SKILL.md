@@ -55,7 +55,9 @@ The kit provides:
 - visible weak-evidence labels
 - accept, accept-with-edit, reject, and confirmed-no-data decisions
 - decision download or localhost writeback
+- unreviewed draft `exports/draft_filled_table.csv` generated at build time
 - accepted-only `exports/final_table.csv`
+- cleaned reviewed folder export at `exports/reviewed_bundle/`
 - report-ready reviewed values that can be summarized in research reports when the task benefits from prose or table synthesis
 - optional future XLSX export
 
@@ -222,6 +224,8 @@ normalized/
   evidence.jsonl
 summaries/
   validation_report.json
+exports/
+  draft_filled_table.csv  # unreviewed agent draft from proposed values
 ```
 
 Generated only after review/export:
@@ -230,8 +234,23 @@ Generated only after review/export:
 review/decisions.jsonl
 exports/final_table.csv
 exports/audit_log_*.json
+exports/diagnostics_*.json
+exports/reviewed_bundle/
+  filled_table_reviewed.csv
+  manifest.json
+  review/
+    decisions.jsonl
+    proposals.jsonl
+    evidence.jsonl
+  audit/
+    audit_log_*.json
+    diagnostics_*.json
+    reviewer_summary.json
+    validation_report.json
 summaries/reviewer_summary.json
 ```
+
+`exports/reviewed_bundle/` is the shareable cleaned folder. It intentionally excludes copied input PDFs, `source_table.csv`, schema files, PDF.js assets, and review HTML.
 
 Optional future artifacts:
 
@@ -262,9 +281,10 @@ If any required review artifact is missing, or if no live review URL is availabl
 
 For benchmark tasks, it is acceptable to produce both a draft CSV and a review package:
 
-- `draft_completed_table.csv` or another clearly named draft CSV: agent-extracted, not human-reviewed
+- `exports/draft_filled_table.csv`, `draft_completed_table.csv`, or another clearly named draft CSV: agent-extracted, not human-reviewed
 - `review_input.json` plus the generated review UI: evidence-backed review package
 - `exports/final_table.csv`: accepted-only output after human review or after an explicit `--accept-all` decision
+- `exports/reviewed_bundle/filled_table_reviewed.csv`: reviewed/accepted table inside the cleaned reviewed bundle
 
 Final agent response after extraction should include:
 

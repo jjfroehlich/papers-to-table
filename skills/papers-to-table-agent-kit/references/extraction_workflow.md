@@ -139,9 +139,10 @@ Do not keep evidence only in scratch notes. Convert the supporting quote, table 
 
 For benchmark tasks, producing a draft CSV is useful but secondary:
 
-- `draft_completed_table.csv`, `_filled.csv`, or `completed_table.csv`: agent-extracted draft values, not human-reviewed
+- `exports/draft_filled_table.csv`, `draft_completed_table.csv`, `_filled.csv`, or `completed_table.csv`: agent-extracted draft values, not human-reviewed
 - `review_input.json` plus generated review files: evidence-backed review package
 - `exports/final_table.csv`: accepted-only table after human review or explicit `--accept-all`
+- `exports/reviewed_bundle/`: cleaned reviewed folder containing `filled_table_reviewed.csv` plus review/audit artifacts, excluding copied input PDFs, source table, schema files, and UI assets
 
 Do not imply that a draft CSV is reviewed. Label it as draft, agent-extracted, or unreviewed unless decisions have been applied.
 

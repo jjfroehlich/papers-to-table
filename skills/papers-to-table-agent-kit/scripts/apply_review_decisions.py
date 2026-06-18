@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -204,6 +205,7 @@ def write_audit_and_summary(
         )
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     audit_path = run_dir / "exports" / f"audit_log_{timestamp}.json"
+    diagnostics_path = run_dir / "exports" / f"diagnostics_{timestamp}.json"
     write_json(audit_path, {"generated_at": utc_now(), "entries": audit_entries})
     reviewer_summary = {
         "schema_version": "papers_to_table.agent_reviewer_summary.v1",
@@ -217,7 +219,7 @@ def write_audit_and_summary(
     }
     write_json(run_dir / "summaries" / "reviewer_summary.json", reviewer_summary)
     write_json(
-        run_dir / "exports" / f"diagnostics_{timestamp}.json",
+        diagnostics_path,
         {
             "schema_version": "papers_to_table.agent_export_diagnostics.v1",
             "generated_at": utc_now(),
@@ -226,7 +228,58 @@ def write_audit_and_summary(
             "final_table_path": str(final_table_path) if final_table_path else None,
         },
     )
-    return {"audit_log_path": str(audit_path), "reviewer_summary": reviewer_summary}
+    return {"audit_log_path": str(audit_path), "diagnostics_path": str(diagnostics_path), "reviewer_summary": reviewer_summary}
+
+
+def _copy_if_exists(source: Path, destination: Path) -> bool:
+    if not source.exists() or not source.is_file():
+        return False
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+    return True
+
+
+def build_reviewed_bundle(
+    run_dir: Path,
+    *,
+    final_table_path: Path,
+    decisions: list[dict[str, Any]],
+    proposals: list[dict[str, Any]],
+    audit_log_path: Path | None = None,
+    diagnostics_path: Path | None = None,
+) -> Path:
+    bundle_dir = run_dir / "exports" / "reviewed_bundle"
+    if bundle_dir.exists():
+        shutil.rmtree(bundle_dir)
+    (bundle_dir / "review").mkdir(parents=True, exist_ok=True)
+    (bundle_dir / "audit").mkdir(parents=True, exist_ok=True)
+
+    reviewed_table_path = bundle_dir / "filled_table_reviewed.csv"
+    shutil.copy2(final_table_path, reviewed_table_path)
+    _copy_if_exists(run_dir / "review" / "decisions.jsonl", bundle_dir / "review" / "decisions.jsonl")
+    _copy_if_exists(run_dir / "normalized" / "proposals.jsonl", bundle_dir / "review" / "proposals.jsonl")
+    _copy_if_exists(run_dir / "normalized" / "evidence.jsonl", bundle_dir / "review" / "evidence.jsonl")
+    _copy_if_exists(run_dir / "summaries" / "reviewer_summary.json", bundle_dir / "audit" / "reviewer_summary.json")
+    _copy_if_exists(run_dir / "summaries" / "validation_report.json", bundle_dir / "audit" / "validation_report.json")
+    if audit_log_path:
+        _copy_if_exists(audit_log_path, bundle_dir / "audit" / audit_log_path.name)
+    if diagnostics_path:
+        _copy_if_exists(diagnostics_path, bundle_dir / "audit" / diagnostics_path.name)
+
+    manifest = {
+        "schema_version": "papers_to_table.agent_reviewed_bundle.v1",
+        "run_id": proposals[0].get("run_id") if proposals else run_dir.name,
+        "generated_at": utc_now(),
+        "review_status": "reviewed_or_explicitly_decided",
+        "filled_table": "filled_table_reviewed.csv",
+        "decision_count": len(decisions),
+        "proposal_count": len(proposals),
+        "accepted_changes_count": sum(1 for decision in decisions if decision.get("decision") in ACCEPTED_DECISIONS),
+        "excluded_inputs": ["pdfs/", "source_table.csv", "schema.json", "schema.csv"],
+        "notes": "This folder excludes copied input files and review UI assets. Use review/ and audit/ for decision provenance.",
+    }
+    write_json(bundle_dir / "manifest.json", manifest)
+    return bundle_dir
 
 
 def apply_decisions(
@@ -260,6 +313,16 @@ def apply_decisions(
     decisions = write_latest_decisions(run_dir, new_decisions)
     final_table_path = export_final_table(run_dir, proposals, decisions, package) if export else None
     summaries = write_audit_and_summary(run_dir, proposals, decisions, final_table_path)
+    reviewed_bundle_path = None
+    if export and final_table_path is not None:
+        reviewed_bundle_path = build_reviewed_bundle(
+            run_dir,
+            final_table_path=final_table_path,
+            decisions=decisions,
+            proposals=proposals,
+            audit_log_path=Path(summaries["audit_log_path"]) if summaries.get("audit_log_path") else None,
+            diagnostics_path=Path(summaries["diagnostics_path"]) if summaries.get("diagnostics_path") else None,
+        )
     accepted_count = sum(1 for decision in decisions if decision.get("decision") in ACCEPTED_DECISIONS)
     return {
         "run_id": run_id,
@@ -267,6 +330,7 @@ def apply_decisions(
         "decision_count": len(decisions),
         "accepted_changes_count": accepted_count,
         "final_table_path": str(final_table_path) if final_table_path else None,
+        "reviewed_bundle_path": str(reviewed_bundle_path) if reviewed_bundle_path else None,
         **summaries,
     }
 
@@ -295,6 +359,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"decision_count: {result['decision_count']}")
         if result.get("final_table_path"):
             print(f"final_table: {Path(result['final_table_path']).resolve()}")
+        if result.get("reviewed_bundle_path"):
+            print(f"reviewed_bundle: {Path(result['reviewed_bundle_path']).resolve()}")
         print(f"audit_log: {Path(result['audit_log_path']).resolve()}")
     return 0
 

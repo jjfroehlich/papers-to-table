@@ -29,6 +29,7 @@ from review_package_common import (  # noqa: E402
     stable_id,
     text_evidence_value,
     utc_now,
+    write_csv,
     write_json,
     write_jsonl,
 )
@@ -486,6 +487,76 @@ def _build_review_package(
     }
 
 
+def _draft_rows_and_fields(
+    table_rows: list[dict[str, str]],
+    table_fieldnames: list[str],
+    rows: list[dict[str, Any]],
+    columns: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[str], dict[str, dict[str, Any]]]:
+    if table_rows:
+        out_rows = [dict(row) for row in table_rows]
+        fieldnames = list(table_fieldnames)
+        row_map: dict[str, dict[str, Any]] = {}
+        for index, row in enumerate(out_rows):
+            row_id = str(row.get("row_id") or "").strip() or stable_id("row", index, row)
+            row.setdefault("row_id", row_id)
+            row_map[row_id] = row
+        return out_rows, fieldnames, row_map
+
+    fieldnames = ["row_id", "pdf_id"]
+    for column in columns:
+        name = str(column.get("column_name") or "").strip()
+        if name and name not in fieldnames:
+            fieldnames.append(name)
+    out_rows = []
+    row_map = {}
+    for row in rows:
+        row_id = str(row.get("row_id") or "").strip()
+        values = dict(row.get("values") if isinstance(row.get("values"), dict) else {})
+        values.setdefault("row_id", row_id)
+        values.setdefault("pdf_id", row.get("pdf_id") or "")
+        for key in values:
+            if key not in fieldnames:
+                fieldnames.append(key)
+        out_rows.append(values)
+        row_map[row_id] = values
+    return out_rows, fieldnames, row_map
+
+
+def _write_draft_filled_table(
+    run_dir: Path,
+    table_rows: list[dict[str, str]],
+    table_fieldnames: list[str],
+    rows: list[dict[str, Any]],
+    columns: list[dict[str, Any]],
+    proposals: list[dict[str, Any]],
+) -> Path:
+    out_rows, fieldnames, rows_by_id = _draft_rows_and_fields(table_rows, table_fieldnames, rows, columns)
+    for proposal in proposals:
+        if not is_non_empty(proposal.get("proposed_value")):
+            continue
+        row_id = str(proposal.get("row_id") or "").strip()
+        if not row_id:
+            continue
+        if row_id not in rows_by_id:
+            row = {"row_id": row_id, "pdf_id": proposal.get("pdf_id") or ""}
+            rows_by_id[row_id] = row
+            out_rows.append(row)
+            for field in ("row_id", "pdf_id"):
+                if field not in fieldnames:
+                    fieldnames.append(field)
+        column_name = str(proposal.get("column_name") or "").strip()
+        if not column_name:
+            continue
+        if column_name not in fieldnames:
+            fieldnames.append(column_name)
+        rows_by_id[row_id][column_name] = proposal.get("proposed_value") or ""
+
+    out_path = run_dir / "exports" / "draft_filled_table.csv"
+    write_csv(out_path, out_rows, fieldnames)
+    return out_path
+
+
 def _write_review_html(run_dir: Path, package: dict[str, Any]) -> Path:
     template = _template_path().read_text(encoding="utf-8")
     package_json = json.dumps(package, ensure_ascii=False).replace("</", "<\\/")
@@ -530,6 +601,7 @@ def build_review_package(run_dir: Path, *, from_review_input: bool = True) -> di
     write_jsonl(run_dir / "normalized" / "proposals.jsonl", proposals)
     write_jsonl(run_dir / "normalized" / "evidence.jsonl", evidence)
     write_json(run_dir / "review" / "review_package.json", package)
+    draft_table_path = _write_draft_filled_table(run_dir, table_rows, table_fieldnames, rows, columns, proposals)
     html_path = _write_review_html(run_dir, package)
     copied_assets = _copy_pdfjs_assets(run_dir)
     generated_report = validate_generated(run_dir)
@@ -546,6 +618,7 @@ def build_review_package(run_dir: Path, *, from_review_input: bool = True) -> di
         "proposals_path": str(run_dir / "normalized" / "proposals.jsonl"),
         "evidence_path": str(run_dir / "normalized" / "evidence.jsonl"),
         "validation_report_path": str(run_dir / "summaries" / "validation_report.json"),
+        "draft_filled_table_path": str(draft_table_path),
         "pdfjs_assets_copied": bool(copied_assets),
     }
 
@@ -565,6 +638,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"review_package: {Path(result['review_package_path']).resolve()}")
         print(f"proposals: {Path(result['proposals_path']).resolve()}")
         print(f"evidence: {Path(result['evidence_path']).resolve()}")
+        print(f"draft_filled_table: {Path(result['draft_filled_table_path']).resolve()}")
         if not result["pdfjs_assets_copied"]:
             print("warning: PDF.js assets were not copied; the review UI will use browser PDF fallback.")
     return 0

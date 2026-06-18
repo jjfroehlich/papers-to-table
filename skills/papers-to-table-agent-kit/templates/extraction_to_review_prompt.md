@@ -84,8 +84,9 @@ You may also produce clearly named draft `_filled.csv` files for convenience, bu
 
 For benchmark tasks, use draft CSV names and review status precisely:
 
-- `draft_completed_table.csv`, `_filled.csv`, or `completed_table.csv`: agent-extracted draft values, not human-reviewed
+- `exports/draft_filled_table.csv`, `draft_completed_table.csv`, `_filled.csv`, or `completed_table.csv`: agent-extracted draft values, not human-reviewed
 - `exports/final_table.csv`: accepted-only table after human review or explicit `--accept-all`
+- `exports/reviewed_bundle/filled_table_reviewed.csv`: reviewed/accepted table inside the cleaned reviewed bundle
 
 If the broader task includes a literature review, research memo, or technical report, you may also render reviewed values as a concise summarizing table. Clearly label values as human-reviewed, auto-accepted, agent-extracted, or draft/unreviewed.
 
@@ -106,4 +107,4 @@ Report:
 - validation status
 - `review_url` if the UI is running
 - the exact serve command if the UI could not be kept running
-- paths to optional draft `_filled.csv` files
+- paths to `exports/draft_filled_table.csv`, any optional draft `_filled.csv` files, and `exports/reviewed_bundle/` after review/export

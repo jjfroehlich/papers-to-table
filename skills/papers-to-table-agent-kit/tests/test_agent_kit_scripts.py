@@ -184,6 +184,7 @@ def test_authoring_validation_and_build_generate_mvp_artifacts() -> None:
         assert (run_dir / "normalized" / "proposals.jsonl").exists()
         assert (run_dir / "normalized" / "evidence.jsonl").exists()
         assert (run_dir / "summaries" / "validation_report.json").exists()
+        assert (run_dir / "exports" / "draft_filled_table.csv").exists()
 
         proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
         evidence = read_jsonl(run_dir / "normalized" / "evidence.jsonl")
@@ -192,6 +193,24 @@ def test_authoring_validation_and_build_generate_mvp_artifacts() -> None:
         assert any(proposal["evidence_status"] == "inferred_weak" for proposal in proposals)
         assert (run_dir / "review" / "assets" / "pdf.mjs").exists()
         assert (run_dir / "review" / "assets" / "pdf.worker.mjs").exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_build_writes_unreviewed_draft_filled_table_before_decisions() -> None:
+    tmp_path = make_workspace("draft_table")
+    try:
+        run_dir = make_run(tmp_path)
+
+        result = build_package(run_dir)
+
+        draft_path = run_dir / "exports" / "draft_filled_table.csv"
+        draft_rows = read_csv(draft_path)
+        assert result["draft_filled_table_path"] == str(draft_path)
+        assert draft_rows[0]["Finding"] == "directly supported value"
+        assert draft_rows[1]["Weak field"] == "weakly inferred value"
+        assert draft_rows[1]["Finding"] == ""
+        assert not (run_dir / "review" / "decisions.jsonl").exists()
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -436,9 +455,75 @@ def test_apply_decisions_exports_accepted_only_csv() -> None:
 
         final_rows = read_csv(run_dir / "exports" / "final_table.csv")
         assert result["accepted_changes_count"] == 2
+        assert result["reviewed_bundle_path"] == str(run_dir / "exports" / "reviewed_bundle")
         assert final_rows[0]["Finding"] == "directly supported value"
         assert final_rows[1]["Weak field"] == "reviewer edited value"
         assert final_rows[1]["Finding"] == ""
+
+        bundle_dir = run_dir / "exports" / "reviewed_bundle"
+        assert sorted(path.name for path in bundle_dir.iterdir()) == ["audit", "filled_table_reviewed.csv", "manifest.json", "review"]
+        assert sorted(path.name for path in (bundle_dir / "review").iterdir()) == ["decisions.jsonl", "evidence.jsonl", "proposals.jsonl"]
+        audit_files = sorted(path.name for path in (bundle_dir / "audit").iterdir())
+        assert "reviewer_summary.json" in audit_files
+        assert "validation_report.json" in audit_files
+        assert any(name.startswith("audit_log_") for name in audit_files)
+        assert any(name.startswith("diagnostics_") for name in audit_files)
+        assert read_csv(bundle_dir / "filled_table_reviewed.csv") == final_rows
+        forbidden = {"pdfs", "source_table.csv", "schema.json", "schema.csv", "index.html", "assets"}
+        assert forbidden.isdisjoint({path.name for path in bundle_dir.rglob("*")})
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_serve_review_bulk_accepts_only_provided_pending_ids() -> None:
+    tmp_path = make_workspace("bulk_endpoint")
+    try:
+        run_dir = make_run(tmp_path)
+        build_package(run_dir)
+        proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
+        server, url = serve(run_dir, open_browser=False, quiet=True)
+        try:
+            base_url = url.rsplit("/review/", 1)[0]
+            existing_payload = json.dumps(
+                {
+                    "decisions": [
+                        {
+                            "proposal_id": proposals[0]["proposal_id"],
+                            "cell_id": proposals[0]["cell_id"],
+                            "decision": "rejected",
+                        }
+                    ]
+                }
+            ).encode("utf-8")
+            existing_request = urllib.request.Request(
+                base_url + "/api/decisions",
+                data=existing_payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(existing_request, timeout=5) as response:
+                assert response.status == 200
+
+            bulk_payload = json.dumps(
+                {"proposal_ids": [proposals[0]["proposal_id"], proposals[1]["proposal_id"], "missing"]}
+            ).encode("utf-8")
+            bulk_request = urllib.request.Request(
+                base_url + "/api/bulk-accept",
+                data=bulk_payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(bulk_request, timeout=5) as response:
+                result = json.loads(response.read().decode("utf-8"))
+
+            decisions = read_jsonl(run_dir / "review" / "decisions.jsonl")
+            assert result["accepted_count"] == 1
+            by_proposal = {decision["proposal_id"]: decision for decision in decisions}
+            assert by_proposal[proposals[0]["proposal_id"]]["decision"] == "rejected"
+            assert by_proposal[proposals[1]["proposal_id"]]["decision"] == "accepted"
+            assert by_proposal[proposals[1]["proposal_id"]]["decision_source"] == "human_bulk_accept"
+        finally:
+            server.shutdown()
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -458,6 +543,11 @@ def test_serve_review_writes_decisions_and_exports() -> None:
             assert "Saved locally" in html
             assert "Saved to server" in html
             assert "Partial quote match highlighted" in html
+            assert "resize-left" in html
+            assert "Export reviewed bundle" in html
+            assert "decision_source=human_bulk_accept" in html
+            assert "Text fallback - exact highlighting unavailable" in html
+            assert "fallback shown because the quote text did not match rendered PDF text" in html
 
             payload = json.dumps(
                 {
@@ -484,8 +574,10 @@ def test_serve_review_writes_decisions_and_exports() -> None:
             with urllib.request.urlopen(export_request, timeout=5) as response:
                 export_result = json.loads(response.read().decode("utf-8"))
             assert export_result["ok"] is True
+            assert export_result["reviewed_bundle_path"] == str(run_dir / "exports" / "reviewed_bundle")
             assert (run_dir / "review" / "decisions.jsonl").exists()
             assert (run_dir / "exports" / "final_table.csv").exists()
+            assert (run_dir / "exports" / "reviewed_bundle" / "filled_table_reviewed.csv").exists()
         finally:
             server.shutdown()
     finally:

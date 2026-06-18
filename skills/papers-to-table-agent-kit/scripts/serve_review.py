@@ -17,7 +17,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from apply_review_decisions import apply_decisions, write_latest_decisions  # noqa: E402
-from review_package_common import DECISIONS, read_jsonl, stable_id, utc_now  # noqa: E402
+from review_package_common import DECISIONS, latest_decisions, read_jsonl, stable_id, utc_now  # noqa: E402
 
 
 def _json_bytes(payload: Any) -> bytes:
@@ -121,6 +121,42 @@ def make_handler(run_dir: Path):
                     self._send_json(422, {"ok": False, "error": str(exc)})
                     return
                 self._send_json(200, {"ok": True, "decision_count": len(decisions), "decisions": decisions})
+                return
+            if self.path == "/api/bulk-accept":
+                try:
+                    payload = json.loads(body.decode("utf-8"))
+                    proposal_ids = payload.get("proposal_ids", []) if isinstance(payload, dict) else []
+                    if not isinstance(proposal_ids, list):
+                        raise ValueError("Expected proposal_ids to be a list.")
+                    proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
+                    proposal_map = {str(proposal.get("proposal_id")): proposal for proposal in proposals if proposal.get("proposal_id")}
+                    existing_latest = latest_decisions(read_jsonl(run_dir / "review" / "decisions.jsonl"))
+                    run_id = str(proposals[0].get("run_id") or run_dir.name) if proposals else run_dir.name
+                    decided_at = utc_now()
+                    rows = []
+                    for raw_id in proposal_ids:
+                        proposal_id = str(raw_id or "").strip()
+                        proposal = proposal_map.get(proposal_id)
+                        if proposal is None or proposal_id in existing_latest:
+                            continue
+                        rows.append(
+                            {
+                                "review_decision_id": stable_id("rev", proposal_id, "human_bulk_accept", decided_at),
+                                "run_id": run_id,
+                                "proposal_id": proposal_id,
+                                "cell_id": proposal.get("cell_id"),
+                                "decision": "accepted",
+                                "decision_source": "human_bulk_accept",
+                                "edited_value": None,
+                                "reviewer_note": "Bulk accepted in the standalone review UI.",
+                                "decided_at": decided_at,
+                            }
+                        )
+                    decisions = write_latest_decisions(run_dir, rows)
+                except Exception as exc:
+                    self._send_json(422, {"ok": False, "error": str(exc)})
+                    return
+                self._send_json(200, {"ok": True, "accepted_count": len(rows), "decision_count": len(decisions), "decisions": rows})
                 return
             if self.path == "/api/export":
                 try:
