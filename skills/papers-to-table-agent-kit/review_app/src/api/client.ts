@@ -270,7 +270,7 @@ function localReviewTable(): ReviewTableData {
 
 function pdfAssetPath(pdfId: string): string {
   const pdf = (packageData().pdfs ?? []).find((item) => item.pdf_id === pdfId)
-  return pdf?.asset_path ?? (pdf?.path ? `../${pdf.path}` : '#')
+  return pdf?.asset_path ?? (pdf?.path ?? '#')
 }
 
 function downloadJson(filename: string, payload: unknown) {
@@ -384,21 +384,20 @@ export const api = {
 
   triggerExport: async (): Promise<ExportResult> => {
     if (!served) {
-      throw new Error('Export reviewed bundle requires localhost serving. Download decisions and apply them with serve_review.py or apply_review_decisions.py.')
+      throw new Error('Export reviewed table requires localhost serving. Download decisions and apply them with apply_review_decisions.py.')
     }
     const result = await request<Record<string, unknown>>('/api/export', { method: 'POST', body: '{}' })
     return {
       run_id: String(result.run_id ?? packageData().run_id),
       exported_at: new Date().toISOString(),
       accepted_changes_count: Number(result.accepted_changes_count ?? 0),
-      workbook_path: String(result.final_table_path ?? ''),
-      final_table_path: String(result.final_table_path ?? ''),
-      reviewed_bundle_path: String(result.reviewed_bundle_path ?? ''),
+      workbook_path: String(result.reviewed_table_path ?? ''),
+      reviewed_table_path: String(result.reviewed_table_path ?? ''),
       audit_log_path: String(result.audit_log_path ?? ''),
       diagnostics_path: String(result.diagnostics_path ?? ''),
       unsupported_feature_warnings: [],
       unsupported_feature_warnings_count: 0,
-      fidelity_boundary: 'standalone_reviewed_bundle',
+      fidelity_boundary: 'standalone_reviewed_table',
     }
   },
 

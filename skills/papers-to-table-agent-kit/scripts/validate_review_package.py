@@ -20,13 +20,22 @@ from review_package_common import (  # noqa: E402
     PROPOSAL_STATUSES,
     REVIEW_BUCKETS,
     REVIEW_INPUT_SCHEMA_VERSION,
+    decisions_path,
     evidence_tier,
+    evidence_path,
+    extraction_summary_path,
+    filled_table_path,
+    human_review_dir,
     is_finite_number,
     is_non_empty,
     load_review_input,
     normalized_regions,
+    proposals_path,
     read_json,
     read_jsonl,
+    resolve_input_path,
+    review_package_path,
+    validation_report_path,
     write_json,
 )
 
@@ -123,6 +132,12 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
     if not version:
         warnings.append("review_input.json is missing schema_version; assuming papers_to_table.review_input.v1.")
 
+    output_name = str(payload.get("output_table_name") or "").strip()
+    if not output_name:
+        errors.append("review_input.json must include output_table_name.")
+    elif not output_name.lower().endswith(".csv"):
+        warnings.append("output_table_name should end with .csv.")
+
     pdfs = payload.get("pdfs")
     if not isinstance(pdfs, list) or not pdfs:
         errors.append("review_input.json must include a non-empty pdfs list.")
@@ -143,10 +158,18 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
         if not path_value:
             errors.append(f"pdfs[{index}] is missing path.")
         else:
-            path = (run_dir / path_value).resolve() if not Path(path_value).is_absolute() else Path(path_value)
+            path = resolve_input_path(run_dir, path_value)
             if not path.exists():
                 errors.append(f"PDF file does not exist for pdf_id={pdf_id}: {path_value}")
     counts["pdfs"] = len(pdf_ids)
+
+    for field_name in ("source_table_path", "schema_path"):
+        value = str(payload.get(field_name) or "").strip()
+        if not value:
+            continue
+        path = resolve_input_path(run_dir, value)
+        if not path.exists():
+            errors.append(f"{field_name} does not exist: {value}")
 
     columns = payload.get("columns") if isinstance(payload.get("columns"), list) else []
     column_names = {str(item.get("column_name") or "").strip() for item in columns if isinstance(item, dict)}
@@ -268,38 +291,52 @@ def validate_generated(run_dir: Path) -> dict[str, Any]:
     run_dir = run_dir.resolve()
     errors: list[str] = []
     warnings: list[str] = []
-    counts = {"proposals": 0, "evidence": 0, "decisions": 0, "exports": 0}
+    counts = {"proposals": 0, "evidence": 0, "decisions": 0, "tables": 0}
+    try:
+        payload = load_review_input(run_dir)
+    except Exception as exc:
+        return _report("generated", [str(exc)], warnings, counts)
 
     required = [
-        "review/index.html",
-        "review/review_package.json",
-        "normalized/proposals.jsonl",
-        "normalized/evidence.jsonl",
-        "summaries/validation_report.json",
+        proposals_path(run_dir).relative_to(run_dir).as_posix(),
+        evidence_path(run_dir).relative_to(run_dir).as_posix(),
+        validation_report_path(run_dir).relative_to(run_dir).as_posix(),
+        extraction_summary_path(run_dir).relative_to(run_dir).as_posix(),
+        filled_table_path(run_dir, payload).relative_to(run_dir).as_posix(),
     ]
     for rel in required:
         if not (run_dir / rel).exists():
             errors.append(f"Missing generated artifact: {rel}")
 
+    review_dir = human_review_dir(run_dir)
+    has_human_review = review_dir.exists()
+    if has_human_review:
+        for rel_path in (review_dir / "index.html", review_package_path(run_dir)):
+            if not rel_path.exists():
+                errors.append(f"Missing generated artifact: {rel_path.relative_to(run_dir).as_posix()}")
+
     if errors:
         return _report("generated", errors, warnings, counts)
 
-    try:
-        package = read_json(run_dir / "review" / "review_package.json")
-    except Exception as exc:
-        errors.append(f"Cannot read review/review_package.json: {exc}")
-        package = {}
-    proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
-    evidence = read_jsonl(run_dir / "normalized" / "evidence.jsonl")
+    package = {}
+    if has_human_review:
+        try:
+            package = read_json(review_package_path(run_dir))
+        except Exception as exc:
+            errors.append(f"Cannot read human_review/review_package.json: {exc}")
+            package = {}
+    proposals = read_jsonl(proposals_path(run_dir))
+    evidence = read_jsonl(evidence_path(run_dir))
     counts["proposals"] = len(proposals)
     counts["evidence"] = len(evidence)
+    counts["tables"] = 1
 
     proposal_ids = {str(item.get("proposal_id")) for item in proposals if item.get("proposal_id")}
     evidence_ids = {str(item.get("evidence_id")) for item in evidence if item.get("evidence_id")}
     if len(proposal_ids) != len(proposals):
-        errors.append("normalized/proposals.jsonl contains duplicate or missing proposal_id values.")
+        errors.append("extraction/proposals.jsonl contains duplicate or missing proposal_id values.")
     if len(evidence_ids) != len(evidence):
-        errors.append("normalized/evidence.jsonl contains duplicate or missing evidence_id values.")
+        errors.append("extraction/evidence.jsonl contains duplicate or missing evidence_id values.")
     for index, proposal in enumerate(proposals):
         for field in ["proposal_id", "run_id", "row_id", "column_name", "cell_id", "proposal_status", "evidence_status", "review_bucket", "evidence_ids"]:
             if field not in proposal:
@@ -327,7 +364,7 @@ def validate_generated(run_dir: Path) -> dict[str, Any]:
             errors.append(f"evidence {item.get('evidence_id')} has invalid evidence_status.")
         if item.get("review_bucket") not in REVIEW_BUCKETS:
             errors.append(f"evidence {item.get('evidence_id')} has invalid review_bucket.")
-        context = f"normalized/evidence.jsonl[{index}]"
+        context = f"extraction/evidence.jsonl[{index}]"
         _validate_regions(
             item.get("exact_highlight_regions"),
             context=context,
@@ -346,24 +383,19 @@ def validate_generated(run_dir: Path) -> dict[str, Any]:
         )
 
     pdfs = package.get("pdfs") if isinstance(package, dict) else []
-    if isinstance(pdfs, list):
+    if has_human_review and isinstance(pdfs, list):
         for pdf in pdfs:
             if not isinstance(pdf, dict):
                 continue
-            path_value = str(pdf.get("asset_path") or pdf.get("path") or "").strip()
+            path_value = str(pdf.get("path") or "").strip()
             if path_value:
-                path = (run_dir / "review" / path_value).resolve()
-                try:
-                    path.relative_to(run_dir)
-                except ValueError:
-                    errors.append(f"PDF asset path escapes run directory: {path_value}")
-                    continue
+                path = resolve_input_path(run_dir, path_value)
                 if not path.exists():
-                    errors.append(f"PDF asset is missing: {path_value}")
+                    errors.append(f"PDF source is missing: {path_value}")
 
-    decisions_path = run_dir / "review" / "decisions.jsonl"
-    if decisions_path.exists():
-        decisions = read_jsonl(decisions_path)
+    decision_file = decisions_path(run_dir)
+    if decision_file.exists():
+        decisions = read_jsonl(decision_file)
         counts["decisions"] = len(decisions)
         for decision in decisions:
             if decision.get("proposal_id") not in proposal_ids:
@@ -371,21 +403,18 @@ def validate_generated(run_dir: Path) -> dict[str, Any]:
             if decision.get("decision") not in DECISIONS:
                 errors.append(f"decision {decision.get('review_decision_id')} has invalid decision {decision.get('decision')!r}.")
 
-    exports_dir = run_dir / "exports"
-    if exports_dir.exists():
-        counts["exports"] = len([path for path in exports_dir.iterdir() if path.is_file()])
     return _report("generated", errors, warnings, counts)
 
 
 def persist_report(run_dir: Path, report: dict[str, Any]) -> None:
-    write_json(run_dir / "summaries" / "validation_report.json", report)
+    write_json(validation_report_path(run_dir), report)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate a papers-to-table rich agent-kit review package.")
     parser.add_argument("--run", required=True, help="Path to the run directory.")
     parser.add_argument("--mode", choices=["authoring", "generated"], default="authoring")
-    parser.add_argument("--write-report", action="store_true", help="Write summaries/validation_report.json.")
+    parser.add_argument("--write-report", action="store_true", help="Write extraction/validation_report.json.")
     parser.add_argument("--json", action="store_true", help="Print machine-readable validation output.")
     args = parser.parse_args(argv)
 

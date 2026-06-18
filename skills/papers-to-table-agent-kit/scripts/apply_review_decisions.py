@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,10 +15,16 @@ if str(SCRIPT_DIR) not in sys.path:
 from review_package_common import (  # noqa: E402
     ACCEPTED_DECISIONS,
     DECISIONS,
+    decisions_path,
     latest_decisions,
     read_csv,
     read_json,
     read_jsonl,
+    review_package_path,
+    reviewed_table_path,
+    proposals_path,
+    resolve_input_path,
+    reviewer_summary_path,
     stable_id,
     utc_now,
     write_csv,
@@ -29,19 +34,19 @@ from review_package_common import (  # noqa: E402
 
 
 def _load_package(run_dir: Path) -> dict[str, Any]:
-    path = run_dir / "review" / "review_package.json"
+    path = review_package_path(run_dir)
     if not path.exists():
-        raise FileNotFoundError("Missing review/review_package.json. Run build_review_package.py first.")
+        raise FileNotFoundError("Missing human_review/review_package.json. Build with --with-review first.")
     payload = read_json(path)
     if not isinstance(payload, dict):
-        raise ValueError("review/review_package.json must contain an object.")
+        raise ValueError("human_review/review_package.json must contain an object.")
     return payload
 
 
 def _load_proposals(run_dir: Path) -> list[dict[str, Any]]:
-    proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
+    proposals = read_jsonl(proposals_path(run_dir))
     if not proposals:
-        raise FileNotFoundError("Missing normalized/proposals.jsonl. Run build_review_package.py first.")
+        raise FileNotFoundError("Missing extraction/proposals.jsonl. Run build_review_package.py first.")
     return proposals
 
 
@@ -97,17 +102,19 @@ def _auto_accept_decisions(proposals: list[dict[str, Any]], *, run_id: str) -> l
 
 
 def write_latest_decisions(run_dir: Path, new_decisions: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    existing = read_jsonl(run_dir / "review" / "decisions.jsonl")
+    existing = read_jsonl(decisions_path(run_dir))
     latest = latest_decisions([*existing, *new_decisions])
     rows = list(latest.values())
     rows.sort(key=lambda row: (str(row.get("proposal_id") or ""), str(row.get("decided_at") or "")))
-    write_jsonl(run_dir / "review" / "decisions.jsonl", rows)
+    write_jsonl(decisions_path(run_dir), rows)
     return rows
 
 
 def _base_rows_and_fields(run_dir: Path, package: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str], dict[str, dict[str, Any]]]:
-    source_table = run_dir / "source_table.csv"
-    if source_table.exists():
+    source = package.get("source") if isinstance(package.get("source"), dict) else {}
+    source_table_value = str(source.get("source_table_path") or "").strip()
+    if source_table_value:
+        source_table = resolve_input_path(run_dir, source_table_value)
         rows, fieldnames = read_csv(source_table)
         row_map: dict[str, dict[str, Any]] = {}
         for index, row in enumerate(rows):
@@ -144,7 +151,7 @@ def _export_value(proposal: dict[str, Any], decision: dict[str, Any]) -> Any:
     return proposal.get("proposed_value") or ""
 
 
-def export_final_table(run_dir: Path, proposals: list[dict[str, Any]], decisions: list[dict[str, Any]], package: dict[str, Any]) -> Path:
+def export_reviewed_table(run_dir: Path, proposals: list[dict[str, Any]], decisions: list[dict[str, Any]], package: dict[str, Any]) -> Path:
     rows, fieldnames, rows_by_id = _base_rows_and_fields(run_dir, package)
     latest = latest_decisions(decisions)
     for proposal in proposals:
@@ -163,7 +170,8 @@ def export_final_table(run_dir: Path, proposals: list[dict[str, Any]], decisions
         if column and column not in fieldnames:
             fieldnames.append(column)
         rows_by_id[row_id][column] = _export_value(proposal, decision)
-    out_path = run_dir / "exports" / "final_table.csv"
+    source = package.get("source") if isinstance(package.get("source"), dict) else {}
+    out_path = reviewed_table_path(run_dir, {"output_table_name": source.get("output_table_name")})
     write_csv(out_path, rows, fieldnames)
     return out_path
 
@@ -172,7 +180,7 @@ def write_audit_and_summary(
     run_dir: Path,
     proposals: list[dict[str, Any]],
     decisions: list[dict[str, Any]],
-    final_table_path: Path | None,
+    reviewed_table: Path | None,
 ) -> dict[str, Any]:
     latest = latest_decisions(decisions)
     counts = {"accepted": 0, "accepted_with_edit": 0, "rejected": 0, "confirmed_no_data": 0, "pending": 0}
@@ -204,8 +212,8 @@ def write_audit_and_summary(
             }
         )
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    audit_path = run_dir / "exports" / f"audit_log_{timestamp}.json"
-    diagnostics_path = run_dir / "exports" / f"diagnostics_{timestamp}.json"
+    audit_path = run_dir / "human_review" / f"audit_log_{timestamp}.json"
+    diagnostics_path = run_dir / "human_review" / f"diagnostics_{timestamp}.json"
     write_json(audit_path, {"generated_at": utc_now(), "entries": audit_entries})
     reviewer_summary = {
         "schema_version": "papers_to_table.agent_reviewer_summary.v1",
@@ -215,9 +223,9 @@ def write_audit_and_summary(
         **counts,
         "explicitly_accepted": counts["accepted"] + counts["accepted_with_edit"],
         "generated_at": utc_now(),
-        "final_table_path": str(final_table_path) if final_table_path else None,
+        "reviewed_table_path": str(reviewed_table) if reviewed_table else None,
     }
-    write_json(run_dir / "summaries" / "reviewer_summary.json", reviewer_summary)
+    write_json(reviewer_summary_path(run_dir), reviewer_summary)
     write_json(
         diagnostics_path,
         {
@@ -225,61 +233,10 @@ def write_audit_and_summary(
             "generated_at": utc_now(),
             "decision_counts": counts,
             "accepted_only_export": True,
-            "final_table_path": str(final_table_path) if final_table_path else None,
+            "reviewed_table_path": str(reviewed_table) if reviewed_table else None,
         },
     )
     return {"audit_log_path": str(audit_path), "diagnostics_path": str(diagnostics_path), "reviewer_summary": reviewer_summary}
-
-
-def _copy_if_exists(source: Path, destination: Path) -> bool:
-    if not source.exists() or not source.is_file():
-        return False
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source, destination)
-    return True
-
-
-def build_reviewed_bundle(
-    run_dir: Path,
-    *,
-    final_table_path: Path,
-    decisions: list[dict[str, Any]],
-    proposals: list[dict[str, Any]],
-    audit_log_path: Path | None = None,
-    diagnostics_path: Path | None = None,
-) -> Path:
-    bundle_dir = run_dir / "exports" / "reviewed_bundle"
-    if bundle_dir.exists():
-        shutil.rmtree(bundle_dir)
-    (bundle_dir / "review").mkdir(parents=True, exist_ok=True)
-    (bundle_dir / "audit").mkdir(parents=True, exist_ok=True)
-
-    reviewed_table_path = bundle_dir / "filled_table_reviewed.csv"
-    shutil.copy2(final_table_path, reviewed_table_path)
-    _copy_if_exists(run_dir / "review" / "decisions.jsonl", bundle_dir / "review" / "decisions.jsonl")
-    _copy_if_exists(run_dir / "normalized" / "proposals.jsonl", bundle_dir / "review" / "proposals.jsonl")
-    _copy_if_exists(run_dir / "normalized" / "evidence.jsonl", bundle_dir / "review" / "evidence.jsonl")
-    _copy_if_exists(run_dir / "summaries" / "reviewer_summary.json", bundle_dir / "audit" / "reviewer_summary.json")
-    _copy_if_exists(run_dir / "summaries" / "validation_report.json", bundle_dir / "audit" / "validation_report.json")
-    if audit_log_path:
-        _copy_if_exists(audit_log_path, bundle_dir / "audit" / audit_log_path.name)
-    if diagnostics_path:
-        _copy_if_exists(diagnostics_path, bundle_dir / "audit" / diagnostics_path.name)
-
-    manifest = {
-        "schema_version": "papers_to_table.agent_reviewed_bundle.v1",
-        "run_id": proposals[0].get("run_id") if proposals else run_dir.name,
-        "generated_at": utc_now(),
-        "review_status": "reviewed_or_explicitly_decided",
-        "filled_table": "filled_table_reviewed.csv",
-        "decision_count": len(decisions),
-        "proposal_count": len(proposals),
-        "accepted_changes_count": sum(1 for decision in decisions if decision.get("decision") in ACCEPTED_DECISIONS),
-        "excluded_inputs": ["pdfs/", "source_table.csv", "schema.json", "schema.csv"],
-        "notes": "This folder excludes copied input files and review UI assets. Use review/ and audit/ for decision provenance.",
-    }
-    write_json(bundle_dir / "manifest.json", manifest)
-    return bundle_dir
 
 
 def apply_decisions(
@@ -311,37 +268,26 @@ def apply_decisions(
         if decision.get("decision") not in DECISIONS:
             raise ValueError(f"Unsupported decision: {decision.get('decision')!r}")
     decisions = write_latest_decisions(run_dir, new_decisions)
-    final_table_path = export_final_table(run_dir, proposals, decisions, package) if export else None
-    summaries = write_audit_and_summary(run_dir, proposals, decisions, final_table_path)
-    reviewed_bundle_path = None
-    if export and final_table_path is not None:
-        reviewed_bundle_path = build_reviewed_bundle(
-            run_dir,
-            final_table_path=final_table_path,
-            decisions=decisions,
-            proposals=proposals,
-            audit_log_path=Path(summaries["audit_log_path"]) if summaries.get("audit_log_path") else None,
-            diagnostics_path=Path(summaries["diagnostics_path"]) if summaries.get("diagnostics_path") else None,
-        )
+    reviewed_path = export_reviewed_table(run_dir, proposals, decisions, package) if export else None
+    summaries = write_audit_and_summary(run_dir, proposals, decisions, reviewed_path)
     accepted_count = sum(1 for decision in decisions if decision.get("decision") in ACCEPTED_DECISIONS)
     return {
         "run_id": run_id,
         "decisions_recorded": len(new_decisions),
         "decision_count": len(decisions),
         "accepted_changes_count": accepted_count,
-        "final_table_path": str(final_table_path) if final_table_path else None,
-        "reviewed_bundle_path": str(reviewed_bundle_path) if reviewed_bundle_path else None,
+        "reviewed_table_path": str(reviewed_path) if reviewed_path else None,
         **summaries,
     }
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Apply rich agent-kit review decisions and export accepted-only CSV.")
+    parser = argparse.ArgumentParser(description="Apply papers-to-table human review decisions and export reviewed CSV.")
     parser.add_argument("--run", required=True, help="Path to the generated review run directory.")
     parser.add_argument("--decisions", help="Downloaded decisions JSON.")
     parser.add_argument("--accept-all", action="store_true", help="Record automation_accept_all decisions for every proposal.")
-    parser.add_argument("--use-existing-decisions", action="store_true", help="Export using review/decisions.jsonl already written by serve_review.py.")
-    parser.add_argument("--no-export", action="store_true", help="Record decisions without writing exports/final_table.csv.")
+    parser.add_argument("--use-existing-decisions", action="store_true", help="Export using human_review/decisions.jsonl already written by serve_review.py.")
+    parser.add_argument("--no-export", action="store_true", help="Record decisions without writing the root reviewed CSV.")
     parser.add_argument("--json", action="store_true", help="Print a machine-readable summary.")
     args = parser.parse_args(argv)
 
@@ -357,10 +303,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(f"decisions_recorded: {result['decisions_recorded']}")
         print(f"decision_count: {result['decision_count']}")
-        if result.get("final_table_path"):
-            print(f"final_table: {Path(result['final_table_path']).resolve()}")
-        if result.get("reviewed_bundle_path"):
-            print(f"reviewed_bundle: {Path(result['reviewed_bundle_path']).resolve()}")
+        if result.get("reviewed_table_path"):
+            print(f"reviewed_table: {Path(result['reviewed_table_path']).resolve()}")
         print(f"audit_log: {Path(result['audit_log_path']).resolve()}")
     return 0
 

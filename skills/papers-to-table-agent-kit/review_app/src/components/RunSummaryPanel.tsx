@@ -55,6 +55,10 @@ export function RunSummaryPanel({ run }: Props) {
   const progressPct = progress && progress.total_proposals > 0
     ? Math.round((progress.reviewed / progress.total_proposals) * 100)
     : 0
+  const outputTableName = typeof window.__REVIEW_PACKAGE__?.source?.output_table_name === 'string'
+    ? window.__REVIEW_PACKAGE__.source.output_table_name
+    : '<run>_filled.csv'
+  const reviewedTableName = `${outputTableName.replace(/\.csv$/i, '').replace(/_filled$/i, '')}_reviewed.csv`
 
   return (
     <div className="bg-slate-50 px-5 py-4">
@@ -81,9 +85,9 @@ export function RunSummaryPanel({ run }: Props) {
         </DiagnosticBox>
         <DiagnosticBox title="Standalone">
           <DetailRow label="Mode" value={api.isServed() ? 'localhost writeback' : 'static download'} />
-          <DetailRow label="Draft table" value="exports/draft_filled_table.csv" />
-          <DetailRow label="Reviewed bundle" value="exports/reviewed_bundle/" />
-          <DetailRow label="Inputs" value="excluded from reviewed bundle" />
+          <DetailRow label="Filled table" value={outputTableName} />
+          <DetailRow label="Reviewed table" value={reviewedTableName} />
+          <DetailRow label="Inputs" value="referenced, not copied" />
         </DiagnosticBox>
       </div>
     </div>

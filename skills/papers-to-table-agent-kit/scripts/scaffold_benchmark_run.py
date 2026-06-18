@@ -3,9 +3,14 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import shutil
 import sys
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from review_package_common import review_input_path, safe_filename  # noqa: E402
 
 
 def read_csv(path: Path) -> tuple[list[str], list[dict[str, str]]]:
@@ -90,19 +95,10 @@ def scaffold(dataset_dir: Path, run_dir: Path, *, force: bool = False) -> dict[s
     schema_path = choose_existing(dataset_dir, ["schema.json", "schema.csv"])
     table_headers, table_rows = read_csv(table_path)
 
-    run_pdf_dir = run_dir / "pdfs"
-    run_pdf_dir.mkdir(parents=True, exist_ok=True)
+    run_dir.mkdir(parents=True, exist_ok=True)
     pdf_entries: list[dict[str, str]] = []
     for pdf_path in pdf_files:
-        destination = run_pdf_dir / pdf_path.name
-        shutil.copy2(pdf_path, destination)
-        pdf_entries.append({"pdf_id": pdf_path.stem, "path": f"pdfs/{pdf_path.name}", "label": pdf_path.stem})
-
-    shutil.copy2(table_path, run_dir / "source_table.csv")
-    copied_schema: str | None = None
-    if schema_path is not None:
-        copied_schema = f"schema{schema_path.suffix.lower()}"
-        shutil.copy2(schema_path, run_dir / copied_schema)
+        pdf_entries.append({"pdf_id": pdf_path.stem, "path": str(pdf_path.resolve()), "label": pdf_path.stem})
 
     columns = read_schema_columns(schema_path, table_headers)
     rows: list[dict[str, object]] = []
@@ -122,22 +118,27 @@ def scaffold(dataset_dir: Path, run_dir: Path, *, force: bool = False) -> dict[s
     review_input = {
         "schema_version": "papers_to_table.review_input.v1",
         "run_id": run_dir.name,
+        "output_table_name": f"{safe_filename(dataset_dir.name, 'filled_table')}_filled.csv",
+        "source_table_path": str(table_path.resolve()),
+        "schema_path": str(schema_path.resolve()) if schema_path is not None else None,
         "pdfs": pdf_entries,
         "columns": columns,
         "rows": rows,
         "proposals": [],
     }
-    review_input_path = run_dir / "review_input.json"
-    review_input_path.write_text(json.dumps(review_input, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path = review_input_path(run_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(review_input, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     return {
         "run_dir": str(run_dir),
-        "review_input": str(review_input_path),
+        "review_input": str(path),
+        "filled_table": str(run_dir / review_input["output_table_name"]),
         "pdfs": len(pdf_entries),
         "rows": len(rows),
         "columns": len(columns),
-        "source_table": str(run_dir / "source_table.csv"),
-        "schema": copied_schema,
+        "source_table": str(table_path.resolve()),
+        "schema": str(schema_path.resolve()) if schema_path is not None else None,
         "status": "scaffolded_incomplete_until_proposals_are_added",
     }
 

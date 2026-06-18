@@ -1,6 +1,6 @@
 # Evidence-First Research Document Extraction Prompt
 
-You are extracting structured information from research publications, scientific PDFs, or technical documents and preparing a human-reviewable papers-to-table package.
+You are extracting structured information from research publications, scientific PDFs, or technical documents into a papers-to-table run.
 
 Input folder:
 `<INPUT_FOLDER>`
@@ -13,45 +13,57 @@ Use the local agent kit:
 
 ## Required Deliverable
 
-Do both unless explicitly told CSV-only: draft CSV outputs plus evidence-backed review package.
-
-CSV filenames, `_filled.csv`, `completed_table.csv`, or instructions such as `Return one completed CSV` do not mean CSV-only. A request for CSV outputs is not a CSV-only request.
-
-Do not stop after producing `_filled.csv`, `completed_table.csv`, or other draft CSV files. A filled CSV alone is incomplete for review. A request for CSV outputs is not a CSV-only request. Treat the task as CSV-only only when the user explicitly says "CSV only", "skip review", "do not build the review UI", or equivalent.
-
-The required deliverable is a formal review package:
+Produce a lean extraction output by default:
 
 ```text
 RUN_DIR/
-  review_input.json
-  pdfs/
-  source_table.csv  # when a table template exists
-  schema.json       # when a JSON schema exists
-  schema.csv        # when a CSV schema exists
+  <requested_or_dataset>_filled.csv
+  extraction/
+    review_input.json
+    proposals.jsonl
+    evidence.jsonl
+    validation_report.json
+    extraction_summary.json
 ```
 
-Copy all source PDFs into `RUN_DIR/pdfs/`. Preserve the source table template as `RUN_DIR/source_table.csv` and the schema as `RUN_DIR/schema.json` when available.
+Do not copy source PDFs, source tables, or schema files into `RUN_DIR`. Store absolute or explicitly resolvable paths in `extraction/review_input.json`.
 
-Before extracting any value, create the `review_input.json` skeleton with `pdfs`, `columns`, `rows`, and an initially empty `proposals` array. Every non-empty proposal must be written with structured evidence at authoring time, and should include a concise proposal-level `rationale`. Append one evidence-backed proposal as each non-empty target cell is authored.
+CSV filenames, `_filled.csv`, `completed_table.csv`, or instructions such as `Return one completed CSV` do not mean evidence-free CSV-only extraction. The filled CSV must be backed by `extraction/review_input.json`, `proposals.jsonl`, and `evidence.jsonl` unless the user explicitly says CSV-only or skip evidence.
+
+## Authoring
+
+Before extracting any value, create `extraction/review_input.json` with:
+
+- `schema_version`
+- `run_id`
+- `output_table_name`
+- `source_table_path` when a table template exists
+- `schema_path` when a schema exists
+- `pdfs` with source PDF paths
+- `columns`
+- `rows`
+- an initially empty `proposals` array
+
+Every non-empty proposal must be written with structured evidence at authoring time and should include concise proposal-level `rationale`.
 
 ## Extraction Rules
 
 - Preserve original row order and row identifiers.
-- Preserve all original columns in any optional draft filled CSV.
+- Preserve all original columns in the root filled CSV.
 - Fill only supported target value columns.
 - Do not guess values that are not supported by the PDFs.
 - Use schema allowed values when provided.
-- Leave unavailable values blank in draft CSVs.
+- Leave unavailable values blank in the filled CSV unless a supported no-data proposal should be recorded.
 - Use `proposal_status="no_data"` only when the paper explicitly indicates absence.
 - Keep per-cell proposals row-aware: evidence from one paper must not support another row.
 - Capture table, caption, figure, methods, supplement, and result-prose evidence when relevant.
-- Add proposal-level `rationale` for every value-bearing proposal. Keep it concise and reviewer-facing. It is mandatory for interpretation, normalization to schema labels, calculation, weak/inferred evidence, or a no-data conclusion.
+- Add proposal-level `rationale` for every value-bearing proposal; it is mandatory for interpretation, normalization to schema labels, calculation, weak/inferred evidence, or no-data conclusions.
 
 ## Evidence Requirements
 
-Every non-empty proposed value in `review_input.json.proposals` must include structured evidence at extraction time. Do not keep evidence only in scratch notes.
+Every non-empty proposed value in `review_input.json.proposals` must include structured evidence at extraction time.
 
-Prefer direct evidence:
+Preferred direct evidence:
 
 ```json
 {
@@ -62,52 +74,67 @@ Prefer direct evidence:
 }
 ```
 
-Table, caption, figure-caption, and generic evidence text are also acceptable when they directly support the value. If exact text cannot be captured, include `pdf_id`, `page_number`, `source_location`, and concise reasoning so the reviewer can inspect it.
+Table, caption, figure-caption, and generic evidence text are also acceptable when they directly support the value. If exact text cannot be captured, include `pdf_id`, `page_number`, `source_location`, and concise reasoning.
 
-Keep `rationale` separate from evidence text: evidence fields preserve the source support, while `rationale` briefly explains the extraction judgment for the reviewer.
+Keep `rationale` separate from evidence text: evidence fields preserve source support, while `rationale` briefly explains the extraction judgment for the reviewer.
 
-## Build And Serve
+## Build
 
-After authoring `review_input.json`, run:
+After authoring `extraction/review_input.json`, run:
 
 ```bash
-python skills/papers-to-table-agent-kit/scripts/build_and_serve_review.py --run RUN_DIR
+python skills/papers-to-table-agent-kit/scripts/build_review_package.py --run RUN_DIR --json
 ```
 
-For non-interactive environments:
+Then verify:
+
+- `RUN_DIR/<requested_or_dataset>_filled.csv`
+- `RUN_DIR/extraction/proposals.jsonl`
+- `RUN_DIR/extraction/evidence.jsonl`
+- `RUN_DIR/extraction/validation_report.json`
+- `RUN_DIR/extraction/extraction_summary.json`
+
+## Optional Human Review
+
+After the filled CSV and extraction provenance are complete, ask exactly:
+
+```text
+Do you want to review the results in the browser interface?
+```
+
+Only if the user says yes, build and serve review:
 
 ```bash
 python skills/papers-to-table-agent-kit/scripts/build_and_serve_review.py --run RUN_DIR --build-only --json
 python skills/papers-to-table-agent-kit/scripts/serve_review.py --run RUN_DIR --no-open
 ```
 
-## Optional Draft CSVs
+Human review artifacts live in:
 
-You may also produce clearly named draft `_filled.csv` files for convenience, but these are secondary. The formal review/export workflow starts from `review_input.json`.
+```text
+RUN_DIR/
+  <requested_or_dataset>_reviewed.csv
+  human_review/
+    index.html
+    assets/
+    review_package.json
+    decisions.jsonl
+    reviewer_summary.json
+    audit_log_*.json
+    diagnostics_*.json
+```
 
-For benchmark tasks, use draft CSV names and review status precisely:
-
-- `exports/draft_filled_table.csv`, `draft_completed_table.csv`, `_filled.csv`, or `completed_table.csv`: agent-extracted draft values, not human-reviewed
-- `exports/final_table.csv`: accepted-only table after human review or explicit `--accept-all`
-- `exports/reviewed_bundle/filled_table_reviewed.csv`: reviewed/accepted table inside the cleaned reviewed bundle
-
-If the broader task includes a literature review, research memo, or technical report, you may also render reviewed values as a concise summarizing table. Clearly label values as human-reviewed, auto-accepted, agent-extracted, or draft/unreviewed.
+PDF rendering and quote highlights require localhost serving because source PDFs are referenced, not copied. Static `human_review/index.html` can still show proposal and evidence text.
 
 ## Final Response
-
-Before final response, verify that these artifacts exist unless the user explicitly requested CSV-only extraction:
-
-- `RUN_DIR/review_input.json`
-- `RUN_DIR/normalized/proposals.jsonl`
-- `RUN_DIR/normalized/evidence.jsonl`
-- `RUN_DIR/summaries/validation_report.json`
-- `RUN_DIR/review/index.html`
-- `review_url` or exact `serve_review.py` command
 
 Report:
 
 - `RUN_DIR`
 - validation status
-- `review_url` if the UI is running
-- the exact serve command if the UI could not be kept running
-- paths to `exports/draft_filled_table.csv`, any optional draft `_filled.csv` files, and `exports/reviewed_bundle/` after review/export
+- root filled CSV path
+- `extraction/` provenance path
+- that the filled table is agent-extracted and not human-reviewed
+- the review question above
+
+If review/export happens, report the root `_reviewed.csv` path.

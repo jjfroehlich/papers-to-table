@@ -17,7 +17,20 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from apply_review_decisions import apply_decisions, write_latest_decisions  # noqa: E402
-from review_package_common import DECISIONS, latest_decisions, read_json, read_jsonl, stable_id, utc_now  # noqa: E402
+from review_package_common import (  # noqa: E402
+    DECISIONS,
+    decisions_path,
+    evidence_path,
+    latest_decisions,
+    proposals_path,
+    read_json,
+    read_jsonl,
+    resolve_input_path,
+    review_index_path,
+    review_package_path,
+    stable_id,
+    utc_now,
+)
 
 
 def _json_bytes(payload: Any) -> bytes:
@@ -28,9 +41,9 @@ def _safe_path(root: Path, request_path: str) -> Path | None:
     parsed = urlparse(request_path)
     rel = unquote(parsed.path.lstrip("/"))
     if not rel:
-        rel = "review/index.html"
-    if rel == "review":
-        rel = "review/index.html"
+        rel = "human_review/index.html"
+    if rel in {"review", "human_review"}:
+        rel = "human_review/index.html"
     candidate = (root / rel).resolve()
     try:
         candidate.relative_to(root)
@@ -40,9 +53,9 @@ def _safe_path(root: Path, request_path: str) -> Path | None:
 
 
 def _review_package(run_dir: Path) -> dict[str, Any]:
-    payload = read_json(run_dir / "review" / "review_package.json")
+    payload = read_json(review_package_path(run_dir))
     if not isinstance(payload, dict):
-        raise ValueError("review/review_package.json must contain an object.")
+        raise ValueError("human_review/review_package.json must contain an object.")
     return payload
 
 
@@ -96,7 +109,7 @@ def _package_maps(package: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], d
 
 def _evidence_by_proposal(run_dir: Path) -> dict[str, list[dict[str, Any]]]:
     grouped: dict[str, list[dict[str, Any]]] = {}
-    for row in read_jsonl(run_dir / "normalized" / "evidence.jsonl"):
+    for row in read_jsonl(evidence_path(run_dir)):
         row = dict(row)
         if not row.get("quote_text"):
             row["quote_text"] = row.get("table_text") or row.get("evidence_text") or row.get("caption_text")
@@ -109,9 +122,9 @@ def _evidence_by_proposal(run_dir: Path) -> dict[str, list[dict[str, Any]]]:
 def _enriched_proposals(run_dir: Path) -> list[dict[str, Any]]:
     package = _review_package(run_dir)
     rows, pdfs, _columns = _package_maps(package)
-    latest = latest_decisions(read_jsonl(run_dir / "review" / "decisions.jsonl"))
+    latest = latest_decisions(read_jsonl(decisions_path(run_dir)))
     proposals: list[dict[str, Any]] = []
-    for proposal in read_jsonl(run_dir / "normalized" / "proposals.jsonl"):
+    for proposal in read_jsonl(proposals_path(run_dir)):
         item = dict(proposal)
         row = rows.get(str(item.get("row_id") or ""))
         pdf = pdfs.get(str(item.get("pdf_id") or ""))
@@ -128,7 +141,7 @@ def _enriched_proposals(run_dir: Path) -> list[dict[str, Any]]:
 def _proposal_detail(run_dir: Path, proposal_id: str) -> dict[str, Any]:
     package = _review_package(run_dir)
     rows, _pdfs, columns = _package_maps(package)
-    decisions = read_jsonl(run_dir / "review" / "decisions.jsonl")
+    decisions = read_jsonl(decisions_path(run_dir))
     decision_history = [row for row in decisions if str(row.get("proposal_id") or "") == proposal_id]
     latest = latest_decisions(decisions).get(proposal_id)
     evidence = _evidence_by_proposal(run_dir).get(proposal_id, [])
@@ -264,7 +277,7 @@ def make_handler(run_dir: Path):
             parsed = urlparse(self.path)
             try:
                 if parsed.path == "/api/decisions":
-                    self._send_json(200, {"decisions": read_jsonl(run_dir / "review" / "decisions.jsonl")})
+                    self._send_json(200, {"decisions": read_jsonl(decisions_path(run_dir))})
                     return
                 if parsed.path == "/api/proposals":
                     proposals = _enriched_proposals(run_dir)
@@ -290,13 +303,8 @@ def make_handler(run_dir: Path):
                     if not pdf:
                         self._send_text(404, f"Unknown pdf_id: {pdf_id}")
                         return
-                    rel_path = str(pdf.get("path") or "").strip()
-                    candidate = (run_dir / rel_path).resolve()
-                    try:
-                        candidate.relative_to(run_dir)
-                    except ValueError:
-                        self._send_text(403, "PDF path escapes run directory.")
-                        return
+                    path_value = str(pdf.get("path") or "").strip()
+                    candidate = resolve_input_path(run_dir, path_value)
                     if not candidate.exists() or not candidate.is_file():
                         self._send_text(404, f"PDF not found: {pdf_id}")
                         return
@@ -363,7 +371,7 @@ def make_handler(run_dir: Path):
                     rows = payload.get("decisions", []) if isinstance(payload, dict) else payload
                     if not isinstance(rows, list):
                         raise ValueError("Expected a decisions list.")
-                    proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
+                    proposals = read_jsonl(proposals_path(run_dir))
                     proposal_ids = {str(proposal.get("proposal_id")) for proposal in proposals if proposal.get("proposal_id")}
                     run_id = str(proposals[0].get("run_id") or run_dir.name) if proposals else run_dir.name
                     for row in rows:
@@ -392,9 +400,9 @@ def make_handler(run_dir: Path):
                     proposal_ids = payload.get("proposal_ids", []) if isinstance(payload, dict) else []
                     if not isinstance(proposal_ids, list):
                         raise ValueError("Expected proposal_ids to be a list.")
-                    proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
+                    proposals = read_jsonl(proposals_path(run_dir))
                     proposal_map = {str(proposal.get("proposal_id")): proposal for proposal in proposals if proposal.get("proposal_id")}
-                    existing_latest = latest_decisions(read_jsonl(run_dir / "review" / "decisions.jsonl"))
+                    existing_latest = latest_decisions(read_jsonl(decisions_path(run_dir)))
                     run_id = str(proposals[0].get("run_id") or run_dir.name) if proposals else run_dir.name
                     decided_at = utc_now()
                     rows = []
@@ -437,13 +445,13 @@ def make_handler(run_dir: Path):
 
 def serve(run_dir: Path, *, host: str = "127.0.0.1", port: int = 0, open_browser: bool = True, quiet: bool = False) -> tuple[ThreadingHTTPServer, str]:
     run_dir = run_dir.resolve()
-    index = run_dir / "review" / "index.html"
+    index = review_index_path(run_dir)
     if not index.exists():
-        raise FileNotFoundError("review/index.html not found. Run build_review_package.py first.")
+        raise FileNotFoundError("human_review/index.html not found. Build with --with-review first.")
     server = ThreadingHTTPServer((host, port), make_handler(run_dir))
     server.quiet = quiet  # type: ignore[attr-defined]
     actual_host, actual_port = server.server_address[:2]
-    url = f"http://{actual_host}:{actual_port}/review/index.html"
+    url = f"http://{actual_host}:{actual_port}/human_review/index.html"
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     if open_browser:

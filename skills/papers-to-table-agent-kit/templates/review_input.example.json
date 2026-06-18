@@ -1,15 +1,18 @@
 {
   "schema_version": "papers_to_table.review_input.v1",
   "run_id": "agent_review_example",
+  "output_table_name": "agent_review_example_filled.csv",
+  "source_table_path": "C:/path/to/source_table.csv",
+  "schema_path": "C:/path/to/schema.csv",
   "pdfs": [
     {
       "pdf_id": "paper_a",
-      "path": "pdfs/paper_a.pdf",
+      "path": "C:/path/to/paper_a.pdf",
       "label": "Paper A"
     },
     {
       "pdf_id": "paper_b",
-      "path": "pdfs/paper_b.pdf",
+      "path": "C:/path/to/paper_b.pdf",
       "label": "Paper B"
     }
   ],

@@ -415,8 +415,7 @@ export interface ExportResult {
   exported_at: string
   accepted_changes_count: number
   workbook_path: string
-  final_table_path?: string | null
-  reviewed_bundle_path?: string | null
+  reviewed_table_path?: string | null
   audit_log_path: string
   diagnostics_path: string
   unsupported_feature_warnings: string[]

@@ -370,7 +370,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
       if (!api.isServed()) {
         await api.downloadDecisions()
         setExportResult(null)
-        setExportNotice('Review decisions downloaded. To create exports/final_table.csv and exports/reviewed_bundle/, run apply_review_decisions.py with the downloaded_decisions.json file for this review run.')
+        setExportNotice('Review decisions downloaded. To create the root reviewed CSV, run apply_review_decisions.py with the downloaded_decisions.json file for this review run.')
         return
       }
       const result = await api.triggerExport(run.run_id, outputDir)
@@ -422,10 +422,10 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                title={api.isServed() ? 'Write exports/final_table.csv and exports/reviewed_bundle/.' : 'Finish this static review by downloading decisions for the export script.'}
+                title={api.isServed() ? 'Write the root reviewed CSV from accepted decisions.' : 'Finish this static review by downloading decisions for the export script.'}
                 className="rounded-lg bg-slate-950 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
               >
-                {exporting ? 'Finishing…' : api.isServed() ? 'Export reviewed bundle' : 'Finish review'}
+                {exporting ? 'Finishing…' : api.isServed() ? 'Export reviewed table' : 'Finish review'}
               </button>
               <button onClick={() => setShowHelp(true)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-500 hover:bg-slate-50" title="Keyboard shortcuts (?)">
                 ?
@@ -441,8 +441,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
             {exportResult && (
               <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">
                 <span>Export completed at {new Date(exportResult.exported_at).toLocaleString()} with {exportResult.accepted_changes_count} accepted change(s).</span>
-                {exportResult.final_table_path && <span className="rounded-xl border border-emerald-200 bg-white px-3 py-1.5 font-semibold text-emerald-800">Final table: {exportResult.final_table_path}</span>}
-                {exportResult.reviewed_bundle_path && <span className="rounded-xl border border-emerald-200 bg-white px-3 py-1.5 font-semibold text-emerald-800">Reviewed bundle: {exportResult.reviewed_bundle_path}</span>}
+                {exportResult.reviewed_table_path && <span className="rounded-xl border border-emerald-200 bg-white px-3 py-1.5 font-semibold text-emerald-800">Reviewed table: {exportResult.reviewed_table_path}</span>}
               </div>
             )}
           </div>

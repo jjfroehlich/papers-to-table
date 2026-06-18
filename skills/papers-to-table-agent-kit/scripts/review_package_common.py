@@ -24,6 +24,9 @@ MAIN_COMPAT_SOURCE_TYPES = {
     "visual_interpretation_figure_evidence",
 }
 
+EXTRACTION_DIRNAME = "extraction"
+HUMAN_REVIEW_DIRNAME = "human_review"
+
 DECISIONS = {"accepted", "accepted_with_edit", "rejected", "confirmed_no_data"}
 ACCEPTED_DECISIONS = {"accepted", "accepted_with_edit"}
 
@@ -139,8 +142,84 @@ def safe_filename(value: str, fallback: str = "asset") -> str:
     return stem or fallback
 
 
+def extraction_dir(run_dir: Path) -> Path:
+    return run_dir / EXTRACTION_DIRNAME
+
+
+def human_review_dir(run_dir: Path) -> Path:
+    return run_dir / HUMAN_REVIEW_DIRNAME
+
+
+def review_input_path(run_dir: Path) -> Path:
+    return extraction_dir(run_dir) / "review_input.json"
+
+
+def proposals_path(run_dir: Path) -> Path:
+    return extraction_dir(run_dir) / "proposals.jsonl"
+
+
+def evidence_path(run_dir: Path) -> Path:
+    return extraction_dir(run_dir) / "evidence.jsonl"
+
+
+def validation_report_path(run_dir: Path) -> Path:
+    return extraction_dir(run_dir) / "validation_report.json"
+
+
+def extraction_summary_path(run_dir: Path) -> Path:
+    return extraction_dir(run_dir) / "extraction_summary.json"
+
+
+def review_package_path(run_dir: Path) -> Path:
+    return human_review_dir(run_dir) / "review_package.json"
+
+
+def review_index_path(run_dir: Path) -> Path:
+    return human_review_dir(run_dir) / "index.html"
+
+
+def decisions_path(run_dir: Path) -> Path:
+    return human_review_dir(run_dir) / "decisions.jsonl"
+
+
+def reviewer_summary_path(run_dir: Path) -> Path:
+    return human_review_dir(run_dir) / "reviewer_summary.json"
+
+
+def resolve_input_path(run_dir: Path, path_value: str) -> Path:
+    path = Path(path_value)
+    if path.is_absolute():
+        return path.resolve()
+    return (run_dir / path).resolve()
+
+
+def output_table_name(run_dir: Path, payload: dict[str, Any] | None = None) -> str:
+    payload = payload or {}
+    requested = str(payload.get("output_table_name") or "").strip()
+    if requested:
+        name = safe_filename(requested, f"{run_dir.name}_filled.csv")
+        return name if name.lower().endswith(".csv") else f"{name}.csv"
+    return f"{safe_filename(run_dir.name, 'filled_table')}_filled.csv"
+
+
+def filled_table_path(run_dir: Path, payload: dict[str, Any] | None = None) -> Path:
+    return run_dir / output_table_name(run_dir, payload)
+
+
+def reviewed_table_name(run_dir: Path, payload: dict[str, Any] | None = None) -> str:
+    filled_name = output_table_name(run_dir, payload)
+    stem = filled_name[:-4] if filled_name.lower().endswith(".csv") else filled_name
+    if stem.endswith("_filled"):
+        stem = stem[: -len("_filled")]
+    return f"{stem}_reviewed.csv"
+
+
+def reviewed_table_path(run_dir: Path, payload: dict[str, Any] | None = None) -> Path:
+    return run_dir / reviewed_table_name(run_dir, payload)
+
+
 def load_review_input(run_dir: Path) -> dict[str, Any]:
-    path = run_dir / "review_input.json"
+    path = review_input_path(run_dir)
     if not path.exists():
         raise FileNotFoundError(f"Missing required authoring file: {path}")
     payload = read_json(path)

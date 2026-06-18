@@ -86,7 +86,7 @@ def build_and_serve_review(
     if host not in LOCALHOST_HOSTS:
         raise ValueError("build_and_serve_review.py only supports localhost bind addresses.")
     run_dir = run_dir.resolve()
-    build_result = build_review_package(run_dir, from_review_input=True)
+    build_result = build_review_package(run_dir, from_review_input=True, with_review=True)
     if build_only:
         return (
             _summary(
@@ -123,21 +123,22 @@ def _print_summary(summary: dict[str, Any], *, as_json: bool) -> None:
         return
     print(f"run_dir: {summary['run_dir']}")
     print(f"validation_status: {summary['validation_status']}")
-    print(f"review_index: {Path(summary['review_index_path']).resolve()}")
-    print(f"review_package: {Path(summary['review_package_path']).resolve()}")
-    if summary.get("draft_filled_table_path"):
-        print(f"draft_filled_table: {Path(summary['draft_filled_table_path']).resolve()}")
+    print(f"filled_table: {Path(summary['filled_table_path']).resolve()}")
+    if summary.get("review_index_path"):
+        print(f"review_index: {Path(summary['review_index_path']).resolve()}")
+    if summary.get("review_package_path"):
+        print(f"review_package: {Path(summary['review_package_path']).resolve()}")
     if summary.get("review_url"):
         print(f"review_url: {summary['review_url']}")
     else:
         print(f"serve_command: {summary['serve_command_text']}")
     if not summary.get("pdfjs_assets_copied"):
-        print("warning: PDF.js assets were not copied; the review UI will use browser PDF fallback.")
+        print("warning: PDF.js assets were not copied; the review UI will use bundled PDF.js fallback.")
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build and serve a papers-to-table agent-kit review package.")
-    parser.add_argument("--run", required=True, help="Path to the run directory containing review_input.json.")
+    parser = argparse.ArgumentParser(description="Build and serve the optional papers-to-table human review interface.")
+    parser.add_argument("--run", required=True, help="Path to the run directory containing extraction/review_input.json.")
     parser.add_argument("--host", default="127.0.0.1", help="Bind host. Localhost only.")
     parser.add_argument("--port", type=int, default=0, help="Bind port. 0 chooses a free port.")
     parser.add_argument("--no-open", action="store_true", help="Print URL without opening a browser.")

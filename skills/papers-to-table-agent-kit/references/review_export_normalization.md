@@ -2,31 +2,28 @@
 
 ## Boundary
 
-Extraction can use any working format, but formal review/export starts from one authored file: `review_input.json`.
+Extraction starts from `RUN_DIR/extraction/review_input.json`. The file references inputs by path and is the only agent-authored control file.
 
-`build_review_package.py` owns normalization. It generates deterministic proposal, evidence, and cell identifiers when the authored input omits them. It validates supplied identifiers when the authored input includes them.
+`build_review_package.py` owns normalization. It generates deterministic proposal, evidence, and cell identifiers when authored input omits them.
 
-## MVP Generated Artifacts
+## Default Generated Artifacts
 
-After a successful build:
+After a successful default build:
 
 ```text
-review/
-  index.html
-  assets/*
-  review_package.json
-normalized/
-  proposals.jsonl
-  evidence.jsonl
-summaries/
-  validation_report.json
-exports/
-  draft_filled_table.csv
+RUN_DIR/
+  <requested_or_dataset>_filled.csv
+  extraction/
+    review_input.json
+    proposals.jsonl
+    evidence.jsonl
+    validation_report.json
+    extraction_summary.json
 ```
 
-`review/review_package.json` is the browser package. `normalized/proposals.jsonl` and `normalized/evidence.jsonl` are the durable generated streams used by decision application and generated validation.
+`<requested_or_dataset>_filled.csv` is generated from proposed values before review. It is a usable agent-extracted table, but it is not human-reviewed.
 
-`exports/draft_filled_table.csv` is generated from proposed values before review. It is an unreviewed draft convenience output, not an accepted-values export.
+`extraction/proposals.jsonl` and `extraction/evidence.jsonl` are the durable generated streams used by optional review and decision application.
 
 ## Proposal Shape
 
@@ -42,6 +39,7 @@ Generated proposal records use a stable review/export shape:
   "pdf_id": "paper_a",
   "column_name": "Finding",
   "proposed_value": "Example value",
+  "rationale": "The quoted sentence directly supports the proposed value.",
   "proposal_status": "value_proposed",
   "evidence_status": "direct_strong",
   "review_bucket": "review",
@@ -50,14 +48,14 @@ Generated proposal records use a stable review/export shape:
 }
 ```
 
-Supported review-facing decisions are:
+Supported review-facing decisions:
 
 - `accepted`
 - `accepted_with_edit`
 - `rejected`
 - `confirmed_no_data`
 
-Supported new decision sources are:
+Supported decision sources:
 
 - `human_individual`
 - `human_bulk_accept`
@@ -65,7 +63,7 @@ Supported new decision sources are:
 
 ## Evidence Shape
 
-Generated evidence records currently use the canonical evidence schema tag `main_evidence`:
+Generated evidence records use the canonical evidence schema tag `main_evidence`:
 
 ```json
 {
@@ -83,55 +81,43 @@ Generated evidence records currently use the canonical evidence schema tag `main
 
 Evidence source-type inference:
 
-- Text fields such as `quote_text`, `table_text`, `evidence_text`, or `caption_text` infer direct evidence.
+- `quote_text`, `table_text`, `evidence_text`, or `caption_text` infer direct evidence.
 - `page_number` plus `reasoning` and/or `source_location` infers `inferred_reasoning`.
 - Optional exact and approximate highlight regions are normalized when supplied.
 
-## Evidence Tiers
+## Optional Human Review Artifacts
 
-- Tier A: `pdf_id` plus `page_number` plus quote/table/caption/evidence text -> `direct_strong`
-- Tier B: `pdf_id` plus `page_number` plus exact/approximate bbox regions -> `direct_strong` or `direct_weak`
-- Tier C: `pdf_id` plus `page_number` plus `source_location` and/or `reasoning` -> `inferred_weak`, attention
-- Tier D: no structured evidence -> invalid for non-empty proposed values
-
-## Export Rules
-
-Decision/export artifacts are generated only after review or explicit automation:
+Generated only when review is explicitly requested:
 
 ```text
-review/decisions.jsonl
-exports/final_table.csv
-exports/audit_log_*.json
-exports/diagnostics_*.json
-exports/reviewed_bundle/
-  filled_table_reviewed.csv
-  manifest.json
-  review/
+RUN_DIR/
+  human_review/
+    index.html
+    assets/
+    review_package.json
     decisions.jsonl
-    proposals.jsonl
-    evidence.jsonl
-  audit/
-    audit_log_*.json
-    diagnostics_*.json
-    reviewer_summary.json
-    validation_report.json
-summaries/reviewer_summary.json
 ```
 
-Only accepted and accepted-with-edit values populate `exports/final_table.csv`. Rejected, confirmed-no-data, and undecided values remain in decision/audit artifacts but do not fill exported cells.
+Generated after decisions are applied:
 
-`exports/reviewed_bundle/` is the cleaned shareable folder and intentionally excludes copied source PDFs, the source table, schema files, review HTML, and PDF.js assets.
+```text
+RUN_DIR/
+  <requested_or_dataset>_reviewed.csv
+  human_review/
+    reviewer_summary.json
+    audit_log_*.json
+    diagnostics_*.json
+```
 
-The source table is never modified in place.
+Only accepted and accepted-with-edit values populate the reviewed CSV. Rejected, confirmed-no-data, and undecided values remain in human review and audit artifacts.
+
+The source table is never modified in place. Source PDFs, source table, and schema are never copied into the run output; they are referenced by path.
 
 ## Optional Later Outputs
 
-These are optional generated outputs, not authored inputs:
+Optional generated outputs, not authored inputs:
 
 ```text
-exports/final_table.xlsx
-normalized/proposal_index.json
-normalized/review_lookup.json
-assets/pages/
-assets/figures/
+extraction/proposal_index.json
+extraction/review_lookup.json
 ```

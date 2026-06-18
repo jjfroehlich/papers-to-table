@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 import uuid
 from pathlib import Path
@@ -62,83 +63,98 @@ def write_dummy_pdf(path: Path, text: str = "dummy") -> None:
 
 def make_run(tmp_path: Path, *, with_source_table: bool = True) -> Path:
     run_dir = tmp_path / "agent_review"
-    write_dummy_pdf(run_dir / "pdfs" / "paper_a.pdf", "Paper A")
-    write_dummy_pdf(run_dir / "pdfs" / "paper_b.pdf", "Paper B")
+    input_dir = tmp_path / "source_inputs"
+    write_dummy_pdf(input_dir / "pdfs" / "paper_a.pdf", "Paper A")
+    write_dummy_pdf(input_dir / "pdfs" / "paper_b.pdf", "Paper B")
+    source_table_path = input_dir / "source_table.csv"
+    schema_path = input_dir / "schema.csv"
     if with_source_table:
         write_csv(
-            run_dir / "source_table.csv",
+            source_table_path,
             [
                 {"row_id": "row_1", "pdf_id": "paper_a", "Title": "Paper A", "Finding": "", "Weak field": ""},
                 {"row_id": "row_2", "pdf_id": "paper_b", "Title": "Paper B", "Finding": "", "Weak field": ""},
             ],
             ["row_id", "pdf_id", "Title", "Finding", "Weak field"],
         )
-    (run_dir / "review_input.json").write_text(
-        json.dumps(
-            {
-                "schema_version": "papers_to_table.review_input.v1",
-                "run_id": "agent_review",
-                "pdfs": [
-                    {"pdf_id": "paper_a", "path": "pdfs/paper_a.pdf", "label": "Paper A"},
-                    {"pdf_id": "paper_b", "path": "pdfs/paper_b.pdf", "label": "Paper B"},
-                ],
-                "columns": [
-                    {"column_name": "Finding", "description": "Main reported finding", "field_type": "text"},
-                    {"column_name": "Weak field", "description": "Field with weak page evidence", "field_type": "text"},
-                ],
-                "rows": [
-                    {"row_id": "row_1", "pdf_id": "paper_a", "values": {"Title": "Paper A"}},
-                    {"row_id": "row_2", "pdf_id": "paper_b", "values": {"Title": "Paper B"}},
-                ],
-                "proposals": [
-                    {
-                        "row_id": "row_1",
-                        "column_name": "Finding",
-                        "proposed_value": "directly supported value",
-                        "evidence": [
-                            {
-                                "pdf_id": "paper_a",
-                                "source_type": "direct_quote",
-                                "page_number": 1,
-                                "quote_text": "Exact supporting sentence from the PDF.",
-                            }
-                        ],
-                    },
-                    {
-                        "row_id": "row_2",
-                        "column_name": "Weak field",
-                        "proposed_value": "weakly inferred value",
-                        "evidence": [
-                            {
-                                "pdf_id": "paper_b",
-                                "page_number": 1,
-                                "source_location": "Results",
-                                "reasoning": "The agent inferred the value from page context without an exact quote.",
-                            }
-                        ],
-                    },
-                    {
-                        "row_id": "row_2",
-                        "column_name": "Finding",
-                        "proposal_status": "no_data",
-                        "evidence": [
-                            {
-                                "pdf_id": "paper_b",
-                                "page_number": 1,
-                                "quote_text": "The paper does not report the requested finding.",
-                            }
-                        ],
-                    },
-                ],
-            }
-        ),
-        encoding="utf-8",
+    write_csv(
+        schema_path,
+        [
+            {"column_name": "Finding", "description": "Main reported finding", "field_type": "text"},
+            {"column_name": "Weak field", "description": "Field with weak page evidence", "field_type": "text"},
+        ],
+        ["column_name", "description", "field_type"],
     )
+    payload = {
+        "schema_version": "papers_to_table.review_input.v1",
+        "run_id": "agent_review",
+        "output_table_name": "agent_review_filled.csv",
+        "source_table_path": str(source_table_path.resolve()) if with_source_table else None,
+        "schema_path": str(schema_path.resolve()),
+        "pdfs": [
+            {"pdf_id": "paper_a", "path": str((input_dir / "pdfs" / "paper_a.pdf").resolve()), "label": "Paper A"},
+            {"pdf_id": "paper_b", "path": str((input_dir / "pdfs" / "paper_b.pdf").resolve()), "label": "Paper B"},
+        ],
+        "columns": [
+            {"column_name": "Finding", "description": "Main reported finding", "field_type": "text"},
+            {"column_name": "Weak field", "description": "Field with weak page evidence", "field_type": "text"},
+        ],
+        "rows": [
+            {"row_id": "row_1", "pdf_id": "paper_a", "values": {"Title": "Paper A"}},
+            {"row_id": "row_2", "pdf_id": "paper_b", "values": {"Title": "Paper B"}},
+        ],
+        "proposals": [
+            {
+                "row_id": "row_1",
+                "column_name": "Finding",
+                "proposed_value": "directly supported value",
+                "evidence": [
+                    {
+                        "pdf_id": "paper_a",
+                        "source_type": "direct_quote",
+                        "page_number": 1,
+                        "quote_text": "Exact supporting sentence from the PDF.",
+                    }
+                ],
+            },
+            {
+                "row_id": "row_2",
+                "column_name": "Weak field",
+                "proposed_value": "weakly inferred value",
+                "evidence": [
+                    {
+                        "pdf_id": "paper_b",
+                        "page_number": 1,
+                        "source_location": "Results",
+                        "reasoning": "The agent inferred the value from page context without an exact quote.",
+                    }
+                ],
+            },
+            {
+                "row_id": "row_2",
+                "column_name": "Finding",
+                "proposal_status": "no_data",
+                "evidence": [
+                    {
+                        "pdf_id": "paper_b",
+                        "page_number": 1,
+                        "quote_text": "The paper does not report the requested finding.",
+                    }
+                ],
+            },
+        ],
+    }
+    review_input_path = run_dir / "extraction" / "review_input.json"
+    review_input_path.parent.mkdir(parents=True, exist_ok=True)
+    review_input_path.write_text(json.dumps(payload), encoding="utf-8")
     return run_dir
 
 
-def build_package(run_dir: Path) -> dict:
-    completed = run_cmd(str(BUILD_SCRIPT), "--run", str(run_dir), "--json")
+def build_package(run_dir: Path, *, with_review: bool = False) -> dict:
+    args = [str(BUILD_SCRIPT), "--run", str(run_dir), "--json"]
+    if with_review:
+        args.append("--with-review")
+    completed = run_cmd(*args)
     return json.loads(completed.stdout)
 
 
@@ -146,31 +162,32 @@ def read_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def test_instructions_fail_closed_on_csv_only_misread() -> None:
+def assert_no_old_layout(run_dir: Path) -> None:
+    for name in ("pdfs", "normalized", "summaries", "exports", "review", "source_table.csv", "schema.json", "schema.csv"):
+        assert not (run_dir / name).exists(), f"old layout artifact should not exist: {name}"
+
+
+def test_instructions_describe_lean_optional_review_contract() -> None:
     instruction_files = {
         "SKILL.md": SKILL_DIR / "SKILL.md",
         "references/extraction_workflow.md": SKILL_DIR / "references" / "extraction_workflow.md",
         "templates/extraction_to_review_prompt.md": SKILL_DIR / "templates" / "extraction_to_review_prompt.md",
     }
     required_phrases = [
-        "A request for CSV outputs is not a CSV-only request",
-        "Return one completed CSV",
-        "_filled.csv",
-        "Before extracting any value",
-        "review_input.json",
-        "Every non-empty proposal must be written with structured evidence at authoring time",
+        "extraction/review_input.json",
+        "output_table_name",
+        "human_review",
+        "Do you want to review the results in the browser interface?",
         "proposal-level `rationale`",
-        "build_and_serve_review.py",
-        "serve_review.py",
+        "_reviewed.csv",
     ]
-
     for label, path in instruction_files.items():
         text = path.read_text(encoding="utf-8")
         for phrase in required_phrases:
             assert phrase in text, f"{phrase!r} missing from {label}"
 
 
-def test_authoring_validation_and_build_generate_mvp_artifacts() -> None:
+def test_authoring_validation_and_default_build_generate_lean_extraction_artifacts() -> None:
     tmp_path = make_workspace("build")
     try:
         run_dir = make_run(tmp_path)
@@ -180,68 +197,66 @@ def test_authoring_validation_and_build_generate_mvp_artifacts() -> None:
         result = build_package(run_dir)
 
         assert result["review_items"] == 3
-        assert (run_dir / "review" / "index.html").exists()
-        assert (run_dir / "review" / "review_package.json").exists()
-        assert (run_dir / "normalized" / "proposals.jsonl").exists()
-        assert (run_dir / "normalized" / "evidence.jsonl").exists()
-        assert (run_dir / "summaries" / "validation_report.json").exists()
-        assert (run_dir / "exports" / "draft_filled_table.csv").exists()
-        assert result["review_app_assets_copied"] is True
-        assert (run_dir / "review" / "assets" / "pdf-data.js").exists()
-        pdf_data_source = (run_dir / "review" / "assets" / "pdf-data.js").read_text(encoding="utf-8")
-        assert "window.__REVIEW_PDF_DATA__" in pdf_data_source
-        assert "window.__REVIEW_PDF_DATA_INDEX__" in pdf_data_source
-        assert "paper_a" in pdf_data_source
-        assert (run_dir / "review" / "assets" / "pdf-data" / "paper_a.js").exists()
+        assert result["filled_table_path"] == str(run_dir / "agent_review_filled.csv")
+        assert result["human_review_built"] is False
+        assert (run_dir / "agent_review_filled.csv").exists()
+        assert (run_dir / "extraction" / "review_input.json").exists()
+        assert (run_dir / "extraction" / "proposals.jsonl").exists()
+        assert (run_dir / "extraction" / "evidence.jsonl").exists()
+        assert (run_dir / "extraction" / "validation_report.json").exists()
+        assert (run_dir / "extraction" / "extraction_summary.json").exists()
+        assert not (run_dir / "human_review").exists()
+        assert_no_old_layout(run_dir)
 
-        proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
-        evidence = read_jsonl(run_dir / "normalized" / "evidence.jsonl")
+        proposals = read_jsonl(run_dir / "extraction" / "proposals.jsonl")
+        evidence = read_jsonl(run_dir / "extraction" / "evidence.jsonl")
         assert proposals[0]["proposal_id"].startswith("prop_")
         assert evidence[0]["evidence_schema_version"] == "main_evidence"
-        assert any(proposal["evidence_status"] == "inferred_weak" for proposal in proposals)
         weak_proposal = next(proposal for proposal in proposals if proposal["evidence_status"] == "inferred_weak")
         assert weak_proposal["rationale"] == "The agent inferred the value from page context without an exact quote."
-        assert (run_dir / "review" / "assets" / "pdf.mjs").exists()
-        assert (run_dir / "review" / "assets" / "pdf.worker.mjs").exists()
-        review_script = next((run_dir / "review" / "assets").glob("index-*.js"))
-        assert "import.meta" not in review_script.read_text(encoding="utf-8")
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-def test_authoring_validation_warns_when_proposal_rationale_is_missing() -> None:
-    tmp_path = make_workspace("rationale_warning")
-    try:
-        run_dir = make_run(tmp_path)
-
-        validation = json.loads(run_cmd(str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json").stdout)
-
-        assert validation["ok"] is True
-        assert any("no proposal-level rationale" in warning for warning in validation["warnings"])
-        assert any("weak/inferred evidence" in warning for warning in validation["warnings"])
-    finally:
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-
-def test_build_writes_unreviewed_draft_filled_table_before_decisions() -> None:
-    tmp_path = make_workspace("draft_table")
+def test_build_writes_root_filled_table_before_decisions() -> None:
+    tmp_path = make_workspace("filled_table")
     try:
         run_dir = make_run(tmp_path)
 
         result = build_package(run_dir)
 
-        draft_path = run_dir / "exports" / "draft_filled_table.csv"
-        draft_rows = read_csv(draft_path)
-        assert result["draft_filled_table_path"] == str(draft_path)
-        assert draft_rows[0]["Finding"] == "directly supported value"
-        assert draft_rows[1]["Weak field"] == "weakly inferred value"
-        assert draft_rows[1]["Finding"] == ""
-        assert not (run_dir / "review" / "decisions.jsonl").exists()
+        filled_path = run_dir / "agent_review_filled.csv"
+        rows = read_csv(filled_path)
+        assert result["filled_table_path"] == str(filled_path)
+        assert rows[0]["Finding"] == "directly supported value"
+        assert rows[1]["Weak field"] == "weakly inferred value"
+        assert rows[1]["Finding"] == ""
+        assert not (run_dir / "human_review" / "decisions.jsonl").exists()
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-def test_build_and_serve_wrapper_build_only_json_generates_review_package() -> None:
+def test_explicit_review_build_creates_human_review_package() -> None:
+    tmp_path = make_workspace("review_build")
+    try:
+        run_dir = make_run(tmp_path)
+
+        result = build_package(run_dir, with_review=True)
+
+        assert result["human_review_built"] is True
+        assert (run_dir / "human_review" / "index.html").exists()
+        assert (run_dir / "human_review" / "review_package.json").exists()
+        assert (run_dir / "human_review" / "assets").exists()
+        assert not (run_dir / "human_review" / "assets" / "pdf-data.js").exists()
+        package = json.loads((run_dir / "human_review" / "review_package.json").read_text(encoding="utf-8"))
+        assert Path(package["pdfs"][0]["path"]).is_absolute()
+        assert package["source"]["output_table_name"] == "agent_review_filled.csv"
+        assert_no_old_layout(run_dir)
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_build_and_serve_wrapper_build_only_json_generates_optional_review_package() -> None:
     tmp_path = make_workspace("wrapper_build_only")
     try:
         run_dir = make_run(tmp_path)
@@ -249,16 +264,14 @@ def test_build_and_serve_wrapper_build_only_json_generates_review_package() -> N
         result = json.loads(run_cmd(str(WRAPPER_SCRIPT), "--run", str(run_dir), "--build-only", "--json").stdout)
 
         assert result["validation_status"] == "ok"
-        assert result["authoring_validation"] == "ok"
-        assert result["generated_validation"] == "ok"
         assert result["served"] is False
         assert result["review_url"] is None
-        assert result["review_items"] == 3
-        assert (run_dir / "review" / "index.html").exists()
-        assert (run_dir / "review" / "review_package.json").exists()
-        assert (run_dir / "normalized" / "proposals.jsonl").exists()
-        assert (run_dir / "normalized" / "evidence.jsonl").exists()
-        assert (run_dir / "summaries" / "validation_report.json").exists()
+        assert result["human_review_built"] is True
+        assert (run_dir / "agent_review_filled.csv").exists()
+        assert (run_dir / "human_review" / "index.html").exists()
+        assert (run_dir / "human_review" / "review_package.json").exists()
+        assert (run_dir / "extraction" / "proposals.jsonl").exists()
+        assert (run_dir / "extraction" / "evidence.jsonl").exists()
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -270,7 +283,7 @@ def test_build_and_serve_wrapper_can_start_localhost_server() -> None:
         result, server = build_and_serve_review(run_dir, open_browser=False, quiet=True)
         try:
             assert result["served"] is True
-            assert result["review_url"].startswith("http://127.0.0.1:")
+            assert "/human_review/index.html" in result["review_url"]
             with urllib.request.urlopen(result["review_url"], timeout=5) as response:
                 assert response.status == 200
                 assert b"Papers-to-table rich review" in response.read()
@@ -286,10 +299,10 @@ def test_deterministic_ids_are_stable_across_rebuilds() -> None:
     try:
         run_dir = make_run(tmp_path)
         build_package(run_dir)
-        first_ids = [row["proposal_id"] for row in read_jsonl(run_dir / "normalized" / "proposals.jsonl")]
+        first_ids = [row["proposal_id"] for row in read_jsonl(run_dir / "extraction" / "proposals.jsonl")]
 
         build_package(run_dir)
-        second_ids = [row["proposal_id"] for row in read_jsonl(run_dir / "normalized" / "proposals.jsonl")]
+        second_ids = [row["proposal_id"] for row in read_jsonl(run_dir / "extraction" / "proposals.jsonl")]
 
         assert first_ids == second_ids
     finally:
@@ -300,9 +313,10 @@ def test_authoring_validation_rejects_non_empty_value_without_evidence() -> None
     tmp_path = make_workspace("invalid")
     try:
         run_dir = make_run(tmp_path)
-        payload = json.loads((run_dir / "review_input.json").read_text(encoding="utf-8"))
+        input_path = run_dir / "extraction" / "review_input.json"
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
         payload["proposals"][0]["evidence"] = []
-        (run_dir / "review_input.json").write_text(json.dumps(payload), encoding="utf-8")
+        input_path.write_text(json.dumps(payload), encoding="utf-8")
 
         completed = subprocess.run(
             [sys.executable, str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json"],
@@ -317,23 +331,22 @@ def test_authoring_validation_rejects_non_empty_value_without_evidence() -> None
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-def test_valid_package_requires_only_quote_page_evidence_no_table_or_schema() -> None:
+def test_valid_package_requires_only_quote_page_evidence_no_table_or_schema_copy() -> None:
     tmp_path = make_workspace("minimal")
     try:
         run_dir = make_run(tmp_path, with_source_table=False)
 
         result = build_package(run_dir)
-        package = json.loads((run_dir / "review" / "review_package.json").read_text(encoding="utf-8"))
+        summary = json.loads((run_dir / "extraction" / "extraction_summary.json").read_text(encoding="utf-8"))
 
         assert result["review_items"] == 3
-        assert package["source"]["source_table_present"] is False
-        assert not (run_dir / "assets" / "pages").exists()
-        assert not (run_dir / "assets" / "figures").exists()
+        assert summary["review_status"] == "not_human_reviewed"
+        assert_no_old_layout(run_dir)
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-def test_scaffold_benchmark_run_creates_incomplete_review_input_skeleton() -> None:
+def test_scaffold_benchmark_run_creates_reference_only_review_input_skeleton() -> None:
     tmp_path = make_workspace("scaffold")
     try:
         dataset_dir = tmp_path / "dataset"
@@ -355,16 +368,19 @@ def test_scaffold_benchmark_run_creates_incomplete_review_input_skeleton() -> No
         run_dir = tmp_path / "review_run"
 
         result = json.loads(run_cmd(str(SCAFFOLD_SCRIPT), "--dataset-dir", str(dataset_dir), "--run", str(run_dir), "--json").stdout)
-        payload = json.loads((run_dir / "review_input.json").read_text(encoding="utf-8"))
+        payload = json.loads((run_dir / "extraction" / "review_input.json").read_text(encoding="utf-8"))
 
         assert result["status"] == "scaffolded_incomplete_until_proposals_are_added"
-        assert (run_dir / "pdfs" / "paper_a.pdf").exists()
-        assert (run_dir / "source_table.csv").exists()
-        assert (run_dir / "schema.csv").exists()
+        assert result["filled_table"].endswith("dataset_filled.csv")
+        assert payload["output_table_name"] == "dataset_filled.csv"
+        assert Path(payload["pdfs"][0]["path"]).is_absolute()
+        assert Path(payload["source_table_path"]).is_absolute()
+        assert Path(payload["schema_path"]).is_absolute()
         assert [row["row_id"] for row in payload["rows"]] == ["row_1", "row_2"]
         assert [row["pdf_id"] for row in payload["rows"]] == ["paper_a", "paper_b"]
         assert payload["columns"] == [{"column_name": "Finding", "description": "Main reported finding", "field_type": "text"}]
         assert payload["proposals"] == []
+        assert_no_old_layout(run_dir)
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -376,14 +392,12 @@ def test_build_remains_portable_when_only_skill_directory_is_copied() -> None:
         shutil.copytree(SKILL_DIR, skill_copy, ignore=shutil.ignore_patterns("tmp_runtime", ".tmp", "__pycache__"))
         run_dir = make_run(tmp_path)
 
-        completed = run_cmd(str(skill_copy / "scripts" / "build_review_package.py"), "--run", str(run_dir), "--json")
+        completed = run_cmd(str(skill_copy / "scripts" / "build_review_package.py"), "--run", str(run_dir), "--with-review", "--json")
         result = json.loads(completed.stdout)
 
-        assert result["pdfjs_assets_copied"] is True
         assert result["review_app_assets_copied"] is True
-        assert (run_dir / "review" / "assets" / "pdf.mjs").exists()
-        assert (run_dir / "review" / "assets" / "pdf.worker.mjs").exists()
-        assert any(path.name.startswith("index-") and path.suffix == ".js" for path in (run_dir / "review" / "assets").iterdir())
+        assert (run_dir / "human_review" / "index.html").exists()
+        assert any(path.name.startswith("index-") and path.suffix == ".js" for path in (run_dir / "human_review" / "assets").iterdir())
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -392,7 +406,8 @@ def test_text_evidence_kinds_map_to_review_compatible_source_types() -> None:
     tmp_path = make_workspace("source_types")
     try:
         run_dir = make_run(tmp_path)
-        payload = json.loads((run_dir / "review_input.json").read_text(encoding="utf-8"))
+        input_path = run_dir / "extraction" / "review_input.json"
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
         payload["proposals"][0]["evidence"] = [
             {
                 "pdf_id": "paper_a",
@@ -406,10 +421,10 @@ def test_text_evidence_kinds_map_to_review_compatible_source_types() -> None:
                 "caption_text": "Figure caption evidence that still behaves like direct text evidence.",
             },
         ]
-        (run_dir / "review_input.json").write_text(json.dumps(payload), encoding="utf-8")
+        input_path.write_text(json.dumps(payload), encoding="utf-8")
 
         build_package(run_dir)
-        evidence = read_jsonl(run_dir / "normalized" / "evidence.jsonl")
+        evidence = read_jsonl(run_dir / "extraction" / "evidence.jsonl")
 
         assert evidence[0]["source_type"] == "direct_quote"
         assert evidence[0]["authored_evidence_kind"] == "table_text"
@@ -423,7 +438,8 @@ def test_authoring_validation_checks_highlight_regions_and_warns_on_ambiguous_co
     tmp_path = make_workspace("highlight_validation")
     try:
         run_dir = make_run(tmp_path)
-        payload = json.loads((run_dir / "review_input.json").read_text(encoding="utf-8"))
+        input_path = run_dir / "extraction" / "review_input.json"
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
         payload["proposals"][0]["evidence"] = [
             {
                 "pdf_id": "paper_a",
@@ -437,7 +453,7 @@ def test_authoring_validation_checks_highlight_regions_and_warns_on_ambiguous_co
                 "approximate_highlight_regions": [{"x0": 12, "y0": 18, "x1": 42, "y1": 55}],
             },
         ]
-        (run_dir / "review_input.json").write_text(json.dumps(payload), encoding="utf-8")
+        input_path.write_text(json.dumps(payload), encoding="utf-8")
 
         completed = subprocess.run(
             [sys.executable, str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json"],
@@ -454,13 +470,13 @@ def test_authoring_validation_checks_highlight_regions_and_warns_on_ambiguous_co
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-def test_apply_decisions_exports_accepted_only_csv() -> None:
+def test_apply_decisions_exports_accepted_only_reviewed_csv() -> None:
     tmp_path = make_workspace("apply")
     try:
         run_dir = make_run(tmp_path)
-        build_package(run_dir)
-        proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
-        decisions_path = run_dir / "review" / "downloaded_decisions.json"
+        build_package(run_dir, with_review=True)
+        proposals = read_jsonl(run_dir / "extraction" / "proposals.jsonl")
+        decisions_path = run_dir / "human_review" / "downloaded_decisions.json"
         decisions_path.write_text(
             json.dumps(
                 {
@@ -481,24 +497,17 @@ def test_apply_decisions_exports_accepted_only_csv() -> None:
 
         result = json.loads(run_cmd(str(APPLY_SCRIPT), "--run", str(run_dir), "--decisions", str(decisions_path), "--json").stdout)
 
-        final_rows = read_csv(run_dir / "exports" / "final_table.csv")
+        reviewed_rows = read_csv(run_dir / "agent_review_reviewed.csv")
         assert result["accepted_changes_count"] == 2
-        assert result["reviewed_bundle_path"] == str(run_dir / "exports" / "reviewed_bundle")
-        assert final_rows[0]["Finding"] == "directly supported value"
-        assert final_rows[1]["Weak field"] == "reviewer edited value"
-        assert final_rows[1]["Finding"] == ""
-
-        bundle_dir = run_dir / "exports" / "reviewed_bundle"
-        assert sorted(path.name for path in bundle_dir.iterdir()) == ["audit", "filled_table_reviewed.csv", "manifest.json", "review"]
-        assert sorted(path.name for path in (bundle_dir / "review").iterdir()) == ["decisions.jsonl", "evidence.jsonl", "proposals.jsonl"]
-        audit_files = sorted(path.name for path in (bundle_dir / "audit").iterdir())
-        assert "reviewer_summary.json" in audit_files
-        assert "validation_report.json" in audit_files
-        assert any(name.startswith("audit_log_") for name in audit_files)
-        assert any(name.startswith("diagnostics_") for name in audit_files)
-        assert read_csv(bundle_dir / "filled_table_reviewed.csv") == final_rows
-        forbidden = {"pdfs", "source_table.csv", "schema.json", "schema.csv", "index.html", "assets"}
-        assert forbidden.isdisjoint({path.name for path in bundle_dir.rglob("*")})
+        assert result["reviewed_table_path"] == str(run_dir / "agent_review_reviewed.csv")
+        assert reviewed_rows[0]["Finding"] == "directly supported value"
+        assert reviewed_rows[1]["Weak field"] == "reviewer edited value"
+        assert reviewed_rows[1]["Finding"] == ""
+        assert (run_dir / "human_review" / "decisions.jsonl").exists()
+        assert (run_dir / "human_review" / "reviewer_summary.json").exists()
+        assert any(path.name.startswith("audit_log_") for path in (run_dir / "human_review").iterdir())
+        assert any(path.name.startswith("diagnostics_") for path in (run_dir / "human_review").iterdir())
+        assert_no_old_layout(run_dir)
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -507,11 +516,11 @@ def test_serve_review_bulk_accepts_only_provided_pending_ids() -> None:
     tmp_path = make_workspace("bulk_endpoint")
     try:
         run_dir = make_run(tmp_path)
-        build_package(run_dir)
-        proposals = read_jsonl(run_dir / "normalized" / "proposals.jsonl")
+        build_package(run_dir, with_review=True)
+        proposals = read_jsonl(run_dir / "extraction" / "proposals.jsonl")
         server, url = serve(run_dir, open_browser=False, quiet=True)
         try:
-            base_url = url.rsplit("/review/", 1)[0]
+            base_url = url.rsplit("/human_review/", 1)[0]
             existing_payload = json.dumps(
                 {
                     "decisions": [
@@ -544,7 +553,7 @@ def test_serve_review_bulk_accepts_only_provided_pending_ids() -> None:
             with urllib.request.urlopen(bulk_request, timeout=5) as response:
                 result = json.loads(response.read().decode("utf-8"))
 
-            decisions = read_jsonl(run_dir / "review" / "decisions.jsonl")
+            decisions = read_jsonl(run_dir / "human_review" / "decisions.jsonl")
             assert result["accepted_count"] == 1
             by_proposal = {decision["proposal_id"]: decision for decision in decisions}
             assert by_proposal[proposals[0]["proposal_id"]]["decision"] == "rejected"
@@ -556,15 +565,15 @@ def test_serve_review_bulk_accepts_only_provided_pending_ids() -> None:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-def test_serve_review_react_adapter_endpoints() -> None:
+def test_serve_review_react_adapter_endpoints_and_pdf_reference_serving() -> None:
     tmp_path = make_workspace("react_adapter")
     try:
         run_dir = make_run(tmp_path)
-        build_package(run_dir)
-        proposal = read_jsonl(run_dir / "normalized" / "proposals.jsonl")[0]
+        build_package(run_dir, with_review=True)
+        proposal = read_jsonl(run_dir / "extraction" / "proposals.jsonl")[0]
         server, url = serve(run_dir, open_browser=False, quiet=True)
         try:
-            base_url = url.rsplit("/review/", 1)[0]
+            base_url = url.rsplit("/human_review/", 1)[0]
             with urllib.request.urlopen(base_url + "/api/proposals", timeout=5) as response:
                 proposals_payload = json.loads(response.read().decode("utf-8"))
             assert proposals_payload["count"] == 3
@@ -589,6 +598,12 @@ def test_serve_review_react_adapter_endpoints() -> None:
                 assert response.status == 200
                 assert response.read(8).startswith(b"%PDF")
 
+            try:
+                urllib.request.urlopen(base_url + "/api/assets/pdf/missing", timeout=5)
+                raise AssertionError("missing PDF should 404")
+            except urllib.error.HTTPError as exc:
+                assert exc.code == 404
+
             decision_payload = json.dumps({"decision": "accepted"}).encode("utf-8")
             decision_request = urllib.request.Request(
                 base_url + f"/api/proposals/{proposal['proposal_id']}/decision",
@@ -606,26 +621,27 @@ def test_serve_review_react_adapter_endpoints() -> None:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-def test_serve_review_writes_decisions_and_exports() -> None:
+def test_serve_review_writes_decisions_and_exports_reviewed_table() -> None:
     tmp_path = make_workspace("serve")
     try:
         run_dir = make_run(tmp_path)
-        build_package(run_dir)
-        proposal = read_jsonl(run_dir / "normalized" / "proposals.jsonl")[0]
+        build_package(run_dir, with_review=True)
+        proposal = read_jsonl(run_dir / "extraction" / "proposals.jsonl")[0]
         server, url = serve(run_dir, open_browser=False, quiet=True)
         try:
             with urllib.request.urlopen(url, timeout=5) as response:
                 assert response.status == 200
                 assert b"Papers-to-table rich review" in response.read()
-            html = (run_dir / "review" / "index.html").read_text(encoding="utf-8")
+            html = (run_dir / "human_review" / "index.html").read_text(encoding="utf-8")
             assert "__REVIEW_PACKAGE_JSON__" not in html
             assert "window.__REVIEW_PACKAGE__ = {" in html
             assert "./assets/index-" in html
-            assert "./logo_1.svg" in html or (run_dir / "review" / "logo_1.svg").exists()
+            assert "./logo_1.svg" in html or (run_dir / "human_review" / "logo_1.svg").exists()
             assert 'type="module"' not in html
             assert "crossorigin" not in html
             assert '<script defer src="./assets/index-' in html
-            assert '<script defer src="./assets/pdf-data.js"></script>' in html
+            assert "pdf-data.js" not in html
+
             app_source = (SKILL_DIR / "review_app" / "src" / "App.tsx").read_text(encoding="utf-8")
             review_workspace_source = (SKILL_DIR / "review_app" / "src" / "components" / "ReviewWorkspace.tsx").read_text(encoding="utf-8")
             action_source = (SKILL_DIR / "review_app" / "src" / "components" / "ReviewActionArea.tsx").read_text(encoding="utf-8")
@@ -633,8 +649,10 @@ def test_serve_review_writes_decisions_and_exports() -> None:
             queue_source = (SKILL_DIR / "review_app" / "src" / "components" / "ProposalQueue.tsx").read_text(encoding="utf-8")
             assert "Evidence-backed extraction and review" in app_source
             assert "Agent skill review" in app_source
-            assert "Export reviewed bundle" in review_workspace_source
+            assert "Export reviewed table" in review_workspace_source
             assert "Finish review" in review_workspace_source
+            assert "Export reviewed bundle" not in review_workspace_source
+            assert "reviewed_bundle" not in review_workspace_source
             assert "Download mode" not in review_workspace_source
             assert "downloaded_decisions.json" in review_workspace_source
             assert "role=\"separator\"" in review_workspace_source
@@ -643,10 +661,9 @@ def test_serve_review_writes_decisions_and_exports() -> None:
             assert "Quote + page fallback" in evidence_source
             assert "Approximate region highlight" in evidence_source
             assert "evidence?.table_text" in evidence_source
-            assert "pdf.worker.min.mjs?worker&inline" in evidence_source
-            assert "loadFileModePdfData" in evidence_source
-            assert "embeddedFileModePdfData" in evidence_source
-            assert "loadEmbeddedFileModePdfData" in evidence_source
+            assert "PDF rendering and quote highlights require localhost serving" in evidence_source
+            assert "loadFileModePdfData" not in evidence_source
+            assert "embeddedFileModePdfData" not in evidence_source
             assert "By Paper" in queue_source
             assert "By Column" in queue_source
             assert "As Table" in queue_source
@@ -664,7 +681,7 @@ def test_serve_review_writes_decisions_and_exports() -> None:
                 }
             ).encode("utf-8")
             request = urllib.request.Request(
-                url.rsplit("/review/", 1)[0] + "/api/decisions",
+                url.rsplit("/human_review/", 1)[0] + "/api/decisions",
                 data=payload,
                 headers={"Content-Type": "application/json"},
                 method="POST",
@@ -672,14 +689,14 @@ def test_serve_review_writes_decisions_and_exports() -> None:
             with urllib.request.urlopen(request, timeout=5) as response:
                 assert response.status == 200
 
-            export_request = urllib.request.Request(url.rsplit("/review/", 1)[0] + "/api/export", data=b"{}", method="POST")
+            export_request = urllib.request.Request(url.rsplit("/human_review/", 1)[0] + "/api/export", data=b"{}", method="POST")
             with urllib.request.urlopen(export_request, timeout=5) as response:
                 export_result = json.loads(response.read().decode("utf-8"))
             assert export_result["ok"] is True
-            assert export_result["reviewed_bundle_path"] == str(run_dir / "exports" / "reviewed_bundle")
-            assert (run_dir / "review" / "decisions.jsonl").exists()
-            assert (run_dir / "exports" / "final_table.csv").exists()
-            assert (run_dir / "exports" / "reviewed_bundle" / "filled_table_reviewed.csv").exists()
+            assert export_result["reviewed_table_path"] == str(run_dir / "agent_review_reviewed.csv")
+            assert (run_dir / "human_review" / "decisions.jsonl").exists()
+            assert (run_dir / "agent_review_reviewed.csv").exists()
+            assert_no_old_layout(run_dir)
         finally:
             server.shutdown()
     finally:

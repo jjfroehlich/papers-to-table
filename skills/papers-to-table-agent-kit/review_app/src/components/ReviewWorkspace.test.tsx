@@ -179,18 +179,17 @@ describe('standalone ReviewWorkspace', () => {
       run_id: 'standalone_run',
       exported_at: '2026-01-01T00:00:00Z',
       accepted_changes_count: 1,
-      workbook_path: 'exports/final_table.csv',
-      final_table_path: 'exports/final_table.csv',
-      reviewed_bundle_path: 'exports/reviewed_bundle',
-      audit_log_path: 'exports/audit_log.json',
-      diagnostics_path: 'exports/diagnostics.json',
+      workbook_path: 'standalone_run_reviewed.csv',
+      reviewed_table_path: 'standalone_run_reviewed.csv',
+      audit_log_path: 'human_review/audit_log.json',
+      diagnostics_path: 'human_review/diagnostics.json',
       unsupported_feature_warnings: [],
       unsupported_feature_warnings_count: 0,
-      fidelity_boundary: 'standalone_reviewed_bundle',
+      fidelity_boundary: 'standalone_reviewed_table',
     })
   })
 
-  it('renders main review modes, separators, and reviewed bundle export', async () => {
+  it('renders main review modes, separators, and reviewed table export', async () => {
     render(<ReviewWorkspace run={makeRun()} outputDir="" />)
 
     expect(await screen.findByRole('button', { name: 'By Paper' })).toBeInTheDocument()
@@ -200,8 +199,8 @@ describe('standalone ReviewWorkspace', () => {
     expect(screen.queryByRole('button', { name: 'Download decisions' })).not.toBeInTheDocument()
     expect(screen.queryByText('Download mode')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /Export reviewed bundle/i }))
-    expect(await screen.findByText(/Reviewed bundle: exports\/reviewed_bundle/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Export reviewed table/i }))
+    expect(await screen.findByText(/Reviewed table: standalone_run_reviewed\.csv/i)).toBeInTheDocument()
   })
 
   it('uses one contextual export button in static file mode', async () => {

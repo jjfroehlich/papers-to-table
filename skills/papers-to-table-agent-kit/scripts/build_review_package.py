@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 import shutil
 import sys
@@ -20,16 +19,26 @@ from review_package_common import (  # noqa: E402
     REVIEW_PACKAGE_SCHEMA_VERSION,
     authored_evidence_kind,
     evidence_tier,
+    evidence_path,
+    extraction_summary_path,
+    filled_table_path,
+    human_review_dir,
     infer_source_type,
     is_non_empty,
+    load_review_input,
     merged_evidence_semantics,
     normalized_regions,
+    output_table_name,
+    proposals_path,
     read_csv,
     read_json,
-    safe_filename,
+    resolve_input_path,
+    review_index_path,
+    review_package_path,
     stable_id,
     text_evidence_value,
     utc_now,
+    validation_report_path,
     write_csv,
     write_json,
     write_jsonl,
@@ -53,10 +62,6 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def _template_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "templates" / "review.html"
-
-
 def _review_app_dist_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "assets" / "review_app"
 
@@ -73,7 +78,7 @@ def _copy_pdfjs_assets(run_dir: Path) -> list[str]:
         repo_root / "app" / "frontend" / "node_modules" / "pdfjs-dist" / "build",
         repo_root / "app" / "frontend" / "node_modules" / "pdfjs-dist" / "legacy" / "build",
     ]
-    out_dir = run_dir / "review" / "assets"
+    out_dir = human_review_dir(run_dir) / "assets"
     out_dir.mkdir(parents=True, exist_ok=True)
     copied: list[str] = []
     for candidate_dir in candidates:
@@ -82,23 +87,30 @@ def _copy_pdfjs_assets(run_dir: Path) -> list[str]:
         if pdf.exists() and worker.exists():
             shutil.copy2(pdf, out_dir / "pdf.mjs")
             shutil.copy2(worker, out_dir / "pdf.worker.mjs")
-            copied.extend(["review/assets/pdf.mjs", "review/assets/pdf.worker.mjs"])
+            copied.extend(["human_review/assets/pdf.mjs", "human_review/assets/pdf.worker.mjs"])
             break
     return copied
 
 
-def _load_schema_columns(run_dir: Path) -> list[dict[str, Any]]:
-    schema_path = run_dir / "schema.json"
+def _load_schema_columns(run_dir: Path, payload: dict[str, Any]) -> list[dict[str, Any]]:
+    schema_value = str(payload.get("schema_path") or "").strip()
+    if not schema_value:
+        return []
+    schema_path = resolve_input_path(run_dir, schema_value)
     if not schema_path.exists():
         return []
-    payload = read_json(schema_path)
     columns: Any
-    if isinstance(payload, dict):
-        columns = payload.get("columns", [])
+    if schema_path.suffix.lower() == ".csv":
+        _headers, rows = read_csv(schema_path)
+        columns = rows
+    else:
+        schema_payload = read_json(schema_path)
+        if not isinstance(schema_payload, dict):
+            columns = schema_payload
+        else:
+            columns = schema_payload.get("columns", [])
         if isinstance(columns, dict):
             columns = [{"column_name": name, **(value or {})} for name, value in columns.items()]
-    else:
-        columns = payload
     if not isinstance(columns, list):
         return []
     normalized: list[dict[str, Any]] = []
@@ -127,8 +139,11 @@ def _normalize_field_type(value: Any) -> str | None:
     return FIELD_TYPE_ALIASES.get(raw, raw if raw in {"text", "number", "categorical", "boolean"} else None)
 
 
-def _source_table(run_dir: Path) -> tuple[list[dict[str, str]], list[str]]:
-    path = run_dir / "source_table.csv"
+def _source_table(run_dir: Path, payload: dict[str, Any]) -> tuple[list[dict[str, str]], list[str]]:
+    path_value = str(payload.get("source_table_path") or "").strip()
+    if not path_value:
+        return [], []
+    path = resolve_input_path(run_dir, path_value)
     if not path.exists():
         return [], []
     return read_csv(path)
@@ -145,8 +160,6 @@ def _row_label(row: dict[str, Any], row_id: str, index: int) -> str:
 
 def _normalize_pdfs(run_dir: Path, payload: dict[str, Any]) -> list[dict[str, Any]]:
     raw_pdfs = payload.get("pdfs") if isinstance(payload.get("pdfs"), list) else []
-    pdf_dir = run_dir / "pdfs"
-    pdf_dir.mkdir(parents=True, exist_ok=True)
     normalized: list[dict[str, Any]] = []
     for item in raw_pdfs:
         if not isinstance(item, dict):
@@ -155,22 +168,12 @@ def _normalize_pdfs(run_dir: Path, payload: dict[str, Any]) -> list[dict[str, An
         if not pdf_id:
             continue
         raw_path = str(item.get("path") or "").strip()
-        source = (run_dir / raw_path).resolve() if raw_path and not Path(raw_path).is_absolute() else Path(raw_path)
-        target = source
-        try:
-            target.relative_to(run_dir.resolve())
-        except ValueError:
-            suffix = source.suffix if source.suffix else ".pdf"
-            target = pdf_dir / f"{safe_filename(pdf_id, 'pdf')}{suffix}"
-            if source.exists():
-                shutil.copy2(source, target)
-        rel_path = target.resolve().relative_to(run_dir.resolve()).as_posix()
+        source = resolve_input_path(run_dir, raw_path) if raw_path else Path("")
         normalized.append(
             {
                 "pdf_id": pdf_id,
                 "label": item.get("label") or item.get("title") or pdf_id,
-                "path": rel_path,
-                "asset_path": f"../{rel_path}",
+                "path": str(source),
                 "title": item.get("title"),
                 "authors": item.get("authors"),
                 "year": item.get("year"),
@@ -464,6 +467,7 @@ def _build_review_package(
     run_id: str,
     generated_at: str,
     payload: dict[str, Any],
+    output_name: str,
     source_table_present: bool,
     pdfs: list[dict[str, Any]],
     rows: list[dict[str, Any]],
@@ -486,6 +490,9 @@ def _build_review_package(
         "source": {
             "review_input_schema_version": payload.get("schema_version") or REVIEW_INPUT_SCHEMA_VERSION,
             "source_table_present": source_table_present,
+            "source_table_path": payload.get("source_table_path"),
+            "schema_path": payload.get("schema_path"),
+            "output_table_name": output_name,
         },
         "pdfs": pdfs,
         "columns": columns,
@@ -539,8 +546,9 @@ def _draft_rows_and_fields(
     return out_rows, fieldnames, row_map
 
 
-def _write_draft_filled_table(
+def _write_filled_table(
     run_dir: Path,
+    payload: dict[str, Any],
     table_rows: list[dict[str, str]],
     table_fieldnames: list[str],
     rows: list[dict[str, Any]],
@@ -568,7 +576,7 @@ def _write_draft_filled_table(
             fieldnames.append(column_name)
         rows_by_id[row_id][column_name] = proposal.get("proposed_value") or ""
 
-    out_path = run_dir / "exports" / "draft_filled_table.csv"
+    out_path = filled_table_path(run_dir, payload)
     write_csv(out_path, out_rows, fieldnames)
     return out_path
 
@@ -581,7 +589,7 @@ def _copy_review_app_assets(run_dir: Path) -> list[str]:
             "npm --prefix skills/papers-to-table-agent-kit/review_app run build."
         )
     copied: list[str] = []
-    review_dir = run_dir / "review"
+    review_dir = human_review_dir(run_dir)
     review_dir.mkdir(parents=True, exist_ok=True)
 
     def make_script_file_safe(path: Path) -> None:
@@ -617,91 +625,60 @@ def _copy_review_app_assets(run_dir: Path) -> list[str]:
     return copied
 
 
-def _write_embedded_pdf_data(run_dir: Path, pdfs: list[dict[str, Any]]) -> Path:
-    """Write lazy PDF byte scripts so file:// review pages can render them."""
-    pdf_data_dir = run_dir / "review" / "assets" / "pdf-data"
-    if pdf_data_dir.exists():
-        shutil.rmtree(pdf_data_dir)
-    pdf_data_dir.mkdir(parents=True, exist_ok=True)
-
-    index_payload: dict[str, str] = {}
-    used_names: set[str] = set()
-    for pdf in pdfs:
-        pdf_id = str(pdf.get("pdf_id") or "").strip()
-        pdf_path = str(pdf.get("path") or "").strip()
-        if not pdf_id or not pdf_path:
-            continue
-        source = Path(pdf_path)
-        if not source.is_absolute():
-            source = run_dir / source
-        if not source.exists() or not source.is_file():
-            continue
-
-        base_name = safe_filename(pdf_id, "pdf")
-        script_name = f"{base_name}.js"
-        suffix = 2
-        while script_name in used_names:
-            script_name = f"{base_name}_{suffix}.js"
-            suffix += 1
-        used_names.add(script_name)
-
-        encoded = base64.b64encode(source.read_bytes()).decode("ascii")
-        script_path = pdf_data_dir / script_name
-        script_path.write_text(
-            "window.__REVIEW_PDF_DATA__ = window.__REVIEW_PDF_DATA__ || {};\n"
-            f"window.__REVIEW_PDF_DATA__[{json.dumps(pdf_id, ensure_ascii=True)}] = "
-            f"{json.dumps(encoded, ensure_ascii=True)};\n",
-            encoding="utf-8",
-        )
-        index_payload[pdf_id] = f"./assets/pdf-data/{script_name}"
-
-    out_path = run_dir / "review" / "assets" / "pdf-data.js"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    json_payload = json.dumps(index_payload, ensure_ascii=True, sort_keys=True)
-    out_path.write_text(
-        "window.__REVIEW_PDF_DATA__ = window.__REVIEW_PDF_DATA__ || {};\n"
-        "window.__REVIEW_PDF_DATA_INDEX__ = "
-        + json_payload.replace("</", "<\\/")
-        + ";\n",
-        encoding="utf-8",
-    )
-    return out_path
-
-
 def _write_review_html(run_dir: Path, package: dict[str, Any]) -> Path:
     template_path = _review_app_dist_dir() / "index.html"
     template = template_path.read_text(encoding="utf-8")
     template = template.replace('<script type="module" crossorigin src=', '<script defer src=')
     template = template.replace('<script type="module" src=', '<script defer src=')
     template = template.replace(" crossorigin", "")
-    if "./assets/pdf-data.js" not in template:
-        template = template.replace(
-            '<script defer src="./assets/index-',
-            '<script defer src="./assets/pdf-data.js"></script>\n    <script defer src="./assets/index-',
-            1,
-        )
     package_json = json.dumps(package, ensure_ascii=False).replace("</", "<\\/")
     html = template.replace("__REVIEW_PACKAGE_JSON__", package_json)
-    out_path = run_dir / "review" / "index.html"
+    out_path = review_index_path(run_dir)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(html, encoding="utf-8")
     return out_path
 
 
-def build_review_package(run_dir: Path, *, from_review_input: bool = True) -> dict[str, Any]:
+def _write_extraction_summary(
+    run_dir: Path,
+    payload: dict[str, Any],
+    *,
+    run_id: str,
+    generated_at: str,
+    proposals: list[dict[str, Any]],
+    evidence: list[dict[str, Any]],
+    filled_table: Path,
+) -> Path:
+    summary = {
+        "schema_version": "papers_to_table.extraction_summary.v1",
+        "run_id": run_id,
+        "generated_at": generated_at,
+        "filled_table_path": str(filled_table),
+        "output_table_name": output_table_name(run_dir, payload),
+        "proposal_count": len(proposals),
+        "evidence_count": len(evidence),
+        "review_status": "not_human_reviewed",
+        "notes": "The filled table is agent-extracted from proposed values and has not been human-reviewed.",
+    }
+    path = extraction_summary_path(run_dir)
+    write_json(path, summary)
+    return path
+
+
+def build_review_package(run_dir: Path, *, from_review_input: bool = True, with_review: bool = False) -> dict[str, Any]:
     if not from_review_input:
         raise ValueError("The rich agent kit now builds from review_input.json by default.")
     run_dir = run_dir.resolve()
-    payload = read_json(run_dir / "review_input.json")
+    payload = load_review_input(run_dir)
     authoring_report = validate_authoring(run_dir)
     persist_report(run_dir, authoring_report)
     if not authoring_report["ok"]:
-        raise ValueError("review_input.json failed authoring validation. See summaries/validation_report.json.")
+        raise ValueError("extraction/review_input.json failed authoring validation. See extraction/validation_report.json.")
 
     generated_at = utc_now()
     run_id = str(payload.get("run_id") or run_dir.name)
-    table_rows, table_fieldnames = _source_table(run_dir)
-    schema_columns = _load_schema_columns(run_dir)
+    table_rows, table_fieldnames = _source_table(run_dir, payload)
+    schema_columns = _load_schema_columns(run_dir, payload)
     raw_proposals = payload.get("proposals") if isinstance(payload.get("proposals"), list) else []
     pdfs = _normalize_pdfs(run_dir, payload)
     rows = _normalize_rows(payload, table_rows, table_fieldnames, raw_proposals)
@@ -711,7 +688,8 @@ def build_review_package(run_dir: Path, *, from_review_input: bool = True) -> di
         run_id,
         generated_at,
         payload,
-        bool((run_dir / "source_table.csv").exists()),
+        output_table_name(run_dir, payload),
+        bool(payload.get("source_table_path")),
         pdfs,
         rows,
         columns,
@@ -719,54 +697,74 @@ def build_review_package(run_dir: Path, *, from_review_input: bool = True) -> di
         evidence,
     )
 
-    write_jsonl(run_dir / "normalized" / "proposals.jsonl", proposals)
-    write_jsonl(run_dir / "normalized" / "evidence.jsonl", evidence)
-    write_json(run_dir / "review" / "review_package.json", package)
-    draft_table_path = _write_draft_filled_table(run_dir, table_rows, table_fieldnames, rows, columns, proposals)
-    copied_review_app_assets = _copy_review_app_assets(run_dir)
-    pdf_data_path = _write_embedded_pdf_data(run_dir, pdfs)
-    html_path = _write_review_html(run_dir, package)
-    copied_assets = _copy_pdfjs_assets(run_dir)
+    write_jsonl(proposals_path(run_dir), proposals)
+    write_jsonl(evidence_path(run_dir), evidence)
+    filled_path = _write_filled_table(run_dir, payload, table_rows, table_fieldnames, rows, columns, proposals)
+    summary_path = _write_extraction_summary(
+        run_dir,
+        payload,
+        run_id=run_id,
+        generated_at=generated_at,
+        proposals=proposals,
+        evidence=evidence,
+        filled_table=filled_path,
+    )
+    html_path: Path | None = None
+    review_pkg_path: Path | None = None
+    copied_review_app_assets: list[str] = []
+    copied_assets: list[str] = []
+    if with_review:
+        write_json(review_package_path(run_dir), package)
+        review_pkg_path = review_package_path(run_dir)
+        copied_review_app_assets = _copy_review_app_assets(run_dir)
+        html_path = _write_review_html(run_dir, package)
+        copied_assets = _copy_pdfjs_assets(run_dir)
     generated_report = validate_generated(run_dir)
     generated_report["authoring"] = authoring_report
-    generated_report["copied_assets"] = copied_assets
-    generated_report["copied_review_app_assets"] = copied_review_app_assets
-    generated_report["embedded_pdf_data"] = pdf_data_path.relative_to(run_dir).as_posix()
+    if with_review:
+        generated_report["copied_assets"] = copied_assets
+        generated_report["copied_review_app_assets"] = copied_review_app_assets
     persist_report(run_dir, generated_report)
     if not generated_report["ok"]:
-        raise ValueError("Generated review package failed validation. See summaries/validation_report.json.")
+        raise ValueError("Generated extraction package failed validation. See extraction/validation_report.json.")
     return {
         "run_id": run_id,
         "review_items": len(proposals),
-        "review_index_path": str(html_path),
-        "review_package_path": str(run_dir / "review" / "review_package.json"),
-        "proposals_path": str(run_dir / "normalized" / "proposals.jsonl"),
-        "evidence_path": str(run_dir / "normalized" / "evidence.jsonl"),
-        "validation_report_path": str(run_dir / "summaries" / "validation_report.json"),
-        "draft_filled_table_path": str(draft_table_path),
+        "filled_table_path": str(filled_path),
+        "output_table_name": output_table_name(run_dir, payload),
+        "extraction_summary_path": str(summary_path),
+        "review_index_path": str(html_path) if html_path else None,
+        "review_package_path": str(review_pkg_path) if review_pkg_path else None,
+        "proposals_path": str(proposals_path(run_dir)),
+        "evidence_path": str(evidence_path(run_dir)),
+        "validation_report_path": str(validation_report_path(run_dir)),
         "pdfjs_assets_copied": bool(copied_assets),
         "review_app_assets_copied": bool(copied_review_app_assets),
+        "human_review_built": with_review,
     }
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build a rich static papers-to-table agent review package.")
-    parser.add_argument("--run", required=True, help="Path to the run directory containing review_input.json.")
+    parser = argparse.ArgumentParser(description="Build lean papers-to-table agent extraction outputs.")
+    parser.add_argument("--run", required=True, help="Path to the run directory containing extraction/review_input.json.")
     parser.add_argument("--from-review-input", action="store_true", help="Explicitly use review_input.json; this is the default.")
+    parser.add_argument("--with-review", action="store_true", help="Also build the optional human_review browser interface.")
     parser.add_argument("--json", action="store_true", help="Print a machine-readable summary.")
     args = parser.parse_args(argv)
 
-    result = build_review_package(Path(args.run), from_review_input=True)
+    result = build_review_package(Path(args.run), from_review_input=True, with_review=args.with_review)
     if args.json:
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     else:
-        print(f"review_index: {Path(result['review_index_path']).resolve()}")
-        print(f"review_package: {Path(result['review_package_path']).resolve()}")
+        if result.get("review_index_path"):
+            print(f"review_index: {Path(result['review_index_path']).resolve()}")
+        if result.get("review_package_path"):
+            print(f"review_package: {Path(result['review_package_path']).resolve()}")
         print(f"proposals: {Path(result['proposals_path']).resolve()}")
         print(f"evidence: {Path(result['evidence_path']).resolve()}")
-        print(f"draft_filled_table: {Path(result['draft_filled_table_path']).resolve()}")
-        if not result["pdfjs_assets_copied"]:
-            print("warning: PDF.js assets were not copied; the review UI will use browser PDF fallback.")
+        print(f"filled_table: {Path(result['filled_table_path']).resolve()}")
+        if result.get("human_review_built") and not result["pdfjs_assets_copied"]:
+            print("warning: PDF.js assets were not copied; the review UI will use bundled PDF.js fallback.")
     return 0
 
 

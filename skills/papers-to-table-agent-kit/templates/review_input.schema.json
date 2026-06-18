@@ -2,13 +2,22 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "papers-to-table agent kit review_input.json",
   "type": "object",
-  "required": ["schema_version", "pdfs", "proposals"],
+  "required": ["schema_version", "output_table_name", "pdfs", "proposals"],
   "properties": {
     "schema_version": {
       "const": "papers_to_table.review_input.v1"
     },
     "run_id": {
       "type": "string"
+    },
+    "output_table_name": {
+      "type": "string"
+    },
+    "source_table_path": {
+      "type": ["string", "null"]
+    },
+    "schema_path": {
+      "type": ["string", "null"]
     },
     "pdfs": {
       "type": "array",
