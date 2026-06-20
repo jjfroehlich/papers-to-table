@@ -1,0 +1,214 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="740" viewBox="0 0 1700 740" role="img" aria-label="Optimizer candidate sweep schematic">
+<title>Optimizer candidate sweep schematic</title>
+
+<defs>
+
+  <marker id="arrow-ink" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#0f172a"/>
+  </marker>
+
+  <marker id="arrow-line" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#243247"/>
+  </marker>
+
+  <marker id="arrow-blue" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#2563eb"/>
+  </marker>
+
+  <marker id="arrow-teal" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#0f9f8f"/>
+  </marker>
+
+  <marker id="arrow-green" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#24a85b"/>
+  </marker>
+
+  <marker id="arrow-orange" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#f08a24"/>
+  </marker>
+
+  <marker id="arrow-purple" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#6d55e8"/>
+  </marker>
+
+  <marker id="arrow-rose" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#e45670"/>
+  </marker>
+
+  <marker id="arrow-muted" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#617083"/>
+  </marker>
+</defs>
+<rect x="0.0" y="0.0" width="1700.0" height="740.0" rx="0.0" fill="#f6f8fb" stroke="none" stroke-width="2" />
+<text x="42.0" y="48.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="34" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="42.0" dy="0">Optimizer Candidate Sweep</tspan>
+</text>
+<text x="42.0" y="82.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="17.5" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="42.0" dy="0">Candidate settings are tried as a batch; each app run produces bundles, eval scores against gold, and reports rank the results.</tspan>
+</text>
+<rect x="50.0" y="142.0" width="1390.0" height="505.0" rx="18.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="45.0" y="135.0" width="1390.0" height="505.0" rx="18.0" fill="#eaf2ff" stroke="#2563eb" stroke-width="2.4" />
+<text x="80.0" y="180.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="28" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="80.0" dy="0">Candidate settings drive the sweep</tspan>
+</text>
+<text x="80.0" y="210.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="17" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="80.0" dy="0">The same run/eval pass is repeated for candidate x benchmark x replicate, then scored together.</tspan>
+</text>
+<rect x="1135.0" y="164.0" width="250.0" height="32.0" rx="7.0" fill="#2563eb" stroke="#2563eb" stroke-width="1.6" />
+<text x="1260.0" y="185.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">
+<tspan x="1260.0" dy="0">batch of candidates</tspan>
+</text>
+<rect x="1135.0" y="205.0" width="250.0" height="32.0" rx="7.0" fill="#ffffff" stroke="#2563eb" stroke-width="1.6" />
+<text x="1260.0" y="226.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2563eb" text-anchor="middle">
+<tspan x="1260.0" dy="0">rank after scoring</tspan>
+</text>
+<line x1="335.0" y1="333.0" x2="375.0" y2="333.0" stroke="#243247" stroke-width="3.2" stroke-linecap="round"  />
+<path d="M 385.0 333.0 L 374.0 338.1 L 374.0 327.9 Z" fill="#243247" stroke="none"/>
+<line x1="620.0" y1="333.0" x2="640.0" y2="333.0" stroke="#243247" stroke-width="3.2" stroke-linecap="round"  />
+<path d="M 650.0 333.0 L 639.0 338.1 L 639.0 327.9 Z" fill="#243247" stroke="none"/>
+<line x1="885.0" y1="333.0" x2="905.0" y2="333.0" stroke="#243247" stroke-width="3.2" stroke-linecap="round"  />
+<path d="M 915.0 333.0 L 904.0 338.1 L 904.0 327.9 Z" fill="#243247" stroke="none"/>
+<line x1="1155.0" y1="333.0" x2="1170.0" y2="333.0" stroke="#243247" stroke-width="3.2" stroke-linecap="round"  />
+<path d="M 1180.0 333.0 L 1169.0 338.1 L 1169.0 327.9 Z" fill="#243247" stroke="none"/>
+<line x1="1415.0" y1="333.0" x2="1440.0" y2="333.0" stroke="#f08a24" stroke-width="3.2" stroke-linecap="round"  />
+<path d="M 1450.0 333.0 L 1439.0 338.1 L 1439.0 327.9 Z" fill="#f08a24" stroke="none"/>
+<line x1="1040.0" y1="455.0" x2="1040.0" y2="410.0" stroke="#243247" stroke-width="2.9" stroke-linecap="round"  />
+<path d="M 1040.0 400.0 L 1045.1 411.0 L 1034.9 411.0 Z" fill="#243247" stroke="none"/>
+<rect x="96.0" y="246.0" width="255.0" height="126.0" rx="13.0" fill="#dfeaff" stroke="#b9d2ff" stroke-width="1.2" />
+<rect x="88.0" y="258.0" width="255.0" height="126.0" rx="13.0" fill="#edf4ff" stroke="#c7dbff" stroke-width="1.2" />
+<rect x="85.0" y="277.0" width="255.0" height="126.0" rx="13.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="80.0" y="270.0" width="255.0" height="126.0" rx="13.0" fill="#ffffff" stroke="#d9e2ec" stroke-width="1.8" />
+<rect x="80.0" y="270.0" width="6.0" height="126.0" rx="3.0" fill="#2563eb" stroke="#2563eb" stroke-width="0" />
+<circle cx="130.0" cy="333.0" r="34.0" fill="#eaf2ff" stroke="#dce6f0" stroke-width="1.2"/>
+<rect x="112.1" y="316.2" width="35.8" height="31.4" rx="7.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<line x1="118.2" y1="324.0" x2="141.8" y2="324.0" stroke="#2563eb" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="136.7" cy="324.0" r="3.1" fill="#ffffff" stroke="#0f172a" stroke-width="2.0"/>
+<line x1="118.2" y1="332.4" x2="141.8" y2="332.4" stroke="#2563eb" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="123.3" cy="332.4" r="3.1" fill="#ffffff" stroke="#0f172a" stroke-width="2.0"/>
+<line x1="118.2" y1="340.8" x2="141.8" y2="340.8" stroke="#2563eb" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="132.2" cy="340.8" r="3.1" fill="#ffffff" stroke="#0f172a" stroke-width="2.0"/>
+<text x="168.0" y="302.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="18" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="168.0" dy="0">Candidate</tspan>
+<tspan x="168.0" dy="21.2">settings</tspan>
+</text>
+<text x="168.0" y="341.2" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.2" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="168.0" dy="0">model / prompt /</tspan>
+<tspan x="168.0" dy="14.3">retrieval variants</tspan>
+</text>
+<rect x="105.0" y="420.0" width="205.0" height="31.0" rx="7.0" fill="#ffffff" stroke="#2563eb" stroke-width="1.6" />
+<text x="207.5" y="440.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2563eb" text-anchor="middle">
+<tspan x="207.5" dy="0">many candidate rows</tspan>
+</text>
+<rect x="400.0" y="280.0" width="225.0" height="120.0" rx="13.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="395.0" y="273.0" width="225.0" height="120.0" rx="13.0" fill="#ffffff" stroke="#d9e2ec" stroke-width="1.8" />
+<rect x="395.0" y="273.0" width="6.0" height="120.0" rx="3.0" fill="#0f9f8f" stroke="#0f9f8f" stroke-width="0" />
+<circle cx="445.0" cy="333.0" r="34.0" fill="#e6f7f3" stroke="#dce6f0" stroke-width="1.2"/>
+<rect x="424.3" y="317.3" width="38.1" height="26.9" rx="8.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.3" />
+<line x1="433.2" y1="326.3" x2="452.3" y2="326.3" stroke="#0f9f8f" stroke-width="3.5" stroke-linecap="round"  />
+<line x1="433.2" y1="334.7" x2="449.5" y2="334.7" stroke="#0f9f8f" stroke-width="3.5" stroke-linecap="round"  />
+<circle cx="460.1" cy="342.0" r="4.5" fill="#0f9f8f" stroke="#0f9f8f" stroke-width="2"/>
+<text x="483.0" y="305.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="18" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="483.0" dy="0">Run main app</tspan>
+</text>
+<text x="483.0" y="330.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.2" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="483.0" dy="0">headless eval-</tspan>
+<tspan x="483.0" dy="14.3">mode execution</tspan>
+</text>
+<rect x="665.0" y="280.0" width="225.0" height="120.0" rx="11.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="660.0" y="273.0" width="225.0" height="120.0" rx="11.0" fill="#fbfdff" stroke="#24a85b" stroke-width="2.3" />
+<circle cx="708.0" cy="333.0" r="36.0" fill="#e8f8ee" stroke="#dce6f0" stroke-width="1.2"/>
+<path d="M 688.2 321.0 H 700.8 L 705.6 326.4 H 727.8 V 348.0 H 688.2 Z" stroke="#0f172a" stroke-width="2.4" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<rect x="693.6" y="331.2" width="28.2" height="6.0" rx="4.0" fill="#24a85b" stroke="#24a85b" stroke-width="0" />
+<line x1="696.0" y1="341.4" x2="717.6" y2="341.4" stroke="#24a85b" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="722.4" cy="341.4" r="2.7" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<text x="750.0" y="311.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="750.0" dy="0">Run</tspan>
+<tspan x="750.0" dy="23.6">bundles</tspan>
+</text>
+<text x="750.0" y="354.6" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.8" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="750.0" dy="0">proposals,</tspan>
+<tspan x="750.0" dy="14.9">evidence,</tspan>
+<tspan x="750.0" dy="14.9">diagnostics</tspan>
+</text>
+<rect x="930.0" y="280.0" width="230.0" height="120.0" rx="13.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="925.0" y="273.0" width="230.0" height="120.0" rx="13.0" fill="#ffffff" stroke="#d9e2ec" stroke-width="1.8" />
+<rect x="925.0" y="273.0" width="6.0" height="120.0" rx="3.0" fill="#6d55e8" stroke="#6d55e8" stroke-width="0" />
+<circle cx="975.0" cy="333.0" r="34.0" fill="#efedff" stroke="#dce6f0" stroke-width="1.2"/>
+<rect x="952.6" y="311.7" width="31.4" height="31.4" rx="6.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<line x1="959.3" y1="321.8" x2="975.0" y2="321.8" stroke="#6d55e8" stroke-width="3" stroke-linecap="round"  />
+<line x1="959.3" y1="329.6" x2="972.8" y2="329.6" stroke="#6d55e8" stroke-width="3" stroke-linecap="round"  />
+<line x1="959.3" y1="337.5" x2="969.4" y2="337.5" stroke="#6d55e8" stroke-width="3" stroke-linecap="round"  />
+<circle cx="984.0" cy="340.8" r="9.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2"/>
+<line x1="990.7" y1="347.6" x2="996.3" y2="353.2" stroke="#0f172a" stroke-width="3.6" stroke-linecap="round"  />
+<path d="M 979.5 340.8 L 982.8 344.2 L 989.0 336.4" stroke="#6d55e8" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="1013.0" y="305.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="18" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1013.0" dy="0">Eval tool</tspan>
+</text>
+<text x="1013.0" y="330.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.2" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="1013.0" dy="0">scores bundles</tspan>
+<tspan x="1013.0" dy="14.3">against gold</tspan>
+</text>
+<rect x="1185.0" y="280.0" width="235.0" height="120.0" rx="11.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="1180.0" y="273.0" width="235.0" height="120.0" rx="11.0" fill="#fbfdff" stroke="#6d55e8" stroke-width="2.3" />
+<circle cx="1228.0" cy="333.0" r="36.0" fill="#efedff" stroke="#dce6f0" stroke-width="1.2"/>
+<rect x="1204.6" y="313.2" width="46.8" height="39.6" rx="5.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<rect x="1204.6" y="313.2" width="46.8" height="9.0" rx="5.0" fill="#6d55e8" stroke="#6d55e8" stroke-width="0" />
+<line x1="1216.3" y1="313.2" x2="1216.3" y2="352.8" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<line x1="1204.6" y1="323.1" x2="1251.4" y2="323.1" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<line x1="1228.0" y1="313.2" x2="1228.0" y2="352.8" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<line x1="1204.6" y1="333.0" x2="1251.4" y2="333.0" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<line x1="1239.7" y1="313.2" x2="1239.7" y2="352.8" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<line x1="1204.6" y1="342.9" x2="1251.4" y2="342.9" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<text x="1270.0" y="311.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1270.0" dy="0">Score</tspan>
+<tspan x="1270.0" dy="23.6">results</tspan>
+</text>
+<text x="1270.0" y="354.6" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.8" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="1270.0" dy="0">metrics per</tspan>
+<tspan x="1270.0" dy="14.9">candidate</tspan>
+</text>
+<rect x="930.0" y="462.0" width="230.0" height="100.0" rx="11.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="925.0" y="455.0" width="230.0" height="100.0" rx="11.0" fill="#fbfdff" stroke="#6d55e8" stroke-width="2.3" />
+<circle cx="973.0" cy="505.0" r="36.0" fill="#efedff" stroke="#dce6f0" stroke-width="1.2"/>
+<circle cx="973.0" cy="505.0" r="18.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2"/>
+<circle cx="973.0" cy="505.0" r="12.6" fill="none" stroke="#6d55e8" stroke-width="3.2"/>
+<circle cx="973.0" cy="505.0" r="6.6" fill="none" stroke="#0f172a" stroke-width="2.1"/>
+<circle cx="973.0" cy="505.0" r="2.7" fill="#6d55e8" stroke="#6d55e8" stroke-width="2"/>
+<line x1="951.4" y1="505.0" x2="956.8" y2="505.0" stroke="#6d55e8" stroke-width="2.6" stroke-linecap="round"  />
+<line x1="989.2" y1="505.0" x2="994.6" y2="505.0" stroke="#6d55e8" stroke-width="2.6" stroke-linecap="round"  />
+<line x1="973.0" y1="483.4" x2="973.0" y2="488.8" stroke="#6d55e8" stroke-width="2.6" stroke-linecap="round"  />
+<line x1="973.0" y1="521.2" x2="973.0" y2="526.6" stroke="#6d55e8" stroke-width="2.6" stroke-linecap="round"  />
+<text x="1015.0" y="493.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1015.0" dy="0">Benchmark</tspan>
+<tspan x="1015.0" dy="23.6">+ gold</tspan>
+</text>
+<text x="1015.0" y="536.6" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.8" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="1015.0" dy="0">auxiliary eval</tspan>
+<tspan x="1015.0" dy="14.9">input</tspan>
+</text>
+<rect x="1212.0" y="430.0" width="170.0" height="31.0" rx="7.0" fill="#ffffff" stroke="#f08a24" stroke-width="1.6" />
+<text x="1297.0" y="450.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="14" font-weight="bold" fill="#f08a24" text-anchor="middle">
+<tspan x="1297.0" dy="0">rank + summarize</tspan>
+</text>
+<rect x="1465.0" y="280.0" width="220.0" height="120.0" rx="11.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="1460.0" y="273.0" width="220.0" height="120.0" rx="11.0" fill="#fbfdff" stroke="#f08a24" stroke-width="2.3" />
+<circle cx="1508.0" cy="333.0" r="36.0" fill="#fff0dc" stroke="#dce6f0" stroke-width="1.2"/>
+<rect x="1486.4" y="313.8" width="43.2" height="34.8" rx="7.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<line x1="1486.4" y1="322.2" x2="1529.6" y2="322.2" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"  />
+<circle cx="1491.8" cy="318.0" r="1.3" fill="#f08a24" stroke="#f08a24" stroke-width="2"/>
+<circle cx="1496.6" cy="318.0" r="1.3" fill="#f08a24" stroke="#f08a24" stroke-width="2"/>
+<circle cx="1501.4" cy="318.0" r="1.3" fill="#f08a24" stroke="#f08a24" stroke-width="2"/>
+<rect x="1503.8" y="331.8" width="2.7" height="9.6" rx="1.5" fill="#f08a24" stroke="#f08a24" stroke-width="0" />
+<rect x="1508.0" y="326.4" width="2.7" height="15.0" rx="1.5" fill="#f08a24" stroke="#f08a24" stroke-width="0" />
+<rect x="1512.2" y="321.0" width="2.7" height="20.4" rx="1.5" fill="#f08a24" stroke="#f08a24" stroke-width="0" />
+<line x1="1502.0" y1="341.4" x2="1516.4" y2="341.4" stroke="#b9c6d3" stroke-width="1.6" stroke-linecap="round"  />
+<path d="M 1498.4 331.8 L 1494.2 336.0 L 1498.4 340.2 M 1520.0 331.8 L 1524.2 336.0 L 1520.0 340.2" stroke="#f08a24" stroke-width="2.7" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="1550.0" y="311.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1550.0" dy="0">HTML</tspan>
+<tspan x="1550.0" dy="23.6">reports</tspan>
+</text>
+<text x="1550.0" y="354.6" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.8" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="1550.0" dy="0">ranked results</tspan>
+<tspan x="1550.0" dy="14.9">and caveats</tspan>
+</text>
+</svg>

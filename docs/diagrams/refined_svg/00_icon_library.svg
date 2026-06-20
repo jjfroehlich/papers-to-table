@@ -1,0 +1,317 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1460" height="920" viewBox="0 0 1460 920" role="img" aria-label="Reusable icon library">
+<title>Reusable icon library</title>
+
+<defs>
+
+  <marker id="arrow-ink" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#0f172a"/>
+  </marker>
+
+  <marker id="arrow-line" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#243247"/>
+  </marker>
+
+  <marker id="arrow-blue" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#2563eb"/>
+  </marker>
+
+  <marker id="arrow-teal" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#0f9f8f"/>
+  </marker>
+
+  <marker id="arrow-green" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#24a85b"/>
+  </marker>
+
+  <marker id="arrow-orange" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#f08a24"/>
+  </marker>
+
+  <marker id="arrow-purple" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#6d55e8"/>
+  </marker>
+
+  <marker id="arrow-rose" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#e45670"/>
+  </marker>
+
+  <marker id="arrow-muted" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#617083"/>
+  </marker>
+</defs>
+<rect x="0.0" y="0.0" width="1460.0" height="920.0" rx="0.0" fill="#f6f8fb" stroke="none" stroke-width="2" />
+<text x="42.0" y="48.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="34" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="42.0" dy="0">Diagram Icon Set</tspan>
+</text>
+<text x="42.0" y="82.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="17.5" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="42.0" dy="0">Reusable symbols for report figures, grouped by the role they play in the schematics.</tspan>
+</text>
+<rect x="50.0" y="125.0" width="640.0" height="220.0" rx="14.0" fill="#fbfdff" stroke="#2563eb" stroke-width="2.2" opacity="0.92"/>
+<line x1="68.0" y1="177.0" x2="672.0" y2="177.0" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round"  />
+<text x="72.0" y="159.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="72.0" dy="0">Inputs and configuration</tspan>
+</text>
+<circle cx="113.0" cy="230.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<path d="M 91.5 205.6 H 115.3 L 125.2 215.5 V 245.1 H 91.5 Z" stroke="#9badbf" stroke-width="1.7" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 115.3 205.6 L 125.2 215.5 L 115.3 215.5 Z" stroke="none" stroke-width="0" fill="#eef3f8" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 115.3 205.6 L 125.2 215.5 M 115.3 205.6 V 215.5 H 125.2" stroke="#9badbf" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<rect x="97.3" y="234.6" width="17.4" height="3.2" rx="2.0" fill="#9badbf" stroke="#9badbf" stroke-width="0" opacity="0.55"/>
+<path d="M 95.0 209.1 H 118.8 L 128.7 219.0 V 248.6 H 95.0 Z" stroke="#9badbf" stroke-width="1.7" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 118.8 209.1 L 128.7 219.0 L 118.8 219.0 Z" stroke="none" stroke-width="0" fill="#eef3f8" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 118.8 209.1 L 128.7 219.0 M 118.8 209.1 V 219.0 H 128.7" stroke="#9badbf" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<rect x="100.8" y="238.1" width="17.4" height="3.2" rx="2.0" fill="#9badbf" stroke="#9badbf" stroke-width="0" opacity="0.72"/>
+<path d="M 99.1 212.6 H 122.9 L 132.7 222.5 V 252.0 H 99.1 Z" stroke="#9badbf" stroke-width="2.0" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 122.9 212.6 L 132.7 222.5 L 122.9 222.5 Z" stroke="none" stroke-width="0" fill="#eef3f8" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 122.9 212.6 L 132.7 222.5 M 122.9 212.6 V 222.5 H 132.7" stroke="#9badbf" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<rect x="105.5" y="241.0" width="20.9" height="5.2" rx="3.0" fill="#2563eb" stroke="#2563eb" stroke-width="0" />
+<text x="154.0" y="236.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="154.0" dy="0">PDFs</tspan>
+</text>
+<circle cx="399.0" cy="230.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="376.4" y="210.9" width="45.2" height="38.3" rx="5.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<rect x="376.4" y="210.9" width="45.2" height="8.7" rx="5.0" fill="#2563eb" stroke="#2563eb" stroke-width="0" />
+<line x1="387.7" y1="210.9" x2="387.7" y2="249.1" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<line x1="376.4" y1="220.4" x2="421.6" y2="220.4" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<line x1="399.0" y1="210.9" x2="399.0" y2="249.1" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<line x1="376.4" y1="230.0" x2="421.6" y2="230.0" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<line x1="410.3" y1="210.9" x2="410.3" y2="249.1" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<line x1="376.4" y1="239.6" x2="421.6" y2="239.6" stroke="#b9c6d3" stroke-width="1.4" stroke-linecap="round"  />
+<text x="440.0" y="236.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="440.0" dy="0">Target table</tspan>
+</text>
+<circle cx="113.0" cy="300.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="92.7" y="282.0" width="40.6" height="34.8" rx="6.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<line x1="101.4" y1="292.5" x2="124.0" y2="292.5" stroke="#2563eb" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="101.4" y1="301.2" x2="124.0" y2="301.2" stroke="#2563eb" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="101.4" y1="309.9" x2="124.0" y2="309.9" stroke="#2563eb" stroke-width="3.2" stroke-linecap="round"  />
+<text x="154.0" y="306.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="154.0" dy="0">Schema</tspan>
+</text>
+<circle cx="399.0" cy="300.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="380.4" y="282.6" width="37.1" height="32.5" rx="7.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<line x1="386.8" y1="290.7" x2="411.2" y2="290.7" stroke="#2563eb" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="406.0" cy="290.7" r="3.2" fill="#ffffff" stroke="#0f172a" stroke-width="2.0"/>
+<line x1="386.8" y1="299.4" x2="411.2" y2="299.4" stroke="#2563eb" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="392.0" cy="299.4" r="3.2" fill="#ffffff" stroke="#0f172a" stroke-width="2.0"/>
+<line x1="386.8" y1="308.1" x2="411.2" y2="308.1" stroke="#2563eb" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="401.3" cy="308.1" r="3.2" fill="#ffffff" stroke="#0f172a" stroke-width="2.0"/>
+<text x="440.0" y="306.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="440.0" dy="0">Candidate settings</tspan>
+</text>
+<rect x="770.0" y="125.0" width="640.0" height="220.0" rx="14.0" fill="#fbfdff" stroke="#0f9f8f" stroke-width="2.2" opacity="0.92"/>
+<line x1="788.0" y1="177.0" x2="1392.0" y2="177.0" stroke="#0f9f8f" stroke-width="2.4" stroke-linecap="round"  />
+<text x="792.0" y="159.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="792.0" dy="0">Local execution and artifacts</tspan>
+</text>
+<circle cx="833.0" cy="230.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="811.5" y="213.8" width="39.4" height="27.8" rx="8.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.3" />
+<line x1="820.8" y1="223.0" x2="840.5" y2="223.0" stroke="#0f9f8f" stroke-width="3.5" stroke-linecap="round"  />
+<line x1="820.8" y1="231.7" x2="837.6" y2="231.7" stroke="#0f9f8f" stroke-width="3.5" stroke-linecap="round"  />
+<circle cx="848.7" cy="239.3" r="4.6" fill="#0f9f8f" stroke="#0f9f8f" stroke-width="2"/>
+<text x="874.0" y="236.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="874.0" dy="0">Local run</tspan>
+</text>
+<circle cx="1119.0" cy="230.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="1099.9" y="211.4" width="36.0" height="30.2" rx="7.0" fill="#0f172a" stroke="#0f172a" stroke-width="2" />
+<line x1="1108.0" y1="220.7" x2="1127.1" y2="220.7" stroke="#0f9f8f" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="1108.0" y1="228.8" x2="1127.1" y2="228.8" stroke="#0f9f8f" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="1108.0" y1="237.0" x2="1127.1" y2="237.0" stroke="#0f9f8f" stroke-width="3.2" stroke-linecap="round"  />
+<circle cx="1134.7" cy="242.8" r="4.1" fill="#0f9f8f" stroke="#0f9f8f" stroke-width="2"/>
+<text x="1160.0" y="236.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1160.0" dy="0">Local model</tspan>
+</text>
+<circle cx="833.0" cy="300.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<path d="M 816.2 278.5 H 840.0 L 849.8 288.4 V 318.0 H 816.2 Z" stroke="#0f172a" stroke-width="2.2" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 840.0 278.5 L 849.8 288.4 L 840.0 288.4 Z" stroke="none" stroke-width="0" fill="#eef3f8" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 840.0 278.5 L 849.8 288.4 M 840.0 278.5 V 288.4 H 849.8" stroke="#0f172a" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<line x1="822.6" y1="294.2" x2="839.4" y2="294.2" stroke="#9badbf" stroke-width="2.3" stroke-linecap="round"  />
+<rect x="822.6" y="303.5" width="19.7" height="5.8" rx="4.0" fill="#0f9f8f" stroke="#0f9f8f" stroke-width="0" />
+<circle cx="845.8" cy="312.8" r="8.1" fill="#ffffff" stroke="#0f9f8f" stroke-width="2.4"/>
+<path d="M 841.7 312.8 L 845.2 316.2 L 851.0 307.5" stroke="#0f9f8f" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="874.0" y="306.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="874.0" dy="0">Proposal</tspan>
+</text>
+<circle cx="1119.0" cy="300.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<path d="M 1099.9 288.4 H 1112.0 L 1116.7 293.6 H 1138.1 V 314.5 H 1099.9 Z" stroke="#0f172a" stroke-width="2.4" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<rect x="1105.1" y="298.3" width="27.3" height="5.8" rx="4.0" fill="#0f9f8f" stroke="#0f9f8f" stroke-width="0" />
+<line x1="1107.4" y1="308.1" x2="1128.3" y2="308.1" stroke="#0f9f8f" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="1132.9" cy="308.1" r="2.6" fill="#0f9f8f" stroke="#0f9f8f" stroke-width="2"/>
+<text x="1160.0" y="306.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1160.0" dy="0">Run bundle</tspan>
+</text>
+<rect x="50.0" y="385.0" width="640.0" height="220.0" rx="14.0" fill="#fbfdff" stroke="#24a85b" stroke-width="2.2" opacity="0.92"/>
+<line x1="68.0" y1="437.0" x2="672.0" y2="437.0" stroke="#24a85b" stroke-width="2.4" stroke-linecap="round"  />
+<text x="72.0" y="419.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="72.0" dy="0">Review and accepted outputs</tspan>
+</text>
+<circle cx="113.0" cy="490.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="93.3" y="472.6" width="37.1" height="26.7" rx="7.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<path d="M 103.7 499.3 L 99.1 507.4 L 111.8 499.3" stroke="#0f172a" stroke-width="2.2" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<line x1="100.2" y1="481.3" x2="107.2" y2="481.3" stroke="#24a85b" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="100.2" y1="489.4" x2="109.5" y2="489.4" stroke="#24a85b" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="115.3" y1="481.3" x2="122.3" y2="481.3" stroke="#24a85b" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="115.3" y1="489.4" x2="124.6" y2="489.4" stroke="#24a85b" stroke-width="3.2" stroke-linecap="round"  />
+<circle cx="126.9" cy="498.1" r="4.6" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<text x="154.0" y="496.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="154.0" dy="0">Evidence quote</tspan>
+</text>
+<circle cx="399.0" cy="490.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<circle cx="394.4" cy="476.1" r="7.5" fill="#ffffff" stroke="#0f172a" stroke-width="2.4"/>
+<path d="M 379.9 502.8 C 382.2 490.6, 388.0 486.5, 394.4 486.5 C 401.9 486.5, 407.1 490.6, 408.9 502.8" stroke="#0f172a" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<circle cx="409.4" cy="497.0" r="8.7" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<path d="M 404.8 497.0 L 408.3 500.4 L 414.7 491.7" stroke="#ffffff" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="440.0" y="496.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="440.0" dy="0">Human review</tspan>
+</text>
+<circle cx="113.0" cy="560.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="89.8" y="538.0" width="38.3" height="37.1" rx="5.0" fill="#ffffff" stroke="#24a85b" stroke-width="2.3" />
+<line x1="89.8" y1="549.6" x2="128.1" y2="549.6" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<line x1="89.8" y1="561.2" x2="128.1" y2="561.2" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<line x1="102.6" y1="538.0" x2="102.6" y2="575.1" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<line x1="115.3" y1="538.0" x2="115.3" y2="575.1" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<circle cx="126.9" cy="571.6" r="8.1" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<path d="M 122.9 571.6 L 126.3 575.1 L 132.7 566.4" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="154.0" y="566.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="154.0" dy="0">Spreadsheet export</tspan>
+</text>
+<circle cx="399.0" cy="560.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="378.1" y="541.4" width="41.8" height="33.6" rx="7.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<line x1="378.1" y1="549.6" x2="419.9" y2="549.6" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"  />
+<circle cx="383.3" cy="545.5" r="1.3" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<circle cx="388.0" cy="545.5" r="1.3" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<circle cx="392.6" cy="545.5" r="1.3" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<rect x="394.9" y="558.8" width="2.6" height="9.3" rx="1.5" fill="#24a85b" stroke="#24a85b" stroke-width="0" />
+<rect x="399.0" y="553.6" width="2.6" height="14.5" rx="1.5" fill="#24a85b" stroke="#24a85b" stroke-width="0" />
+<rect x="403.1" y="548.4" width="2.6" height="19.7" rx="1.5" fill="#24a85b" stroke="#24a85b" stroke-width="0" />
+<line x1="393.2" y1="568.1" x2="407.1" y2="568.1" stroke="#b9c6d3" stroke-width="1.6" stroke-linecap="round"  />
+<path d="M 389.7 558.8 L 385.7 562.9 L 389.7 567.0 M 410.6 558.8 L 414.7 562.9 L 410.6 567.0" stroke="#24a85b" stroke-width="2.7" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="440.0" y="566.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="440.0" dy="0">HTML report</tspan>
+</text>
+<rect x="770.0" y="385.0" width="640.0" height="220.0" rx="14.0" fill="#fbfdff" stroke="#f08a24" stroke-width="2.2" opacity="0.92"/>
+<line x1="788.0" y1="437.0" x2="1392.0" y2="437.0" stroke="#f08a24" stroke-width="2.4" stroke-linecap="round"  />
+<text x="792.0" y="419.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="792.0" dy="0">Optimizer sweep, eval, benchmark</tspan>
+</text>
+<circle cx="833.0" cy="490.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="814.4" y="472.6" width="37.1" height="32.5" rx="7.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<line x1="820.8" y1="480.7" x2="845.2" y2="480.7" stroke="#f08a24" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="840.0" cy="480.7" r="3.2" fill="#ffffff" stroke="#0f172a" stroke-width="2.0"/>
+<line x1="820.8" y1="489.4" x2="845.2" y2="489.4" stroke="#f08a24" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="826.0" cy="489.4" r="3.2" fill="#ffffff" stroke="#0f172a" stroke-width="2.0"/>
+<line x1="820.8" y1="498.1" x2="845.2" y2="498.1" stroke="#f08a24" stroke-width="3.0" stroke-linecap="round"  />
+<circle cx="835.3" cy="498.1" r="3.2" fill="#ffffff" stroke="#0f172a" stroke-width="2.0"/>
+<text x="874.0" y="496.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="874.0" dy="0">Candidate sweep</tspan>
+</text>
+<circle cx="1119.0" cy="490.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="1095.8" y="468.0" width="32.5" height="32.5" rx="6.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<line x1="1102.8" y1="478.4" x2="1119.0" y2="478.4" stroke="#f08a24" stroke-width="3" stroke-linecap="round"  />
+<line x1="1102.8" y1="486.5" x2="1116.7" y2="486.5" stroke="#f08a24" stroke-width="3" stroke-linecap="round"  />
+<line x1="1102.8" y1="494.6" x2="1113.2" y2="494.6" stroke="#f08a24" stroke-width="3" stroke-linecap="round"  />
+<circle cx="1128.3" cy="498.1" r="9.3" fill="#ffffff" stroke="#0f172a" stroke-width="2.2"/>
+<line x1="1135.2" y1="505.1" x2="1141.0" y2="510.9" stroke="#0f172a" stroke-width="3.6" stroke-linecap="round"  />
+<path d="M 1123.6 498.1 L 1127.1 501.6 L 1133.5 493.5" stroke="#f08a24" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="1160.0" y="496.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1160.0" dy="0">Eval scoring</tspan>
+</text>
+<circle cx="833.0" cy="560.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<circle cx="833.0" cy="560.0" r="17.4" fill="#ffffff" stroke="#0f172a" stroke-width="2.2"/>
+<circle cx="833.0" cy="560.0" r="12.2" fill="none" stroke="#f08a24" stroke-width="3.2"/>
+<circle cx="833.0" cy="560.0" r="6.4" fill="none" stroke="#0f172a" stroke-width="2.1"/>
+<circle cx="833.0" cy="560.0" r="2.6" fill="#f08a24" stroke="#f08a24" stroke-width="2"/>
+<line x1="812.1" y1="560.0" x2="817.3" y2="560.0" stroke="#f08a24" stroke-width="2.6" stroke-linecap="round"  />
+<line x1="848.7" y1="560.0" x2="853.9" y2="560.0" stroke="#f08a24" stroke-width="2.6" stroke-linecap="round"  />
+<line x1="833.0" y1="539.1" x2="833.0" y2="544.3" stroke="#f08a24" stroke-width="2.6" stroke-linecap="round"  />
+<line x1="833.0" y1="575.7" x2="833.0" y2="580.9" stroke="#f08a24" stroke-width="2.6" stroke-linecap="round"  />
+<text x="874.0" y="566.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="874.0" dy="0">Benchmark gold</tspan>
+</text>
+<circle cx="1119.0" cy="560.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="1099.9" y="543.8" width="36.0" height="26.7" rx="8.0" fill="#0f172a" stroke="#0f172a" stroke-width="2" />
+<path d="M 1107.4 552.5 L 1113.2 557.1 L 1107.4 561.7" stroke="#f08a24" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<line x1="1119.0" y1="562.3" x2="1129.4" y2="562.3" stroke="#f08a24" stroke-width="3.5" stroke-linecap="round"  />
+<text x="1160.0" y="566.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1160.0" dy="0">Headless run</tspan>
+</text>
+<rect x="50.0" y="645.0" width="640.0" height="220.0" rx="14.0" fill="#fbfdff" stroke="#24a85b" stroke-width="2.2" opacity="0.92"/>
+<line x1="68.0" y1="697.0" x2="672.0" y2="697.0" stroke="#24a85b" stroke-width="2.4" stroke-linecap="round"  />
+<text x="72.0" y="679.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="72.0" dy="0">Agent-facing workflows</tspan>
+</text>
+<circle cx="113.0" cy="750.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="93.9" y="732.6" width="36.0" height="26.7" rx="7.0" fill="#0f172a" stroke="#0f172a" stroke-width="2" />
+<line x1="101.4" y1="741.9" x2="120.5" y2="741.9" stroke="#24a85b" stroke-width="3.4" stroke-linecap="round"  />
+<line x1="101.4" y1="751.2" x2="115.9" y2="751.2" stroke="#24a85b" stroke-width="3.4" stroke-linecap="round"  />
+<text x="154.0" y="756.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="154.0" dy="0">Agent skill</tspan>
+</text>
+<circle cx="399.0" cy="750.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<path d="M 383.9 731.4 H 406.0 V 740.7 H 414.1 V 759.3 H 403.6 V 766.2 H 383.9 Z" stroke="#0f172a" stroke-width="2.4" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<line x1="388.6" y1="741.9" x2="401.3" y2="741.9" stroke="#24a85b" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="388.6" y1="751.2" x2="408.3" y2="751.2" stroke="#24a85b" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="388.6" y1="760.4" x2="397.8" y2="760.4" stroke="#24a85b" stroke-width="3.2" stroke-linecap="round"  />
+<text x="440.0" y="756.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="440.0" dy="0">Portable kit</tspan>
+</text>
+<circle cx="113.0" cy="820.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="91.0" y="799.7" width="38.3" height="32.5" rx="6.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<circle cx="98.5" cy="808.4" r="2.6" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<line x1="103.7" y1="808.4" x2="122.3" y2="808.4" stroke="#b9c6d3" stroke-width="2.4" stroke-linecap="round"  />
+<circle cx="98.5" cy="816.5" r="2.6" fill="#f08a24" stroke="#f08a24" stroke-width="2"/>
+<line x1="103.7" y1="816.5" x2="122.3" y2="816.5" stroke="#b9c6d3" stroke-width="2.4" stroke-linecap="round"  />
+<circle cx="98.5" cy="824.6" r="2.6" fill="#e45670" stroke="#e45670" stroke-width="2"/>
+<line x1="103.7" y1="824.6" x2="122.3" y2="824.6" stroke="#b9c6d3" stroke-width="2.4" stroke-linecap="round"  />
+<circle cx="128.1" cy="833.3" r="8.1" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<text x="154.0" y="826.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="154.0" dy="0">Static review</tspan>
+</text>
+<circle cx="399.0" cy="820.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<path d="M 382.2 798.5 H 406.0 L 415.8 808.4 V 838.0 H 382.2 Z" stroke="#0f172a" stroke-width="2.2" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 406.0 798.5 L 415.8 808.4 L 406.0 808.4 Z" stroke="none" stroke-width="0" fill="#eef3f8" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 406.0 798.5 L 415.8 808.4 M 406.0 798.5 V 808.4 H 415.8" stroke="#0f172a" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<line x1="389.1" y1="818.3" x2="405.4" y2="818.3" stroke="#24a85b" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="389.1" y1="827.0" x2="401.3" y2="827.0" stroke="#24a85b" stroke-width="3.2" stroke-linecap="round"  />
+<circle cx="411.8" cy="832.8" r="8.1" fill="#ffffff" stroke="#24a85b" stroke-width="2.4"/>
+<path d="M 407.7 832.8 L 411.2 836.2 L 417.6 827.5" stroke="#24a85b" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="440.0" y="826.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="440.0" dy="0">Portable output</tspan>
+</text>
+<rect x="770.0" y="645.0" width="640.0" height="220.0" rx="14.0" fill="#fbfdff" stroke="#6d55e8" stroke-width="2.2" opacity="0.92"/>
+<line x1="788.0" y1="697.0" x2="1392.0" y2="697.0" stroke="#6d55e8" stroke-width="2.4" stroke-linecap="round"  />
+<text x="792.0" y="679.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="792.0" dy="0">Trust and boundaries</tspan>
+</text>
+<circle cx="833.0" cy="750.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<rect x="820.8" y="744.8" width="24.4" height="18.6" rx="5.0" fill="#6d55e8" stroke="#6d55e8" stroke-width="0" />
+<path d="M 825.5 744.8 L 825.5 739.0 C 825.5 727.4, 840.5 727.4, 840.5 739.0 L 840.5 744.8" stroke="#0f172a" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<circle cx="833.0" cy="754.1" r="2.0" fill="#ffffff" stroke="#ffffff" stroke-width="2"/>
+<text x="874.0" y="756.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="874.0" dy="0">Local privacy</tspan>
+</text>
+<circle cx="1119.0" cy="750.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<path d="M 1119.0 725.6 L 1135.8 732.6 L 1133.5 748.8 C 1131.2 759.3, 1124.2 765.1, 1119.0 768.6 C 1113.8 765.1, 1106.8 759.3, 1104.5 748.8 L 1102.2 732.6 Z" stroke="#0f172a" stroke-width="2.4" fill="#efedff" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 1112.0 747.1 L 1117.3 752.3 L 1127.7 740.7" stroke="#6d55e8" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="1160.0" y="756.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1160.0" dy="0">Verified state</tspan>
+</text>
+<circle cx="833.0" cy="820.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<circle cx="827.2" cy="813.6" r="11.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.3"/>
+<line x1="835.9" y1="822.3" x2="851.6" y2="838.0" stroke="#0f172a" stroke-width="4.2" stroke-linecap="round"  />
+<line x1="819.7" y1="813.6" x2="834.7" y2="813.6" stroke="#6d55e8" stroke-width="3.5" stroke-linecap="round"  />
+<line x1="827.2" y1="806.1" x2="827.2" y2="821.2" stroke="#6d55e8" stroke-width="3.5" stroke-linecap="round"  />
+<text x="874.0" y="826.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="874.0" dy="0">Search evidence</tspan>
+</text>
+<circle cx="1119.0" cy="820.0" r="31.0" fill="#eef3f8" stroke="#dce6f0" stroke-width="1.3"/>
+<path d="M 1102.2 798.5 H 1126.0 L 1135.8 808.4 V 838.0 H 1102.2 Z" stroke="#0f172a" stroke-width="2.2" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 1126.0 798.5 L 1135.8 808.4 L 1126.0 808.4 Z" stroke="none" stroke-width="0" fill="#eef3f8" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 1126.0 798.5 L 1135.8 808.4 M 1126.0 798.5 V 808.4 H 1135.8" stroke="#0f172a" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<line x1="1109.1" y1="818.3" x2="1125.4" y2="818.3" stroke="#6d55e8" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="1109.1" y1="827.0" x2="1121.3" y2="827.0" stroke="#6d55e8" stroke-width="3.2" stroke-linecap="round"  />
+<circle cx="1131.8" cy="832.8" r="8.1" fill="#ffffff" stroke="#24a85b" stroke-width="2.4"/>
+<path d="M 1127.7 832.8 L 1131.2 836.2 L 1137.6 827.5" stroke="#24a85b" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="1160.0" y="826.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="15.2" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1160.0" dy="0">Audit export</tspan>
+</text>
+</svg>

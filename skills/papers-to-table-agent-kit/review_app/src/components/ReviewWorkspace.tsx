@@ -284,6 +284,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
     setSelectedEvidenceId(null)
     setSelectedEvidence(null)
     setCurrentEvidenceList([])
+    setCurrentPdfId(null)
   }
 
   function handleCellSelect(cell: SelectedReviewCell) {
@@ -307,8 +308,14 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
 
   useEffect(() => {
     if (!selectedProposalId) return
+    let cancelled = false
+    setCurrentPdfId(null)
+    setCurrentEvidenceList([])
+    setSelectedEvidenceId(null)
+    setSelectedEvidence(null)
     api.getProposalDetail(run.run_id, selectedProposalId, outputDir)
       .then((detail) => {
+        if (cancelled) return
         setWorkspaceError(null)
         setCurrentPdfId(detail.proposal.pdf_id)
         setCurrentEvidenceList(detail.evidence)
@@ -316,7 +323,12 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
         setSelectedEvidenceId(nextEvidence?.evidence_id ?? null)
         setSelectedEvidence(nextEvidence)
       })
-      .catch((err) => { setWorkspaceError(err instanceof Error ? err.message : String(err)) })
+      .catch((err) => {
+        if (!cancelled) setWorkspaceError(err instanceof Error ? err.message : String(err))
+      })
+    return () => {
+      cancelled = true
+    }
   }, [decisionVersion, outputDir, run.run_id, selectedProposalId])
 
   useEffect(() => {

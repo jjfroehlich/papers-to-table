@@ -150,6 +150,42 @@ function makeTable(proposals: EnrichedProposal[]): ReviewTableData {
   }
 }
 
+function makeSparseCrossPaperTable(proposals: EnrichedProposal[]): ReviewTableData {
+  return {
+    run_id: 'standalone_run',
+    columns: [
+      { name: 'Title', description: null, field_type: 'text', is_target: false },
+      { name: 'Finding', description: null, field_type: 'text', is_target: true },
+      { name: 'Outcome', description: null, field_type: 'text', is_target: true },
+    ],
+    rows: [
+      {
+        row_id: 'row_1',
+        row_index: 0,
+        paper_label: 'Paper A',
+        title: 'Paper A',
+        values: { Title: 'Paper A' },
+        cells: {
+          Title: { column_name: 'Title', original_value: 'Paper A', display_value: 'Paper A', display_status: 'unchanged', has_proposal: false, proposal: null },
+          Finding: { column_name: 'Finding', original_value: '', display_value: proposals[0].proposed_value, display_status: 'pending', has_proposal: true, proposal: proposals[0] },
+        },
+      },
+      {
+        row_id: 'row_2',
+        row_index: 1,
+        paper_label: 'Paper B',
+        title: 'Paper B',
+        values: { Title: 'Paper B' },
+        cells: {
+          Title: { column_name: 'Title', original_value: 'Paper B', display_value: 'Paper B', display_status: 'unchanged', has_proposal: false, proposal: null },
+          Outcome: { column_name: 'Outcome', original_value: '', display_value: proposals[1].proposed_value, display_status: 'pending', has_proposal: true, proposal: proposals[1] },
+        },
+      },
+    ],
+    proposal_count: proposals.length,
+  }
+}
+
 describe('standalone ReviewWorkspace', () => {
   const proposals = [makeProposal('p1', 'Finding'), makeProposal('p2', 'Outcome')]
 
@@ -226,5 +262,27 @@ describe('standalone ReviewWorkspace', () => {
 
     await waitFor(() => expect(mockBulkAccept).toHaveBeenCalled())
     expect(mockBulkAccept.mock.calls[0][1]).toEqual(['p1', 'p2'])
+  })
+
+  it('selects proposals across sparse paper rows without stale evidence or a blank page', async () => {
+    const crossPaperProposals = [
+      { ...makeProposal('p1', 'Finding'), row_id: 'row_1', pdf_id: 'paper_a', paper_title: 'Paper A', proposed_value: 'Paper A finding' },
+      { ...makeProposal('p2', 'Outcome'), row_id: 'row_2', pdf_id: 'paper_b', paper_title: 'Paper B', proposed_value: 'Paper B outcome' },
+    ]
+    mockListProposals.mockResolvedValue({ run_id: 'standalone_run', count: crossPaperProposals.length, proposals: crossPaperProposals })
+    mockGetReviewTable.mockResolvedValue(makeSparseCrossPaperTable(crossPaperProposals))
+    mockGetProposalDetail.mockImplementation((_runId: string, proposalId: string) => {
+      const proposal = crossPaperProposals.find((item) => item.proposal_id === proposalId) ?? crossPaperProposals[0]
+      return Promise.resolve(makeDetail(proposal))
+    })
+
+    render(<ReviewWorkspace run={makeRun()} outputDir="" />)
+
+    expect(await screen.findByTestId('review-table-view')).toBeInTheDocument()
+    fireEvent.click(await screen.findByTestId('review-table-cell-p2'))
+
+    await waitFor(() => expect(mockGetProposalDetail).toHaveBeenCalledWith('standalone_run', 'p2', ''))
+    expect(await screen.findByTestId('evidence-viewer')).toHaveTextContent('p2_ev')
+    expect(screen.queryByTestId('workspace-error-banner')).not.toBeInTheDocument()
   })
 })

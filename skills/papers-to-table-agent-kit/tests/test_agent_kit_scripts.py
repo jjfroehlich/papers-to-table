@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import csv
 import json
+import os
+import signal
 import shutil
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 import uuid
@@ -15,6 +18,10 @@ SKILL_DIR = Path(__file__).resolve().parents[1]
 SCRIPT_DIR = SKILL_DIR / "scripts"
 BUILD_SCRIPT = SCRIPT_DIR / "build_review_package.py"
 WRAPPER_SCRIPT = SCRIPT_DIR / "build_and_serve_review.py"
+LAUNCH_SCRIPT = SCRIPT_DIR / "launch_review_servers.py"
+PREPARE_WORKSPACE_SCRIPT = SCRIPT_DIR / "prepare_output_workspace.py"
+CLEANUP_SCRATCH_SCRIPT = SCRIPT_DIR / "cleanup_scratch.py"
+FINALIZE_HANDOFF_SCRIPT = SCRIPT_DIR / "finalize_extraction_handoff.py"
 VALIDATE_SCRIPT = SCRIPT_DIR / "validate_review_package.py"
 APPLY_SCRIPT = SCRIPT_DIR / "apply_review_decisions.py"
 SCAFFOLD_SCRIPT = SCRIPT_DIR / "scaffold_benchmark_run.py"
@@ -176,9 +183,21 @@ def test_instructions_describe_lean_optional_review_contract() -> None:
     required_phrases = [
         "extraction/review_input.json",
         "output_table_name",
+        "output_table_path",
+        "scratch_delete_after_success",
+        "prepare_output_workspace.py",
+        "cleanup_scratch.py",
+        "finalize_extraction_handoff.py",
         "human_review",
         "Do you want to review the results in the browser interface?",
+        "exact clickable URL",
+        "/human_review/index.html",
         "proposal-level `rationale`",
+        "cell-by-cell",
+        "validate_review_package.py --run RUN_DIR --mode authoring --json",
+        "generic-rationale",
+        "reused-evidence",
+        "launch_review_servers.py",
         "_reviewed.csv",
     ]
     for label, path in instruction_files.items():
@@ -236,6 +255,37 @@ def test_build_writes_root_filled_table_before_decisions() -> None:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+def test_output_table_path_writes_filled_and_reviewed_tables_to_output_root() -> None:
+    tmp_path = make_workspace("output_path")
+    try:
+        run_dir = make_run(tmp_path)
+        output_root = tmp_path / "paper_outputs"
+        input_path = run_dir / "extraction" / "review_input.json"
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
+        payload["output_table_path"] = str(output_root / "agent_review_filled.csv")
+        input_path.write_text(json.dumps(payload), encoding="utf-8")
+
+        result = build_package(run_dir, with_review=True)
+
+        assert result["filled_table_path"] == str(output_root / "agent_review_filled.csv")
+        assert (output_root / "agent_review_filled.csv").exists()
+        assert not (run_dir / "agent_review_filled.csv").exists()
+
+        proposals = read_jsonl(run_dir / "extraction" / "proposals.jsonl")
+        decisions_path = run_dir / "human_review" / "downloaded_decisions.json"
+        decisions_path.write_text(
+            json.dumps({"decisions": [{"proposal_id": proposals[0]["proposal_id"], "decision": "accepted"}]}),
+            encoding="utf-8",
+        )
+        export_result = json.loads(run_cmd(str(APPLY_SCRIPT), "--run", str(run_dir), "--decisions", str(decisions_path), "--json").stdout)
+
+        assert export_result["reviewed_table_path"] == str(output_root / "agent_review_reviewed.csv")
+        assert (output_root / "agent_review_reviewed.csv").exists()
+        assert not (run_dir / "agent_review_reviewed.csv").exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
 def test_explicit_review_build_creates_human_review_package() -> None:
     tmp_path = make_workspace("review_build")
     try:
@@ -287,9 +337,205 @@ def test_build_and_serve_wrapper_can_start_localhost_server() -> None:
             with urllib.request.urlopen(result["review_url"], timeout=5) as response:
                 assert response.status == 200
                 assert b"Papers-to-table rich review" in response.read()
+            base_url = result["review_url"].rsplit("/human_review/", 1)[0]
+            with urllib.request.urlopen(base_url + "/review", timeout=5) as response:
+                assert response.status == 200
+                assert response.geturl().endswith("/human_review/index.html")
+            worker_asset = next((run_dir / "human_review" / "assets").glob("pdf.worker*.mjs"))
+            with urllib.request.urlopen(base_url + f"/human_review/assets/{worker_asset.name}", timeout=5) as response:
+                assert response.status == 200
+                assert "javascript" in response.headers.get("Content-Type", "")
         finally:
             if server is not None:
                 server.shutdown()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_launch_review_servers_starts_background_server_and_returns_urls() -> None:
+    tmp_path = make_workspace("launch_servers")
+    process_id: int | None = None
+    try:
+        run_dir = make_run(tmp_path)
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(LAUNCH_SCRIPT),
+                "--run",
+                str(run_dir),
+                "--build",
+                "--start-port",
+                "0",
+                "--quiet",
+                "--json",
+            ],
+            check=True,
+            text=True,
+            capture_output=True,
+            timeout=20,
+        )
+        result = json.loads(completed.stdout)
+        assert result["ok"] is True
+        server = result["servers"][0]
+        process_id = int(server["process_id"])
+        assert server["status"] == "running"
+        assert server["review_url"].endswith("/human_review/index.html")
+        assert Path(server["stdout_log"]).exists()
+        assert Path(server["stderr_log"]).exists()
+
+        with urllib.request.urlopen(server["review_url"], timeout=5) as response:
+            assert response.status == 200
+            assert b"Papers-to-table rich review" in response.read()
+    finally:
+        if process_id is not None:
+            try:
+                os.kill(process_id, signal.SIGTERM)
+                time.sleep(0.2)
+            except OSError:
+                pass
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_prepare_output_workspace_and_cleanup_scratch_preserve_outputs_and_runs() -> None:
+    tmp_path = make_workspace("workspace_cleanup")
+    try:
+        output_dir = tmp_path / "outputs"
+        prepared = json.loads(
+            run_cmd(
+                str(PREPARE_WORKSPACE_SCRIPT),
+                "--output-dir",
+                str(output_dir),
+                "--run-id",
+                "dataset one",
+                "--run-id",
+                "dataset_two",
+                "--json",
+            ).stdout
+        )
+
+        assert Path(prepared["runs_dir"]) == output_dir / "runs"
+        assert Path(prepared["scratch_dir"]) == output_dir / "scratch_delete_after_success"
+        assert Path(prepared["logs_dir"]) == output_dir / "logs"
+        first_run = prepared["runs"][0]
+        assert first_run["run_id"] == "dataset_one"
+        assert Path(first_run["run_dir"]).exists()
+        assert Path(first_run["scratch_dir"]).exists()
+        assert Path(first_run["log_dir"]).exists()
+        assert first_run["output_table_path"].endswith("dataset_one_filled.csv")
+        assert (output_dir / "scratch_delete_after_success" / ".papers_to_table_scratch_root").exists()
+        assert (Path(first_run["scratch_dir"]) / ".papers_to_table_scratch").exists()
+
+        output_csv = output_dir / "dataset_one_filled.csv"
+        output_csv.write_text("row_id,Finding\nrow_1,value\n", encoding="utf-8")
+        provenance_file = Path(first_run["run_dir"]) / "extraction" / "review_input.json"
+        provenance_file.parent.mkdir(parents=True, exist_ok=True)
+        provenance_file.write_text("{}", encoding="utf-8")
+        scratch_file = Path(first_run["scratch_dir"]) / "page.txt"
+        scratch_file.write_text("temporary extracted text", encoding="utf-8")
+        unmarked_scratch = output_dir / "scratch_delete_after_success" / "manual_notes"
+        unmarked_scratch.mkdir()
+        (unmarked_scratch / "note.txt").write_text("not created by the helper", encoding="utf-8")
+
+        cleanup = json.loads(run_cmd(str(CLEANUP_SCRATCH_SCRIPT), "--output-dir", str(output_dir), "--json").stdout)
+
+        assert str(Path(first_run["scratch_dir"])) in cleanup["deleted"]
+        assert str(unmarked_scratch.resolve()) in cleanup["skipped"]
+        assert output_csv.exists()
+        assert provenance_file.exists()
+        assert (output_dir / "runs").exists()
+        assert not Path(first_run["scratch_dir"]).exists()
+        assert unmarked_scratch.exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_finalize_handoff_outputs_exact_review_question_for_valid_package() -> None:
+    tmp_path = make_workspace("handoff_ok")
+    try:
+        run_dir = make_run(tmp_path)
+        build_package(run_dir)
+
+        result = json.loads(
+            run_cmd(
+                str(FINALIZE_HANDOFF_SCRIPT),
+                "--output-dir",
+                str(tmp_path),
+                "--run",
+                str(run_dir),
+                "--json",
+            ).stdout
+        )
+
+        assert result["ok"] is True
+        assert result["review_question"] == "Do you want to review the results in the browser interface?"
+        assert result["required_final_prompt"] == "Do you want to review the results in the browser interface?"
+        assert result["runs"][0]["filled_table_path"] == str(run_dir / "agent_review_filled.csv")
+        assert result["runs"][0]["validation_status"] == "ok"
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_finalize_handoff_fails_when_package_builder_was_skipped() -> None:
+    tmp_path = make_workspace("handoff_missing_artifacts")
+    try:
+        run_dir = make_run(tmp_path)
+        (run_dir / "agent_review_filled.csv").write_text("row_id,Finding\nrow_1,value\n", encoding="utf-8")
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(FINALIZE_HANDOFF_SCRIPT),
+                "--output-dir",
+                str(tmp_path),
+                "--run",
+                str(run_dir),
+                "--json",
+            ],
+            text=True,
+            capture_output=True,
+        )
+
+        assert completed.returncode == 1
+        result = json.loads(completed.stdout)
+        assert result["ok"] is False
+        errors = "\n".join(result["errors"])
+        assert "proposals.jsonl" in errors
+        assert "validation_report.json" in errors
+        assert result["review_question"] == "Do you want to review the results in the browser interface?"
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_finalize_handoff_fails_on_unresolved_generic_rationale_warning() -> None:
+    tmp_path = make_workspace("handoff_generic_rationale")
+    try:
+        run_dir = make_run(tmp_path)
+        input_path = run_dir / "extraction" / "review_input.json"
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
+        payload["proposals"][0]["rationale"] = "Extracted from the provided PDF evidence for Finding."
+        input_path.write_text(json.dumps(payload), encoding="utf-8")
+        build_package(run_dir)
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(FINALIZE_HANDOFF_SCRIPT),
+                "--output-dir",
+                str(tmp_path),
+                "--run",
+                str(run_dir),
+                "--json",
+            ],
+            text=True,
+            capture_output=True,
+        )
+
+        assert completed.returncode == 1
+        result = json.loads(completed.stdout)
+        assert result["ok"] is False
+        assert any("Unresolved provenance-quality warning" in error for error in result["errors"])
+        assert any("generic proposal-level rationale" in error for error in result["errors"])
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -327,6 +573,74 @@ def test_authoring_validation_rejects_non_empty_value_without_evidence() -> None
         assert completed.returncode == 1
         report = json.loads(completed.stdout)
         assert any("non-empty proposed_value" in error for error in report["errors"])
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_authoring_validation_warns_on_reused_evidence_and_generic_rationale() -> None:
+    tmp_path = make_workspace("quality_warnings")
+    try:
+        run_dir = make_run(tmp_path)
+        input_path = run_dir / "extraction" / "review_input.json"
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
+        payload["proposals"][0]["rationale"] = "Extracted from the provided PDF evidence for Finding."
+        payload["proposals"][1]["row_id"] = "row_1"
+        payload["proposals"][1]["column_name"] = "Weak field"
+        payload["proposals"][1]["proposed_value"] = "another value"
+        payload["proposals"][1]["rationale"] = "Extracted from the provided PDF evidence for Weak field."
+        payload["proposals"][1]["evidence"] = json.loads(json.dumps(payload["proposals"][0]["evidence"]))
+        input_path.write_text(json.dumps(payload), encoding="utf-8")
+
+        report = json.loads(run_cmd(str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json").stdout)
+
+        assert report["ok"] is True
+        warnings = "\n".join(report["warnings"])
+        assert "generic proposal-level rationale" in warnings
+        assert "reuse the same evidence set" in warnings
+        assert "row_id=row_1" in warnings
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_authoring_validation_warns_on_formulaic_rationale_but_allows_specific_summary() -> None:
+    tmp_path = make_workspace("formulaic_rationale")
+    try:
+        run_dir = make_run(tmp_path)
+        input_path = run_dir / "extraction" / "review_input.json"
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
+        payload["proposals"][0]["rationale"] = (
+            "The quoted PDF sentence supports 'directly supported value' for Finding because it states the exact finding "
+            "reported for row_1."
+        )
+        payload["proposals"][1]["rationale"] = (
+            "The Results page context supports 'weakly inferred value' for Weak field because it describes the field but "
+            "does not provide an exact reusable quote."
+        )
+        payload["proposals"][2]["rationale"] = (
+            "The quote says the requested finding is not reported, so the Finding cell for row_2 should remain blank."
+        )
+        input_path.write_text(json.dumps(payload), encoding="utf-8")
+
+        specific_report = json.loads(run_cmd(str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json").stdout)
+        assert not any("generic proposal-level rationale" in warning for warning in specific_report["warnings"])
+
+        payload["proposals"][0]["rationale"] = (
+            "For Finding, the proposed value 'directly supported value' is supported by the page-specific evidence "
+            "because it states or shows the relevant method, assay, result, or figure."
+        )
+        input_path.write_text(json.dumps(payload), encoding="utf-8")
+
+        formulaic_report = json.loads(run_cmd(str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json").stdout)
+        assert any("generic proposal-level rationale" in warning for warning in formulaic_report["warnings"])
+
+        payload["proposals"][0]["rationale"] = (
+            "For column Finding, the value 'directly supported value' is recorded because the cited paper_a page 1 "
+            "evidence specifically describes that field."
+        )
+        input_path.write_text(json.dumps(payload), encoding="utf-8")
+
+        transcript_style_report = json.loads(run_cmd(str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json").stdout)
+        assert any("generic proposal-level rationale" in warning for warning in transcript_style_report["warnings"])
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -381,6 +695,64 @@ def test_scaffold_benchmark_run_creates_reference_only_review_input_skeleton() -
         assert payload["columns"] == [{"column_name": "Finding", "description": "Main reported finding", "field_type": "text"}]
         assert payload["proposals"] == []
         assert_no_old_layout(run_dir)
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_scaffold_benchmark_run_output_root_places_runs_and_final_csv_in_workspace() -> None:
+    tmp_path = make_workspace("scaffold_output_root")
+    try:
+        dataset_dir = tmp_path / "dataset"
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_a.pdf", "Paper A")
+        write_csv(
+            dataset_dir / "table_template.csv",
+            [{"row_id": "row_1", "row_index": "0", "Title": "Paper A", "Finding": ""}],
+            ["row_id", "row_index", "Title", "Finding"],
+        )
+        write_csv(
+            dataset_dir / "schema.csv",
+            [{"column_name": "Finding", "description": "Main reported finding", "field_type": "text"}],
+            ["column_name", "description", "field_type"],
+        )
+        output_root = tmp_path / "outputs"
+
+        result = json.loads(run_cmd(str(SCAFFOLD_SCRIPT), "--dataset-dir", str(dataset_dir), "--output-root", str(output_root), "--json").stdout)
+        run_dir = output_root / "runs" / "dataset"
+        payload_path = run_dir / "extraction" / "review_input.json"
+        payload = json.loads(payload_path.read_text(encoding="utf-8"))
+
+        assert result["run_dir"] == str(run_dir.resolve())
+        assert result["filled_table"] == str(output_root.resolve() / "dataset_filled.csv")
+        assert payload["output_table_name"] == "dataset_filled.csv"
+        assert payload["output_table_path"] == str(output_root.resolve() / "dataset_filled.csv")
+        assert (output_root / "scratch_delete_after_success").exists()
+        assert (output_root / "scratch_delete_after_success" / ".papers_to_table_scratch_root").exists()
+        assert (output_root / "scratch_delete_after_success" / "dataset" / ".papers_to_table_scratch").exists()
+        assert (output_root / "logs").exists()
+
+        payload["proposals"] = [
+            {
+                "row_id": "row_1",
+                "column_name": "Finding",
+                "proposed_value": "supported finding",
+                "rationale": "The page-one quote supports 'supported finding' for Finding because it states the finding directly.",
+                "evidence": [
+                    {
+                        "pdf_id": "paper_a",
+                        "source_type": "direct_quote",
+                        "page_number": 1,
+                        "quote_text": "The paper reports a supported finding.",
+                    }
+                ],
+            }
+        ]
+        payload_path.write_text(json.dumps(payload), encoding="utf-8")
+
+        build_result = build_package(run_dir)
+
+        assert build_result["filled_table_path"] == str(output_root.resolve() / "dataset_filled.csv")
+        assert (output_root / "dataset_filled.csv").exists()
+        assert not (run_dir / "dataset_filled.csv").exists()
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 

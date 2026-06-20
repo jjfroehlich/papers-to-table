@@ -203,6 +203,11 @@ def output_table_name(run_dir: Path, payload: dict[str, Any] | None = None) -> s
 
 
 def filled_table_path(run_dir: Path, payload: dict[str, Any] | None = None) -> Path:
+    payload = payload or {}
+    requested_path = str(payload.get("output_table_path") or "").strip()
+    if requested_path:
+        path = Path(requested_path)
+        return path.resolve() if path.is_absolute() else (run_dir / path).resolve()
     return run_dir / output_table_name(run_dir, payload)
 
 
@@ -215,6 +220,14 @@ def reviewed_table_name(run_dir: Path, payload: dict[str, Any] | None = None) ->
 
 
 def reviewed_table_path(run_dir: Path, payload: dict[str, Any] | None = None) -> Path:
+    payload = payload or {}
+    requested_path = str(payload.get("output_table_path") or "").strip()
+    if requested_path:
+        filled_path = filled_table_path(run_dir, payload)
+        filled_stem = filled_path.stem
+        if filled_stem.endswith("_filled"):
+            filled_stem = filled_stem[: -len("_filled")]
+        return filled_path.with_name(f"{filled_stem}_reviewed.csv")
     return run_dir / reviewed_table_name(run_dir, payload)
 
 

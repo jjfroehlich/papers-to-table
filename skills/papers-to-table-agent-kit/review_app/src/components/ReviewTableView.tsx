@@ -120,6 +120,18 @@ function buildSelectedCell(row: ReviewTableRow, column: ReviewTableColumn, cell:
   }
 }
 
+function emptyCellForColumn(row: ReviewTableRow, column: ReviewTableColumn): ReviewTableCell {
+  const value = row.values[column.name] ?? null
+  return {
+    column_name: column.name,
+    original_value: value,
+    display_value: value,
+    display_status: 'unchanged',
+    has_proposal: false,
+    proposal: null,
+  }
+}
+
 function cssEscape(value: string): string {
   return globalThis.CSS?.escape ? globalThis.CSS.escape(value) : value.replace(/["\\]/g, '\\$&')
 }
@@ -246,7 +258,7 @@ export function ReviewTableView({
             {filteredRows.map((row) => (
               <tr key={row.row_id}>
                 {tableData.columns.map((column, index) => {
-                  const cell = row.cells[column.name]
+                  const cell = row.cells[column.name] ?? emptyCellForColumn(row, column)
                   const proposal = cell?.proposal ?? null
                   const isSelected = proposal?.proposal_id === selectedProposalId
                   return (

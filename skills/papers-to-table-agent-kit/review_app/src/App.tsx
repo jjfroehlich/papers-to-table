@@ -1,3 +1,4 @@
+import { Component, type ReactNode } from 'react'
 import { ReviewWorkspace } from './components/ReviewWorkspace'
 import type { RunData } from './types'
 
@@ -33,7 +34,41 @@ function buildRun(): RunData {
   }
 }
 
-export function App() {
+interface ReviewErrorBoundaryState {
+  message: string | null
+}
+
+class ReviewErrorBoundary extends Component<{ children: ReactNode }, ReviewErrorBoundaryState> {
+  state: ReviewErrorBoundaryState = { message: null }
+
+  static getDerivedStateFromError(error: unknown): ReviewErrorBoundaryState {
+    return { message: error instanceof Error ? error.message : String(error) }
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Review app crashed', error)
+  }
+
+  render() {
+    if (this.state.message) {
+      return (
+        <div className="min-h-screen bg-[#f5f6f7] p-6 text-slate-900">
+          <div className="mx-auto max-w-3xl rounded-xl border border-rose-200 bg-white p-5 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-500">Review app error</p>
+            <h1 className="mt-2 text-lg font-semibold text-slate-950">The review interface hit a recoverable display error.</h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Reload the page after rebuilding the review package. If this persists, include the error below with the run directory.
+            </p>
+            <pre className="mt-4 max-h-56 overflow-auto rounded-lg bg-rose-50 p-3 text-xs text-rose-800">{this.state.message}</pre>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+function ReviewAppBody() {
   const run = buildRun()
 
   return (
@@ -60,5 +95,13 @@ export function App() {
         <ReviewWorkspace run={run} outputDir="" />
       </main>
     </div>
+  )
+}
+
+export function App() {
+  return (
+    <ReviewErrorBoundary>
+      <ReviewAppBody />
+    </ReviewErrorBoundary>
   )
 }

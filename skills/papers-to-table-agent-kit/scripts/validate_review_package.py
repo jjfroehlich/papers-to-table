@@ -115,6 +115,73 @@ def _validate_regions(
         warnings.append(f"{context}.{label} mixes normalized and absolute coordinate conventions.")
 
 
+EVIDENCE_TEXT_KEYS = ("quote_text", "table_text", "evidence_text", "caption_text")
+GENERIC_RATIONALE_PREFIXES = (
+    "extracted from the provided pdf evidence for",
+    "the quoted sentence directly supports the proposed value",
+    "the provided evidence directly supports the proposed value",
+    "supported by the provided evidence",
+)
+GENERIC_RATIONALE_SUBSTRINGS = (
+    "states or shows the relevant method, assay, result, or figure",
+    "page-specific evidence because it states or shows",
+    "relevant method, assay, result, or figure",
+    "evidence specifically describes that field",
+    "is recorded because the cited",
+)
+
+
+def _compact_text(value: Any) -> str:
+    if value is None:
+        return ""
+    return " ".join(str(value).split())
+
+
+def _is_generic_rationale(value: Any) -> bool:
+    text = _compact_text(value).casefold().rstrip(".")
+    if not text:
+        return False
+    return any(text.startswith(prefix) for prefix in GENERIC_RATIONALE_PREFIXES) or any(
+        fragment in text for fragment in GENERIC_RATIONALE_SUBSTRINGS
+    )
+
+
+def _evidence_signature(evidence_items: list[Any], *, inherited_pdf_id: str = "") -> tuple[tuple[str, int, str, str, str], ...]:
+    signature: list[tuple[str, int, str, str, str]] = []
+    for evidence in evidence_items:
+        if not isinstance(evidence, dict):
+            continue
+        text_parts = []
+        for key in EVIDENCE_TEXT_KEYS:
+            text = _compact_text(evidence.get(key))
+            if text:
+                text_parts.append(f"{key}={text.casefold()}")
+        figure_ref = _compact_text(evidence.get("figure_ref")).casefold()
+        if not text_parts and not figure_ref:
+            continue
+        pdf_id = _compact_text(evidence.get("pdf_id") or inherited_pdf_id).casefold()
+        page = _page_number(evidence.get("page_number")) or 0
+        source_type = _compact_text(evidence.get("source_type")).casefold()
+        signature.append((pdf_id, page, source_type, "|".join(text_parts), figure_ref))
+    return tuple(sorted(signature))
+
+
+def _warn_reused_evidence_sets(
+    groups: dict[tuple[str, str, tuple[tuple[str, int, str, str, str], ...]], list[tuple[str, str]]],
+    warnings: list[str],
+) -> None:
+    for (row_id, pdf_id, _signature), references in sorted(groups.items()):
+        columns = {column_name for _, column_name in references}
+        if len(columns) < 2:
+            continue
+        examples = ", ".join(f"{reference}/{column_name}" for reference, column_name in references[:5])
+        suffix = "" if len(references) <= 5 else f" and {len(references) - 5} more"
+        warnings.append(
+            f"{examples}{suffix} reuse the same evidence set for different columns in row_id={row_id} pdf_id={pdf_id}; "
+            "evidence should be column-specific unless the same quoted/table passage directly supports each value."
+        )
+
+
 def validate_authoring(run_dir: Path) -> dict[str, Any]:
     run_dir = run_dir.resolve()
     errors: list[str] = []
@@ -137,6 +204,9 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
         errors.append("review_input.json must include output_table_name.")
     elif not output_name.lower().endswith(".csv"):
         warnings.append("output_table_name should end with .csv.")
+    output_path = str(payload.get("output_table_path") or "").strip()
+    if output_path and not output_path.lower().endswith(".csv"):
+        warnings.append("output_table_path should end with .csv.")
 
     pdfs = payload.get("pdfs")
     if not isinstance(pdfs, list) or not pdfs:
@@ -205,6 +275,7 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
 
     seen_proposal_ids: set[str] = set()
     seen_evidence_ids: set[str] = set()
+    evidence_signature_groups: dict[tuple[str, str, tuple[tuple[str, int, str, str, str], ...]], list[tuple[str, str]]] = {}
     for proposal_index, proposal in enumerate(proposals):
         if not isinstance(proposal, dict):
             errors.append(f"proposals[{proposal_index}] must be an object.")
@@ -233,6 +304,10 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
 
         proposed_value = proposal.get("proposed_value")
         evidence_items = proposal.get("evidence") if isinstance(proposal.get("evidence"), list) else []
+        signature = _evidence_signature(evidence_items, inherited_pdf_id=proposal_pdf_id)
+        if signature and row_id and column_name:
+            group_key = (row_id, proposal_pdf_id, signature)
+            evidence_signature_groups.setdefault(group_key, []).append((f"proposals[{proposal_index}]", column_name))
         counts["evidence"] += len(evidence_items)
         valid_evidence_count = 0
         evidence_tiers: list[dict[str, Any]] = []
@@ -274,6 +349,10 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
                 f"proposals[{proposal_index}] has non-empty proposed_value but no structured Tier A/B/C evidence."
             )
         has_rationale = is_non_empty(proposal.get("rationale"))
+        if _is_generic_rationale(proposal.get("rationale")):
+            warnings.append(
+                f"proposals[{proposal_index}] has a generic proposal-level rationale; explain why the value follows from the specific evidence."
+            )
         has_weak_or_inferred_evidence = any(tier.get("tier") == "C" or tier.get("evidence_status") == "inferred_weak" for tier in evidence_tiers)
         if not has_rationale and has_weak_or_inferred_evidence:
             warnings.append(
@@ -283,6 +362,8 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
             warnings.append(
                 f"proposals[{proposal_index}] has no proposal-level rationale; add a concise reviewer-facing extraction rationale."
             )
+
+    _warn_reused_evidence_sets(evidence_signature_groups, warnings)
 
     return _report("authoring", errors, warnings, counts)
 
@@ -297,16 +378,20 @@ def validate_generated(run_dir: Path) -> dict[str, Any]:
     except Exception as exc:
         return _report("generated", [str(exc)], warnings, counts)
 
-    required = [
-        proposals_path(run_dir).relative_to(run_dir).as_posix(),
-        evidence_path(run_dir).relative_to(run_dir).as_posix(),
-        validation_report_path(run_dir).relative_to(run_dir).as_posix(),
-        extraction_summary_path(run_dir).relative_to(run_dir).as_posix(),
-        filled_table_path(run_dir, payload).relative_to(run_dir).as_posix(),
+    required_paths = [
+        proposals_path(run_dir),
+        evidence_path(run_dir),
+        validation_report_path(run_dir),
+        extraction_summary_path(run_dir),
+        filled_table_path(run_dir, payload),
     ]
-    for rel in required:
-        if not (run_dir / rel).exists():
-            errors.append(f"Missing generated artifact: {rel}")
+    for path in required_paths:
+        try:
+            label = path.relative_to(run_dir).as_posix()
+        except ValueError:
+            label = str(path)
+        if not path.exists():
+            errors.append(f"Missing generated artifact: {label}")
 
     review_dir = human_review_dir(run_dir)
     has_human_review = review_dir.exists()
@@ -333,10 +418,15 @@ def validate_generated(run_dir: Path) -> dict[str, Any]:
 
     proposal_ids = {str(item.get("proposal_id")) for item in proposals if item.get("proposal_id")}
     evidence_ids = {str(item.get("evidence_id")) for item in evidence if item.get("evidence_id")}
+    evidence_by_proposal: dict[str, list[dict[str, Any]]] = {}
+    for item in evidence:
+        if isinstance(item, dict) and item.get("proposal_id"):
+            evidence_by_proposal.setdefault(str(item["proposal_id"]), []).append(item)
     if len(proposal_ids) != len(proposals):
         errors.append("extraction/proposals.jsonl contains duplicate or missing proposal_id values.")
     if len(evidence_ids) != len(evidence):
         errors.append("extraction/evidence.jsonl contains duplicate or missing evidence_id values.")
+    evidence_signature_groups: dict[tuple[str, str, tuple[tuple[str, int, str, str, str], ...]], list[tuple[str, str]]] = {}
     for index, proposal in enumerate(proposals):
         for field in ["proposal_id", "run_id", "row_id", "column_name", "cell_id", "proposal_status", "evidence_status", "review_bucket", "evidence_ids"]:
             if field not in proposal:
@@ -347,6 +437,20 @@ def validate_generated(run_dir: Path) -> dict[str, Any]:
             errors.append(f"proposal {proposal.get('proposal_id')} has invalid evidence_status.")
         if proposal.get("review_bucket") not in REVIEW_BUCKETS:
             errors.append(f"proposal {proposal.get('proposal_id')} has invalid review_bucket.")
+        if _is_generic_rationale(proposal.get("rationale")):
+            warnings.append(
+                f"proposal {proposal.get('proposal_id')} has a generic proposal-level rationale; explain why the value follows from the specific evidence."
+            )
+        signature = _evidence_signature(
+            evidence_by_proposal.get(str(proposal.get("proposal_id")), []),
+            inherited_pdf_id=str(proposal.get("pdf_id") or ""),
+        )
+        row_id = str(proposal.get("row_id") or "")
+        column_name = str(proposal.get("column_name") or "")
+        pdf_id = str(proposal.get("pdf_id") or "")
+        if signature and row_id and column_name:
+            reference = str(proposal.get("proposal_id") or f"proposal #{index + 1}")
+            evidence_signature_groups.setdefault((row_id, pdf_id, signature), []).append((reference, column_name))
         for evidence_id in proposal.get("evidence_ids", []) or []:
             if evidence_id not in evidence_ids:
                 errors.append(f"proposal {proposal.get('proposal_id')} references missing evidence_id {evidence_id}.")
@@ -402,6 +506,8 @@ def validate_generated(run_dir: Path) -> dict[str, Any]:
                 errors.append(f"decision {decision.get('review_decision_id')} references missing proposal_id {decision.get('proposal_id')}.")
             if decision.get("decision") not in DECISIONS:
                 errors.append(f"decision {decision.get('review_decision_id')} has invalid decision {decision.get('decision')!r}.")
+
+    _warn_reused_evidence_sets(evidence_signature_groups, warnings)
 
     return _report("generated", errors, warnings, counts)
 

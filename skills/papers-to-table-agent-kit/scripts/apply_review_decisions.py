@@ -171,7 +171,13 @@ def export_reviewed_table(run_dir: Path, proposals: list[dict[str, Any]], decisi
             fieldnames.append(column)
         rows_by_id[row_id][column] = _export_value(proposal, decision)
     source = package.get("source") if isinstance(package.get("source"), dict) else {}
-    out_path = reviewed_table_path(run_dir, {"output_table_name": source.get("output_table_name")})
+    out_path = reviewed_table_path(
+        run_dir,
+        {
+            "output_table_name": source.get("output_table_name"),
+            "output_table_path": source.get("output_table_path"),
+        },
+    )
     write_csv(out_path, rows, fieldnames)
     return out_path
 

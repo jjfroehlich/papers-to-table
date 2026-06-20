@@ -52,6 +52,32 @@ def _safe_path(root: Path, request_path: str) -> Path | None:
     return candidate
 
 
+def _canonical_review_path(path: str) -> str | None:
+    parsed = urlparse(path)
+    if parsed.path in {"", "/", "/review", "/review/", "/human_review"}:
+        return "/human_review/index.html"
+    return None
+
+
+def _content_type_for_path(path: Path) -> str:
+    suffix = path.suffix.lower()
+    if suffix in {".js", ".mjs"}:
+        return "text/javascript; charset=utf-8"
+    if suffix == ".css":
+        return "text/css; charset=utf-8"
+    if suffix == ".svg":
+        return "image/svg+xml"
+    if suffix == ".pdf":
+        return "application/pdf"
+    return mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+
+
+def _cache_control_for_path(path: Path) -> str:
+    if path.suffix.lower() in {".json", ".html", ".js", ".mjs", ".css", ".svg"}:
+        return "no-store"
+    return "public, max-age=60"
+
+
 def _review_package(run_dir: Path) -> dict[str, Any]:
     payload = read_json(review_package_path(run_dir))
     if not isinstance(payload, dict):
@@ -263,19 +289,33 @@ def make_handler(run_dir: Path):
             self.end_headers()
             self.wfile.write(body)
 
+        def _send_redirect(self, location: str) -> None:
+            body = f"Redirecting to {location}\n".encode("utf-8")
+            self.send_response(302)
+            self.send_header("Location", location)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+
         def _send_file(self, path: Path) -> None:
-            content_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+            content_type = _content_type_for_path(path)
             body = path.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "no-store" if path.suffix in {".json", ".html"} else "public, max-age=60")
+            self.send_header("Cache-Control", _cache_control_for_path(path))
             self.end_headers()
             self.wfile.write(body)
 
         def do_GET(self) -> None:
             parsed = urlparse(self.path)
             try:
+                canonical_review_path = _canonical_review_path(self.path)
+                if canonical_review_path:
+                    self._send_redirect(canonical_review_path)
+                    return
                 if parsed.path == "/api/decisions":
                     self._send_json(200, {"decisions": read_jsonl(decisions_path(run_dir))})
                     return

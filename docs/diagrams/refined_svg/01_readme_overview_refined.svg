@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="830" viewBox="0 0 1600 830" role="img" aria-label="README overview refined schematic">
+<title>README overview refined schematic</title>
+
+<defs>
+
+  <marker id="arrow-ink" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#0f172a"/>
+  </marker>
+
+  <marker id="arrow-line" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#243247"/>
+  </marker>
+
+  <marker id="arrow-blue" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#2563eb"/>
+  </marker>
+
+  <marker id="arrow-teal" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#0f9f8f"/>
+  </marker>
+
+  <marker id="arrow-green" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#24a85b"/>
+  </marker>
+
+  <marker id="arrow-orange" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#f08a24"/>
+  </marker>
+
+  <marker id="arrow-purple" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#6d55e8"/>
+  </marker>
+
+  <marker id="arrow-rose" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#e45670"/>
+  </marker>
+
+  <marker id="arrow-muted" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+    <path d="M 2 2 L 12 7 L 2 12 z" fill="#617083"/>
+  </marker>
+</defs>
+<rect x="0.0" y="0.0" width="1600.0" height="830.0" rx="0.0" fill="#f6f8fb" stroke="none" stroke-width="2" />
+<text x="42.0" y="48.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="34" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="42.0" dy="0">papers-to-table</tspan>
+</text>
+<text x="42.0" y="82.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="17.5" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="42.0" dy="0">Extract, verify, review, and export structured values from scientific PDFs.</tspan>
+</text>
+<rect x="390.0" y="190.0" width="610.0" height="430.0" rx="22.0" fill="#e6f7f3" stroke="#0f9f8f" stroke-width="2.4" opacity="0.7" stroke-dasharray="9 8"/>
+<rect x="418.0" y="173.0" width="303.6" height="34.0" rx="7.0" fill="#ffffff" stroke="#0f9f8f" stroke-width="1.6" />
+<text x="569.8" y="195.2" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="14.5" font-weight="bold" fill="#0f9f8f" text-anchor="middle">
+<tspan x="569.8" dy="0">private local processing boundary</tspan>
+</text>
+<text x="976.0" y="598.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="14" font-weight="bold" fill="#0f9f8f" text-anchor="end">
+<tspan x="976.0" dy="0">source PDFs stay untouched</tspan>
+</text>
+<rect x="567.9" y="219.9" width="14.3" height="10.9" rx="5.0" fill="#0f9f8f" stroke="#0f9f8f" stroke-width="0" />
+<path d="M 570.6 219.9 L 570.6 216.5 C 570.6 209.7, 579.4 209.7, 579.4 216.5 L 579.4 219.9" stroke="#0f172a" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<circle cx="575.0" cy="225.4" r="1.2" fill="#ffffff" stroke="#ffffff" stroke-width="2"/>
+<rect x="95.0" y="322.0" width="250.0" height="175.0" rx="11.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="90.0" y="315.0" width="250.0" height="175.0" rx="11.0" fill="#fbfdff" stroke="#2563eb" stroke-width="2.3" />
+<circle cx="138.0" cy="402.5" r="36.0" fill="#eaf2ff" stroke="#dce6f0" stroke-width="1.2"/>
+<path d="M 115.8 377.3 H 140.4 L 150.6 387.5 V 418.1 H 115.8 Z" stroke="#9badbf" stroke-width="1.7" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 140.4 377.3 L 150.6 387.5 L 140.4 387.5 Z" stroke="none" stroke-width="0" fill="#eef3f8" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 140.4 377.3 L 150.6 387.5 M 140.4 377.3 V 387.5 H 150.6" stroke="#9badbf" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<rect x="121.8" y="407.3" width="18.0" height="3.3" rx="2.0" fill="#9badbf" stroke="#9badbf" stroke-width="0" opacity="0.55"/>
+<path d="M 119.4 380.9 H 144.0 L 154.2 391.1 V 421.7 H 119.4 Z" stroke="#9badbf" stroke-width="1.7" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 144.0 380.9 L 154.2 391.1 L 144.0 391.1 Z" stroke="none" stroke-width="0" fill="#eef3f8" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 144.0 380.9 L 154.2 391.1 M 144.0 380.9 V 391.1 H 154.2" stroke="#9badbf" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<rect x="125.4" y="410.9" width="18.0" height="3.3" rx="2.0" fill="#9badbf" stroke="#9badbf" stroke-width="0" opacity="0.72"/>
+<path d="M 123.6 384.5 H 148.2 L 158.4 394.7 V 425.3 H 123.6 Z" stroke="#9badbf" stroke-width="2.0" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 148.2 384.5 L 158.4 394.7 L 148.2 394.7 Z" stroke="none" stroke-width="0" fill="#eef3f8" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 148.2 384.5 L 158.4 394.7 M 148.2 384.5 V 394.7 H 158.4" stroke="#9badbf" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<rect x="130.2" y="413.9" width="21.6" height="5.4" rx="3.0" fill="#2563eb" stroke="#2563eb" stroke-width="0" />
+<text x="180.0" y="353.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="180.0" dy="0">Inputs</tspan>
+</text>
+<text x="180.0" y="381.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.8" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="180.0" dy="0">PDFs, table</tspan>
+<tspan x="180.0" dy="14.9">schema, config</tspan>
+</text>
+<rect x="455.0" y="302.0" width="235.0" height="142.0" rx="13.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="450.0" y="295.0" width="235.0" height="142.0" rx="13.0" fill="#ffffff" stroke="#d9e2ec" stroke-width="1.8" />
+<rect x="450.0" y="295.0" width="6.0" height="142.0" rx="3.0" fill="#0f9f8f" stroke="#0f9f8f" stroke-width="0" />
+<circle cx="500.0" cy="366.0" r="34.0" fill="#e6f7f3" stroke="#dce6f0" stroke-width="1.2"/>
+<path d="M 500.0 342.5 L 516.2 349.2 L 514.0 364.9 C 511.8 375.0, 505.0 380.6, 500.0 383.9 C 495.0 380.6, 488.2 375.0, 486.0 364.9 L 483.8 349.2 Z" stroke="#0f172a" stroke-width="2.4" fill="#e6f7f3" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 493.3 363.2 L 498.3 368.2 L 508.4 357.0" stroke="#0f9f8f" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="538.0" y="327.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="18" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="538.0" dy="0">Local run</tspan>
+</text>
+<text x="538.0" y="352.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.2" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="538.0" dy="0">preflight, parser,</tspan>
+<tspan x="538.0" dy="14.3">local LM</tspan>
+</text>
+<rect x="720.0" y="302.0" width="235.0" height="142.0" rx="11.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="715.0" y="295.0" width="235.0" height="142.0" rx="11.0" fill="#fbfdff" stroke="#6d55e8" stroke-width="2.3" />
+<circle cx="763.0" cy="366.0" r="36.0" fill="#efedff" stroke="#dce6f0" stroke-width="1.2"/>
+<rect x="742.6" y="348.0" width="38.4" height="27.6" rx="7.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<path d="M 753.4 375.6 L 748.6 384.0 L 761.8 375.6" stroke="#0f172a" stroke-width="2.2" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<line x1="749.8" y1="357.0" x2="757.0" y2="357.0" stroke="#6d55e8" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="749.8" y1="365.4" x2="759.4" y2="365.4" stroke="#6d55e8" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="765.4" y1="357.0" x2="772.6" y2="357.0" stroke="#6d55e8" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="765.4" y1="365.4" x2="775.0" y2="365.4" stroke="#6d55e8" stroke-width="3.2" stroke-linecap="round"  />
+<circle cx="777.4" cy="374.4" r="4.8" fill="#6d55e8" stroke="#6d55e8" stroke-width="2"/>
+<text x="805.0" y="333.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="805.0" dy="0">Proposals</tspan>
+</text>
+<text x="805.0" y="361.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.8" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="805.0" dy="0">values, quotes,</tspan>
+<tspan x="805.0" dy="14.9">page refs</tspan>
+</text>
+<rect x="1085.0" y="322.0" width="245.0" height="175.0" rx="13.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="1080.0" y="315.0" width="245.0" height="175.0" rx="13.0" fill="#ffffff" stroke="#d9e2ec" stroke-width="1.8" />
+<rect x="1080.0" y="315.0" width="6.0" height="175.0" rx="3.0" fill="#f08a24" stroke="#f08a24" stroke-width="0" />
+<circle cx="1130.0" cy="402.5" r="34.0" fill="#fff0dc" stroke="#dce6f0" stroke-width="1.2"/>
+<circle cx="1125.5" cy="389.1" r="7.3" fill="#ffffff" stroke="#0f172a" stroke-width="2.4"/>
+<path d="M 1111.5 414.8 C 1113.8 403.1, 1119.4 399.1, 1125.5 399.1 C 1132.8 399.1, 1137.8 403.1, 1139.5 414.8" stroke="#0f172a" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<circle cx="1140.1" cy="409.2" r="8.4" fill="#f08a24" stroke="#f08a24" stroke-width="2"/>
+<path d="M 1135.6 409.2 L 1139.0 412.6 L 1145.1 404.2" stroke="#ffffff" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="1168.0" y="347.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="18" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1168.0" dy="0">Human review</tspan>
+</text>
+<text x="1168.0" y="372.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.2" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="1168.0" dy="0">accept, edit,</tspan>
+<tspan x="1168.0" dy="14.3">reject, no data</tspan>
+</text>
+<rect x="1355.0" y="322.0" width="205.0" height="175.0" rx="11.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="1350.0" y="315.0" width="205.0" height="175.0" rx="11.0" fill="#fbfdff" stroke="#24a85b" stroke-width="2.3" />
+<circle cx="1398.0" cy="402.5" r="36.0" fill="#e8f8ee" stroke="#dce6f0" stroke-width="1.2"/>
+<rect x="1374.0" y="379.7" width="39.6" height="38.4" rx="5.0" fill="#ffffff" stroke="#24a85b" stroke-width="2.3" />
+<line x1="1374.0" y1="391.7" x2="1413.6" y2="391.7" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<line x1="1374.0" y1="403.7" x2="1413.6" y2="403.7" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<line x1="1387.2" y1="379.7" x2="1387.2" y2="418.1" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<line x1="1400.4" y1="379.7" x2="1400.4" y2="418.1" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<circle cx="1412.4" cy="414.5" r="8.4" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<path d="M 1408.2 414.5 L 1411.8 418.1 L 1418.4 409.1" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="1440.0" y="353.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="start">
+<tspan x="1440.0" dy="0">Accepted</tspan>
+<tspan x="1440.0" dy="23.6">export</tspan>
+</text>
+<text x="1440.0" y="396.6" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="13.8" font-weight="normal" fill="#617083" text-anchor="start">
+<tspan x="1440.0" dy="0">XLSX plus</tspan>
+<tspan x="1440.0" dy="14.9">audit files</tspan>
+</text>
+<circle cx="130.0" cy="315.0" r="25.0" fill="#2563eb" stroke="#ffffff" stroke-width="4"/>
+<text x="130.0" y="324.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">
+<tspan x="130.0" dy="0">1</tspan>
+</text>
+<circle cx="490.0" cy="295.0" r="25.0" fill="#0f9f8f" stroke="#ffffff" stroke-width="4"/>
+<text x="490.0" y="304.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">
+<tspan x="490.0" dy="0">2</tspan>
+</text>
+<circle cx="755.0" cy="295.0" r="25.0" fill="#6d55e8" stroke="#ffffff" stroke-width="4"/>
+<text x="755.0" y="304.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">
+<tspan x="755.0" dy="0">3</tspan>
+</text>
+<circle cx="1120.0" cy="315.0" r="25.0" fill="#f08a24" stroke="#ffffff" stroke-width="4"/>
+<text x="1120.0" y="324.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">
+<tspan x="1120.0" dy="0">4</tspan>
+</text>
+<circle cx="1390.0" cy="315.0" r="25.0" fill="#24a85b" stroke="#ffffff" stroke-width="4"/>
+<text x="1390.0" y="324.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">
+<tspan x="1390.0" dy="0">5</tspan>
+</text>
+<line x1="340.0" y1="402.0" x2="427.6" y2="402.0" stroke="#243247" stroke-width="4" stroke-linecap="round"  />
+<path d="M 440.0 402.0 L 426.4 408.3 L 426.4 395.7 Z" fill="#243247" stroke="none"/>
+<line x1="685.0" y1="366.0" x2="692.6" y2="366.0" stroke="#243247" stroke-width="4" stroke-linecap="round"  />
+<path d="M 705.0 366.0 L 691.4 372.3 L 691.4 359.7 Z" fill="#243247" stroke="none"/>
+<line x1="950.0" y1="402.0" x2="1057.6" y2="402.0" stroke="#243247" stroke-width="4" stroke-linecap="round"  />
+<path d="M 1070.0 402.0 L 1056.4 408.3 L 1056.4 395.7 Z" fill="#243247" stroke="none"/>
+<line x1="1325.0" y1="402.0" x2="1327.6" y2="402.0" stroke="#243247" stroke-width="4" stroke-linecap="round"  />
+<path d="M 1340.0 402.0 L 1326.4 408.3 L 1326.4 395.7 Z" fill="#243247" stroke="none"/>
+<rect x="462.0" y="488.0" width="476.0" height="72.0" rx="10.0" fill="#ffffff" stroke="#0f9f8f" stroke-width="1.8" />
+<text x="700.0" y="520.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="17" font-weight="bold" fill="#0f9f8f" text-anchor="middle">
+<tspan x="700.0" dy="0">Default provider path: local LM Studio.</tspan>
+</text>
+<text x="700.0" y="548.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="14.5" font-weight="normal" fill="#617083" text-anchor="middle">
+<tspan x="700.0" dy="0">No source document mutation.</tspan>
+</text>
+<rect x="135.0" y="707.0" width="1340.0" height="88.0" rx="14.0" fill="#0f172a" opacity="0.055" stroke="none"/>
+<rect x="130.0" y="700.0" width="1340.0" height="88.0" rx="14.0" fill="#ffffff" stroke="#d9e2ec" stroke-width="1.8" />
+<path d="M 236.0 726.2 L 251.1 732.4 L 249.0 747.0 C 246.9 756.3, 240.7 761.5, 236.0 764.6 C 231.3 761.5, 225.1 756.3, 223.0 747.0 L 220.9 732.4 Z" stroke="#0f172a" stroke-width="2.4" fill="#e6f7f3" stroke-linecap="round" stroke-linejoin="round"  />
+<path d="M 229.8 745.4 L 234.4 750.1 L 243.8 739.7" stroke="#0f9f8f" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="278.0" y="754.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="21" font-weight="bold" fill="#0f9f8f" text-anchor="start">
+<tspan x="278.0" dy="0">local first</tspan>
+</text>
+<line x1="450.0" y1="744.0" x2="496.0" y2="744.0" stroke="#d9e2ec" stroke-width="3" stroke-linecap="round"  />
+<rect x="528.3" y="732.4" width="33.3" height="23.9" rx="7.0" fill="#ffffff" stroke="#0f172a" stroke-width="2.2" />
+<path d="M 537.7 756.3 L 533.5 763.6 L 545.0 756.3" stroke="#0f172a" stroke-width="2.2" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round"  />
+<line x1="534.6" y1="740.2" x2="540.8" y2="740.2" stroke="#6d55e8" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="534.6" y1="747.5" x2="542.9" y2="747.5" stroke="#6d55e8" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="548.1" y1="740.2" x2="554.3" y2="740.2" stroke="#6d55e8" stroke-width="3.2" stroke-linecap="round"  />
+<line x1="548.1" y1="747.5" x2="556.4" y2="747.5" stroke="#6d55e8" stroke-width="3.2" stroke-linecap="round"  />
+<circle cx="558.5" cy="755.3" r="4.2" fill="#6d55e8" stroke="#6d55e8" stroke-width="2"/>
+<text x="588.0" y="754.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="21" font-weight="bold" fill="#6d55e8" text-anchor="start">
+<tspan x="588.0" dy="0">evidence backed</tspan>
+</text>
+<line x1="760.0" y1="744.0" x2="806.0" y2="744.0" stroke="#d9e2ec" stroke-width="3" stroke-linecap="round"  />
+<circle cx="871.8" cy="735.5" r="6.8" fill="#ffffff" stroke="#0f172a" stroke-width="2.4"/>
+<path d="M 858.8 759.4 C 860.9 748.5, 866.1 744.9, 871.8 744.9 C 878.6 744.9, 883.3 748.5, 884.8 759.4" stroke="#0f172a" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<circle cx="885.4" cy="754.2" r="7.8" fill="#f08a24" stroke="#f08a24" stroke-width="2"/>
+<path d="M 881.2 754.2 L 884.3 757.4 L 890.0 749.6" stroke="#ffffff" stroke-width="3.0" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="918.0" y="754.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="21" font-weight="bold" fill="#f08a24" text-anchor="start">
+<tspan x="918.0" dy="0">human decision</tspan>
+</text>
+<line x1="1090.0" y1="744.0" x2="1136.0" y2="744.0" stroke="#d9e2ec" stroke-width="3" stroke-linecap="round"  />
+<rect x="1190.2" y="728.2" width="34.3" height="33.3" rx="5.0" fill="#ffffff" stroke="#24a85b" stroke-width="2.3" />
+<line x1="1190.2" y1="738.6" x2="1224.5" y2="738.6" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<line x1="1190.2" y1="749.0" x2="1224.5" y2="749.0" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<line x1="1201.6" y1="728.2" x2="1201.6" y2="761.5" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<line x1="1213.1" y1="728.2" x2="1213.1" y2="761.5" stroke="#24a85b" stroke-width="2" stroke-linecap="round"  />
+<circle cx="1223.5" cy="758.4" r="7.3" fill="#24a85b" stroke="#24a85b" stroke-width="2"/>
+<path d="M 1219.8 758.4 L 1223.0 761.5 L 1228.7 753.7" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"  />
+<text x="1253.0" y="754.0" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="21" font-weight="bold" fill="#24a85b" text-anchor="start">
+<tspan x="1253.0" dy="0">accepted only</tspan>
+</text>
+</svg>
