@@ -6,7 +6,7 @@
 Papers-to-table is an experimental system to extract information from scientific PDFs into structured tables, using large language models. It runs fully local, and includes an interface for human review, auditable run bundles, and tools for benchmarking and experiments.
 
 ## Relevance
-Commercial literature research platforms all use structured information extracted from literature, see for example [Google Labs Science](https://labs.google/science/), [Elicit](https://elicit.com/), or [Scite](https://scite.ai/). This project here is free, open source, and can run fully local. It can be used for literature reviews, to experiment with large language models, or be integrated in larger agentic research assistants.
+Commercial literature research platforms commonly extract structured information from literature into table formats, see for example [Google Labs Science](https://labs.google/science/), [Elicit](https://elicit.com/), or [Scite](https://scite.ai/). This project here is free, open source, and can run fully local. It can be used for literature reviews, to experiment with large language models, or be integrated in larger agentic research assistants.
 
 ## Quickstart
 From the repository root:
