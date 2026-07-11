@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 
+BOUNDED_CORRECTNESS_METRICS = {"content_correctness", "correctness"}
+
+
 def _safe_float(value: Any) -> float | None:
     if value is None or value == "":
         return None
@@ -20,6 +23,10 @@ def _safe_float(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _is_bounded_correctness_metric(metric: str) -> bool:
+    return str(metric or "").strip().casefold() in BOUNDED_CORRECTNESS_METRICS
 
 
 def _seconds_to_minutes(seconds: float) -> float:
@@ -845,6 +852,8 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
             plt.xticks(rotation=35, ha="right")
             plt.ylabel(primary_metric)
             plt.title("Replicate score distribution by model")
+            if _is_bounded_correctness_metric(primary_metric):
+                plt.ylim(bottom=0)
             plt.legend(
                 handles=[
                     Line2D([0], [0], color="tab:orange", linewidth=1.6, label="median"),

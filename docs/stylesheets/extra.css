@@ -102,3 +102,38 @@
 .md-typeset table:not([class]) {
   font-size: 0.72rem;
 }
+
+/* Per-embed figure sizes keep plots proportional to their information density. */
+.md-typeset img.figure-half,
+.md-typeset img.figure-tall,
+.md-typeset img.figure-wide {
+  display: block;
+  width: auto;
+  height: auto;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.md-typeset img.figure-half {
+  max-width: 50%;
+  max-height: 30rem;
+}
+
+.md-typeset img.figure-tall {
+  max-width: 46%;
+  max-height: 30rem;
+}
+
+.md-typeset img.figure-wide {
+  max-width: 92%;
+  max-height: 34rem;
+}
+
+@media screen and (max-width: 44.984375em) {
+  .md-typeset img.figure-half,
+  .md-typeset img.figure-tall,
+  .md-typeset img.figure-wide {
+    max-width: 100%;
+    max-height: none;
+  }
+}

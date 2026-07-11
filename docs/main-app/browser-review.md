@@ -1,6 +1,6 @@
 # Browser Review
 
-Browser review is the primary workflow where the user can inspect evidence, and accept or edit proposals. The main app ingests PDFs and a spreadsheet that defines the required information, proposes evidence-backed values, supports review in a browser UI, and exports the results as a spreadsheet.
+Browser review is the primary workflow where the user can inspect evidence, and accept or edit proposals. The main app ingests PDFs and a spreadsheet that defines the required reported information, proposes source-linked values, supports review in a browser UI, and exports the results as a spreadsheet. Evidence in this workflow means inspectable publication context for the extracted value; the app does not evaluate whether a publication's claims are scientifically supported or true.
 
 ## Start The App
 
@@ -38,8 +38,9 @@ python scripts/papers_to_table.py preflight --config app/config.json
 
 ![Review workspace screenshot](../screenshots/review-workspace.png)
 
-- The default review viewport is a contained three-panel workspace: proposal queue on the left, proposal detail and decisions in the middle, and evidence/PDF inspection on the right.
-- The queue defaults to actionable pending proposals, supports grouped triage by paper or column, and scrolls independently from the rest of the workspace.
+- The default review viewport is a contained three-panel workspace: a table-oriented review list on the left, proposal detail and decisions in the middle, and evidence/PDF inspection on the right.
+- The left pane opens in **As Table** mode and can switch to **By Paper** or **By Column** for grouped triage. The grouped queue defaults to actionable pending proposals and scrolls independently from the rest of the workspace.
+- The screenshot above uses **By Paper** mode so the set of extraction fields is immediately visible; the selected evidence highlight is centered in the PDF viewer.
 - The detail pane keeps the selected paper, field, proposed value, ordered evidence list, and review actions together, with its own internal scroll region.
 - The evidence panel keeps the PDF toolbar visible while the PDF page area scrolls independently for document inspection.
 - The top review bar stays compact: current run context, review progress, diagnostics, export, and keyboard help.
@@ -47,6 +48,7 @@ python scripts/papers_to_table.py preflight --config app/config.json
 ## Evidence Semantics
 
 - Proposal records use canonical proposal/evidence semantics: `proposal_status`, `evidence_status`, derived/validated `review_bucket`, and `reason_codes`.
+- Evidence links proposals to publication passages, tables, captions, figures, or reasoning context so reviewers can inspect where the extracted information came from. It is not a downstream scientific claim-support judgment.
 - The default queue remains focused on review-surface cells. It can include unresolved target cells with no proposed value when they carry useful rationale, reason codes, or retrieval/candidate context; global diagnostics stay in summaries/diagnostics.
 - Figure/vision evidence and approximate/fallback anchors are shown as provenance/evidence-quality metadata. They do not create a warning icon unless a separate caution condition is present.
 - The visible All filter means all non-diagnostic review-surface records; diagnostic records remain available through summaries and diagnostics views.

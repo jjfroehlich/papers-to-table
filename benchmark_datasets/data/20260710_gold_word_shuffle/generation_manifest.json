@@ -1,0 +1,198 @@
+{
+  "algorithm_version": "gold_negative_controls_v1",
+  "control": "word_shuffle",
+  "datasets": {
+    "genome_editing_tools": {
+      "gold_path": "benchmark_datasets/genome_editing_tools/table_gold.csv",
+      "gold_sha256": "aa24804f6d536187e3cfa55b4d05285ca0669029d35794a42ac695220a752964",
+      "replicates": [
+        {
+          "output_path": "benchmark_datasets/data/20260710_gold_word_shuffle/rep1/genome_editing_tools_filled.csv",
+          "output_sha256": "61148af9593263e1332bccfbf3d73f6a0b7ca5402155439c8591f8b62d8092c2",
+          "replicate_index": 1,
+          "seed": 2182302170977005017,
+          "seed_sha256": "1e4918431da5edd91b7ac70fdaf227bd06e6c822c1ae1f3372260189c5c59a03",
+          "stats": {
+            "changed_cell_count": 29,
+            "nonempty_target_cell_count": 50,
+            "single_token_cell_count": 21,
+            "target_cell_count": 50,
+            "unchanged_nonempty_cell_count": 21
+          }
+        },
+        {
+          "output_path": "benchmark_datasets/data/20260710_gold_word_shuffle/rep2/genome_editing_tools_filled.csv",
+          "output_sha256": "f04586b7ca05a03b1a821259284b6a9d5b58954170884bfc11197abdf02f388c",
+          "replicate_index": 2,
+          "seed": 1043335122168709319,
+          "seed_sha256": "0e7aabc40a8e00c7a3692bc3996ee459fef594a0c80539455fe4c8331ce80204",
+          "stats": {
+            "changed_cell_count": 29,
+            "nonempty_target_cell_count": 50,
+            "single_token_cell_count": 21,
+            "target_cell_count": 50,
+            "unchanged_nonempty_cell_count": 21
+          }
+        },
+        {
+          "output_path": "benchmark_datasets/data/20260710_gold_word_shuffle/rep3/genome_editing_tools_filled.csv",
+          "output_sha256": "a69987279d18e12c95dc473b7e5185ce537d3537b5be54f604e59f5cddd9fb13",
+          "replicate_index": 3,
+          "seed": 6342236091953330936,
+          "seed_sha256": "5804261f7e8a3af8c4b9b96accd87ac35a1bd8ce89fcf410388084c4d50e1ba0",
+          "stats": {
+            "changed_cell_count": 29,
+            "nonempty_target_cell_count": 50,
+            "single_token_cell_count": 21,
+            "target_cell_count": 50,
+            "unchanged_nonempty_cell_count": 21
+          }
+        }
+      ],
+      "target_columns": [
+        "Editing modality",
+        "Main editor or system name",
+        "Best or selected variant",
+        "Primary assay system",
+        "Max editing efficiency (%)",
+        "Main or best editor architecture",
+        "Architecture source figure",
+        "Number of bar-chart panels in Figure 3",
+        "DNA extraction or genotyping method",
+        "Main improvement claim"
+      ],
+      "template_path": "benchmark_datasets/genome_editing_tools/table_template.csv",
+      "template_sha256": "06475bfce462880d7f510603ee48a17d47f1e1be525855ef23f11c24f533dceb"
+    },
+    "massively_parallel_reporter_assays": {
+      "gold_path": "benchmark_datasets/massively_parallel_reporter_assays/table_gold.csv",
+      "gold_sha256": "afa127666e53cbc3890d1baa37f2c2476530421001f3de985798e7de08ff790d",
+      "replicates": [
+        {
+          "output_path": "benchmark_datasets/data/20260710_gold_word_shuffle/rep1/massively_parallel_reporter_assays_filled.csv",
+          "output_sha256": "c68bc30be24222e1fabe0b2b50f7d91e44015696bd52abfd00d3aa60e09dff23",
+          "replicate_index": 1,
+          "seed": 16024091200292857135,
+          "seed_sha256": "de61020c21eb252f2bfc4d6312056c7b16c7a79e1efddcdaacb90edb422b615b",
+          "stats": {
+            "changed_cell_count": 18,
+            "nonempty_target_cell_count": 60,
+            "single_token_cell_count": 42,
+            "target_cell_count": 60,
+            "unchanged_nonempty_cell_count": 42
+          }
+        },
+        {
+          "output_path": "benchmark_datasets/data/20260710_gold_word_shuffle/rep2/massively_parallel_reporter_assays_filled.csv",
+          "output_sha256": "06083bfba7fb25404de4cd9f7cebf1f146c423c81a186fc302ec014edfd1b7b7",
+          "replicate_index": 2,
+          "seed": 1101922095001641107,
+          "seed_sha256": "0f4ad04ea2ba2093cb18b4e95813327c999f43a6f54bbdaa6a34271992f4cf15",
+          "stats": {
+            "changed_cell_count": 18,
+            "nonempty_target_cell_count": 60,
+            "single_token_cell_count": 42,
+            "target_cell_count": 60,
+            "unchanged_nonempty_cell_count": 42
+          }
+        },
+        {
+          "output_path": "benchmark_datasets/data/20260710_gold_word_shuffle/rep3/massively_parallel_reporter_assays_filled.csv",
+          "output_sha256": "03fb916417b65ffc266e8299a07e7ff71381aa314797192960d2b8f3438f8700",
+          "replicate_index": 3,
+          "seed": 17658181479120242511,
+          "seed_sha256": "f50e767f8a58074f30c6169210b05091fdafea636423af421bdca2909f4b3352",
+          "stats": {
+            "changed_cell_count": 18,
+            "nonempty_target_cell_count": 60,
+            "single_token_cell_count": 42,
+            "target_cell_count": 60,
+            "unchanged_nonempty_cell_count": 42
+          }
+        }
+      ],
+      "target_columns": [
+        "Synthetic designs",
+        "Cloning",
+        "Species",
+        "Model system",
+        "Episomal vs genomic",
+        "Integration method",
+        "# Variants tested",
+        "length of sequences (bp)",
+        "Where is the BC?",
+        "BC length (bp)",
+        "RNA library",
+        "UMI?"
+      ],
+      "template_path": "benchmark_datasets/massively_parallel_reporter_assays/table_template.csv",
+      "template_sha256": "f0a05f90c0db2bcc4a997c3badaaabafeeb9f5e211bd04850df278d159aa1b0d"
+    },
+    "spatial_transcriptomics": {
+      "gold_path": "benchmark_datasets/spatial_transcriptomics/table_gold.csv",
+      "gold_sha256": "7cbbe1ec87d55b63b81b918abb88302cfe4e9f037f73ebd8d84fb5217755647a",
+      "replicates": [
+        {
+          "output_path": "benchmark_datasets/data/20260710_gold_word_shuffle/rep1/spatial_transcriptomics_filled.csv",
+          "output_sha256": "6d7e3fa2e0c6bff8cb5c503ef65e240e377b3c418c231676535c8e2fc77715c1",
+          "replicate_index": 1,
+          "seed": 14249583994359013473,
+          "seed_sha256": "c5c0b12534dc606194c8dc1bffbccde37b24618f1d8b9052bbe3f418819a90b4",
+          "stats": {
+            "changed_cell_count": 34,
+            "nonempty_target_cell_count": 55,
+            "single_token_cell_count": 21,
+            "target_cell_count": 55,
+            "unchanged_nonempty_cell_count": 21
+          }
+        },
+        {
+          "output_path": "benchmark_datasets/data/20260710_gold_word_shuffle/rep2/spatial_transcriptomics_filled.csv",
+          "output_sha256": "dfb03267a2e0529db169787d25004dc076d4906173d94e3650b060ec20043082",
+          "replicate_index": 2,
+          "seed": 8384350129562634710,
+          "seed_sha256": "745b32054914c9d6c1933c057720cf465d8ae861eac6e5d8a237844b92ae5285",
+          "stats": {
+            "changed_cell_count": 34,
+            "nonempty_target_cell_count": 55,
+            "single_token_cell_count": 21,
+            "target_cell_count": 55,
+            "unchanged_nonempty_cell_count": 21
+          }
+        },
+        {
+          "output_path": "benchmark_datasets/data/20260710_gold_word_shuffle/rep3/spatial_transcriptomics_filled.csv",
+          "output_sha256": "38da9b2ddbf231991fd321e7001f22f38b7b22cddafb132e04f5ef255ca89832",
+          "replicate_index": 3,
+          "seed": 17679025926144357295,
+          "seed_sha256": "f55884698ec173af635437dcef6a4f9e6104b8b0e5348884d6e34a711e72886d",
+          "stats": {
+            "changed_cell_count": 34,
+            "nonempty_target_cell_count": 55,
+            "single_token_cell_count": 21,
+            "target_cell_count": 55,
+            "unchanged_nonempty_cell_count": 21
+          }
+        }
+      ],
+      "target_columns": [
+        "Authors",
+        "Spatial platform or method",
+        "Species",
+        "Tissue or disease context",
+        "Section type",
+        "Section thickness (micrometer)",
+        "Spatial resolution (micrometer)",
+        "Main analysis output",
+        "Key spatial domain or cell-type finding",
+        "Representative spatial figure",
+        "Number of UMAP plot panels in Figure 1"
+      ],
+      "template_path": "benchmark_datasets/spatial_transcriptomics/table_template.csv",
+      "template_sha256": "e3d10a191e530d37c256631f115be91669686cdf11662297caab21a9b432ba94"
+    }
+  },
+  "description": "Whitespace-delimited tokens are shuffled independently within each non-empty target cell. Single-token and otherwise unshufflable cells remain unchanged, making this a weak negative control for word-order sensitivity rather than a guaranteed score floor.",
+  "replicate_count": 3,
+  "schema_version": "papers_to_table.negative_controls.v1"
+}

@@ -9,7 +9,7 @@ This file is the integrated product and system truth. Focused specs own deeper d
 
 ## 1. Product Purpose
 
-papers-to-table is a local-first paper-to-table review app. It ingests scientific PDFs plus a structured spreadsheet and schema, generates evidence-backed cell proposals, supports human review in a browser UI, and exports audited workbook updates.
+papers-to-table is a local-first paper-to-table review app. It ingests scientific PDFs plus a structured spreadsheet and schema, generates source-linked cell proposals, supports human review in a browser UI, and exports audited workbook updates. Target fields can request technical parameters, descriptions of reported results, or claims made in a publication. Proposal evidence lets reviewers inspect where extracted information came from; the app does not evaluate whether publication claims are scientifically supported or true, which requires downstream systems outside the app.
 
 The monorepo has three coordinated surfaces:
 
@@ -123,7 +123,7 @@ Metadata extraction has its own lane. Parser-first metadata truth, ambiguity, so
 
 ## 7. Retrieval And Extraction
 
-Extraction is schema-first. Column name, description, optional type metadata, row context, and paper metadata define what should be extracted.
+Extraction is schema-first. Column name, description, optional type metadata, row context, and paper metadata define what reported information should be extracted.
 
 Current defaults:
 
@@ -308,6 +308,8 @@ Optimizer phases:
 
 Optimizer is sequential by default. Future parallel mode must be explicit and preserve local provider locking and model-residency safety.
 
+Canonical model comparisons score completed external-agent tables plus gold-derived positive and negative controls through the same Eval path as local candidates. External systems and controls remain visible in comparison rows and replicate distributions but are excluded from winner selection, recommended-default rationale, and benchmark-best plots. For the bounded `content_correctness`/`correctness` replicate distribution, the report boxplot uses a lower y-axis bound of zero while retaining automatic upper scaling.
+
 
 ## 14. Benchmark Datasets
 
@@ -321,7 +323,9 @@ Active datasets:
 
 Each active dataset exposes app-facing inputs through `table_template.csv`, `schema.csv`, source PDFs under `pdfs/`, and human-curated answers in `table_gold.csv`.
 
-External comparison outputs and gold positive-control filled tables live under `benchmark_datasets/data/`.
+Benchmark correctness is agreement under the current Eval rubric with the human-curated gold data, not a literal percentage of objectively true and false values. Some current fields are objectively recoverable, while interpretive fields such as a paper's main finding may allow multiple reasonable answers and can impose an effective score ceiling below 100% for realistic systems. The gold positive control reaches 100% by construction. Consistently evaluated comparisons remain useful, but reports and documentation must qualify absolute score interpretation and surface judge disagreement and per-cell diagnostics. Future benchmark revisions should prefer objectively verifiable tasks and use tighter rubrics or explicit acceptable-answer sets where interpretation cannot be eliminated.
+
+External comparison outputs and gold-derived control tables live under `benchmark_datasets/data/`. The canonical controls include the gold positive control, a weak within-cell word-order shuffle, and a strong cross-field value derangement. Negative controls preserve headers, row identity, metadata, and the target blank/non-empty mask; their checked-in tables are generated deterministically from the active templates and gold tables, with source hashes, seeds, and change counts recorded in generation manifests. Failed external workflow attempts without complete filled tables may be documented, but they must not be assigned fabricated scores or registered as scored external results.
 
 ## 15. Command Surface
 

@@ -163,7 +163,8 @@ def test_real_benchmark_configs_use_real_inputs_and_dual_judges() -> None:
 
 def test_compare_models_external_results_use_path_safe_candidate_ids() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    payload = json.loads((repo_root / "configs" / "compare_models.json").read_text(encoding="utf-8"))
+    config_path = repo_root / "configs" / "compare_models.json"
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
     dev_ids = payload["benchmark_suites"]["dev_suite"]["benchmark_ids"]
     ids_by_label: dict[str, str] = {}
 
@@ -176,12 +177,16 @@ def test_compare_models_external_results_use_path_safe_candidate_ids() -> None:
             assert SAFE_IDENTIFIER_RE.fullmatch(candidate_id)
             prior = ids_by_label.setdefault(result["label"], candidate_id)
             assert prior == candidate_id
+            for replicate in result["replicates"]:
+                assert (config_path.parent / replicate["path"]).resolve().exists()
 
     assert ids_by_label == {
         "codex_gpt_pro_5_5_extra_high": "ext_codex",
         "codex_gpt_pro_5_5_extra_high_jjfroehlich_papers_to_table_agent_kit": "ext_agentkit",
         "codex_gpt_pro_5_5_extra_high_jkitchin_scientific_data_extraction": "ext_kitchin",
+        "gold_cross_field_negative_control": "ext_gold_cross_field",
         "gold_positive_control": "ext_gold",
+        "gold_word_shuffle_negative_control": "ext_gold_word_shuffle",
     }
 
 

@@ -1,10 +1,18 @@
 # Papers-To-Table Agent Kit
 
-`skills/papers-to-table-agent-kit/` is a standalone skill for agents that extract structured information from research publications, scientific PDFs, and technical documents into evidence-backed tables.
+`skills/papers-to-table-agent-kit/` is a standalone skill for agents that extract reported information from research publications, scientific PDFs, and technical documents into source-linked tables. Target fields can include technical parameters, descriptions of results, or claims made in a publication. The kit standardizes review of where extracted information came from; it does not evaluate whether publication claims are scientifically supported or true.
+
+![Comparison of the local-app and agent-kit skills](../diagrams/refined_svg/04_agent_skills_refined.svg)
 
 The kit gives light extraction guidance and standardizes the handoff from agent extraction to human review: agents provide `review_input.json`, PDFs, and optional table/schema inputs; kit scripts generate the local review UI, normalized artifacts, an unreviewed draft filled table, decisions, audit logs, accepted-only exports, and a cleaned reviewed bundle.
 
 For document-to-table extraction, the default deliverable is the formal review package, not only `_filled.csv` outputs. Draft filled CSVs are allowed as secondary convenience files, but `_filled.csv` alone is incomplete unless the user explicitly requested CSV-only extraction. When a research report or synthesis benefits from it, accepted values can also be rendered as a concise summarizing table in addition to CSV outputs.
+
+Using the agent-kit skill did not degrade performance in this benchmark: Codex with GPT-5.5 xhigh produced closely overlapping score distributions with its default extraction workflow and with the skill.
+
+![Codex benchmark score distributions with its default workflow and with the papers-to-table agent-kit skill](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_agent_kit.jpg){ .figure-tall }
+
+*Content-correctness [Eval scores](eval.md) from three replicates across 15 papers and 31 target columns in optimizer run `20260615_004637_compare_models`. The observed similarity is specific to this benchmark and configuration, rather than a guarantee for other tasks or agent versions.*
 
 ## Input Layout
 
@@ -59,7 +67,7 @@ Minimal example:
 
 `proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional. The builder generates deterministic IDs when they are absent and validates uniqueness when they are supplied.
 
-Every non-empty proposed value needs at least one structured evidence record. Quote, table, caption, evidence text, bbox regions, or figure-caption evidence produce stronger labels; page-plus-reasoning evidence is allowed but is visibly marked weak/attention in the review UI.
+Every non-empty proposed value needs at least one structured evidence record. Quote, table, caption, evidence text, bbox regions, or figure-caption evidence produce stronger labels; page-plus-reasoning evidence is allowed but is visibly marked weak/attention in the review UI. These labels describe reviewability and source linkage, not whether a scientific claim is correct or externally supported.
 
 Generated evidence keeps `evidence_schema_version="main_evidence"` and normalizes `source_type` to a stable review/export vocabulary. If the authored evidence used kit-specific text kinds such as `table_text`, `caption_text`, or `evidence_text`, the original kind is preserved in `authored_evidence_kind`.
 

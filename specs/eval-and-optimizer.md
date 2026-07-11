@@ -101,12 +101,22 @@ Each active dataset contains:
 - `table_gold.csv`
 - `pdfs/`
 
-External result and positive-control comparison tables live under `benchmark_datasets/data/`, currently including:
+Correctness scores measure agreement under the current Eval rubric with the human-curated gold data; they are not literal percentages of objectively true and false values. The current suite mixes objectively recoverable fields with interpretive fields, such as a paper's main finding, for which multiple reasonable answers may exist. Consequently, realistic systems may face an effective ceiling below 100% even though the gold positive control reaches 100% by construction. Reports must qualify absolute score interpretation and preserve per-cell diagnostics and judge disagreement. Comparative rankings remain informative when all candidates use the same scoring path. Future benchmark revisions should prefer objectively verifiable tasks and use tighter rubrics or explicit acceptable-answer sets wherever interpretation cannot be removed.
+
+External result and control comparison tables live under `benchmark_datasets/data/`, currently including:
 
 - `20260517_ext_codex`
 - `20260517_ext_kitchin`
 - `20260517_ext_agentkit`
 - `20260517_gold`
+- `20260710_gold_word_shuffle`
+- `20260710_gold_cross_field`
+
+`20260517_gold` is the positive control. `20260710_gold_word_shuffle` is a weak negative control that deterministically shuffles whitespace-delimited words within each non-empty target cell; single-token and otherwise unshufflable values remain unchanged and must be counted in its manifest. `20260710_gold_cross_field` is a strong negative control that deterministically deranges whole non-empty values across target rows and columns within each dataset; generation must fail if any non-empty target retains the same rendered value.
+
+The negative-control generator infers target columns as columns that are entirely blank in `table_template.csv`, preserves headers, row order, stable identity, metadata, and the target blank/non-empty mask, and produces three independently seeded replicates. Its generation manifests record the algorithm version, source paths and hashes, target columns, seeds, output hashes, and changed/unchanged-cell counts. A check mode must detect missing, unexpected, or stale generated files.
+
+Completed external tables and all controls use the same Eval path and remain visible in comparison artifacts. They are excluded from optimizer winner selection and recommendations. External workflow attempts that fail to produce a complete filled table may be documented as failures, but must not be assigned a correctness score or registered as an `external_result`.
 
 Optimizer benchmark ids for the active datasets are:
 
@@ -186,6 +196,8 @@ Optimizer reports must make these questions answerable:
 - whether degraded mode, judge disagreement, missing evidence, failed replicates, or contract invalidity weaken the recommendation
 
 Reports and plots must distinguish raw winner from recommended default when trust caveats differ. Candidate-level, benchmark-level, suite-level, replicate-level, and run-level artifacts are all relevant when present.
+
+The suite replicate score-distribution boxplot shows individual replicate observations alongside its summary marks. When the primary metric is bounded `content_correctness` or its `correctness` alias, the y-axis lower bound is zero and the upper bound remains automatic. Other primary metrics retain normal autoscaling.
 
 Capability-use reporting should include text and vision calls, canonical typed retrieval scoring metadata, evidence-aware rerank profile/time/changed-top-k counts, prepared retrieval index source counts, figure planner attempts/success/skips/fallbacks, planner skip reasons/confidence, figure-review attempts/success/failure/suppression, successful vision calls without usable hits, dropped/no-hit reasons, accepted figure hits, figure-derived evidence count, candidate-selection attempts/value changes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips when run stats expose them.
 

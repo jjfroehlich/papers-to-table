@@ -2,6 +2,8 @@
 
 `skills/papers-to-table-local-app/` is the local-app skill for agents that can run this repo's installed app/headless workflow with a configured local LLM provider, usually LM Studio.
 
+![Comparison of the local-app and agent-kit skills](../diagrams/refined_svg/04_agent_skills_refined.svg)
+
 ## Use Cases
 
 Agents can use this skill when the task is to:

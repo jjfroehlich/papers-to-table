@@ -24,6 +24,8 @@ google/gemma-4-e4b
 
 If you choose a different model, update `provider.text_model.model_id` in `app/config.json` so the app and LM Studio agree.
 
+See [Model Choice](model-choice.md) for benchmark-based guidance on the quality and runtime trade-offs among tested local models.
+
 ## Start The Local Server
 
 Start LM Studio's local developer server and keep it running while using papers-to-table. 

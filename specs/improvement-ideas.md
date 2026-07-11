@@ -176,6 +176,19 @@ The priority sections below remain the active improvement backlog. This section 
 | **Test** | Treat as Bundle F measurement work: record primary score, disagreement rate, adjudicated score, and judge model IDs. |
 | **Decision criterion** | Benchmark outcomes become more auditable without obscuring raw judge behavior. |
 
+### Objective Benchmark Redesign
+
+| Field | Details |
+|---|---|
+| **Problem** | The current suite mixes objectively recoverable facts with interpretive fields such as a paper's main finding, so an absolute correctness score can understate reasonable alternative answers and should not be read as a literal error rate. |
+| **Direction** | Redesign benchmark tasks toward objectively verifiable fields. Tighten field definitions and use explicit acceptable-answer sets or bounded rubrics where limited interpretation cannot be removed. |
+| **Why it might work** | A more objective target set would give correctness scores a clearer meaning, reduce dependence on judge preference, and make small model differences easier to interpret. |
+| **Evidence so far** | Current gold tables are human-curated and the gold positive control reaches 100% by construction, while dual-judge disagreement remains material and some schema fields permit multiple defensible summaries. |
+| **Generality risk** | Removing every synthesis field could make the benchmark less representative of real literature-review work; retain difficult tasks only when their acceptable outcomes can be specified transparently. |
+| **Runtime/cost risk** | Low runtime risk, but substantial curation and expert-review cost. Existing score series may need to remain separately labeled for historical comparison. |
+| **Test** | Audit every target column for objectivity and inter-annotator agreement, pilot revised schemas and answer sets, then rescore a fixed candidate set on both current and revised suites. |
+| **Decision criterion** | Adopt a revised suite when independent annotators can apply its rubric consistently and score changes can be explained by clearer targets rather than lost task coverage. |
+
 ### Improve Structured Output For Local Models
 
 | Field | Details |

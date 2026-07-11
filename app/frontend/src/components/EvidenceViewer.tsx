@@ -775,6 +775,7 @@ export function EvidenceViewer({
             <div
               key={`highlight-${index}`}
               ref={index === 0 ? highlightRef : undefined}
+              data-testid={index === 0 ? 'evidence-highlight-primary' : undefined}
               className="absolute pointer-events-none"
               style={{
                 left: highlight.x,

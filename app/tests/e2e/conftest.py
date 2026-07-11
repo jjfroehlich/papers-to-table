@@ -22,7 +22,7 @@ def pytest_addoption(parser):
         "--capture-doc-screenshots",
         action="store_true",
         default=False,
-        help="Write refreshed README screenshots into docs/screenshots.",
+        help="Write refreshed documentation screenshots into docs/screenshots.",
     )
     parser.addoption(
         "--docs-screenshot-dir",

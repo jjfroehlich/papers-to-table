@@ -25,6 +25,8 @@ def test_compare_report_uses_internal_runner_up_margin_with_external_controls() 
     assert any("+0.0095" in item for item in ranking_card["items"])
     assert any("+0.0095" in item for item in interpretation_card["items"])
     assert not any("+0.1741" in item for item in interpretation_card["items"])
+    caveat_card = next(card for card in page["decision_cards"] if card["title"] == "Caveats")
+    assert any("gold-derived positive and negative controls" in item for item in caveat_card["items"])
 
     columns = [column["label"] for column in page["candidate_table"]["columns"]]
     assert "Gap To Recommended" in columns

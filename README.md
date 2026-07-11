@@ -3,10 +3,23 @@
 </p>
 
 ## Purpose
-Papers-to-table is an experimental system to extract information from scientific PDFs into structured tables, using large language models. It runs fully local, and includes an interface for human review, auditable run bundles, and tools for benchmarking and experiments.
+Papers-to-table is an experimental system to extract reported information from scientific PDFs into structured tables, using large language models. Target fields can ask for technical parameters, descriptions of results, or claims made in a publication. The app links extracted information to inspectable source evidence. It runs fully local, and includes an interface for human review, auditable run bundles, and tools for benchmarking and experiments.
+
+<p align="center">
+  <img src="docs/diagrams/refined_svg/01_readme_user_overview_refined.svg" width="760" alt="Illustrative papers-to-table workflow" />
+</p>
 
 ## Relevance
-Commercial literature research platforms commonly extract structured information from literature into table formats, see for example [Google Labs Science](https://labs.google/science/), [Elicit](https://elicit.com/), or [Scite](https://scite.ai/). This project here is free, open source, and can run fully local. It can be used for literature reviews, to experiment with large language models, or be integrated in larger agentic research assistants.
+Commercial literature tools often extract structured information into table formats, see for example [Google Labs Science](https://labs.google/science/), [Elicit](https://elicit.com/), or [Scite](https://scite.ai/). This project here is free, open source, and can run fully local. It can be used for literature reviews, to experiment with large language models, or to be integrated in larger agentic research assistants.
+
+<p align="center">
+  <img src="docs/plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_readme.jpg" width="380" alt="Benchmark scores for seven local papers-to-table models and Codex with GPT-5.5 xhigh" />
+</p>
+
+*Content-correctness [Eval scores](docs/tools/eval.md) across 15 papers and 31 target columns. Points show replicate-level scores, boxes summarize their distribution, and bars show the average. Results are from optimizer run `20260615_004637_compare_models`. These scores measure agreement with the current gold answers; they are not literal percentages of objectively right values because some benchmark fields permit reasonable judgment. See [Interpreting benchmark scores](docs/tools/benchmark-datasets.md#interpreting-benchmark-scores).*
+
+## Hardware Specs
+Developed and benchmarked on Windows 11 Pro 64-bit (build 26200), with AMD Ryzen 9 5950X processor (16 cores / 32 threads), 32 GB RAM, and an NVIDIA GeForce RTX 3090 with 24 GB VRAM.
 
 ## Quickstart
 From the repository root:

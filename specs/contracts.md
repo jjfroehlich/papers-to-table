@@ -99,7 +99,7 @@ Useful unresolved target-cell outcomes belong in `attention` when they carry rat
 
 ## Evidence Semantics
 
-Evidence is attached to proposals and must remain inspectable.
+Evidence is attached to proposals and must remain inspectable. Evidence records document source linkage and reviewability for extracted information; they are not claims that a publication's scientific conclusions are externally supported or true.
 
 Supported evidence categories include:
 

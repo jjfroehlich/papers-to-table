@@ -17,6 +17,7 @@
 
 ## Recently Verified
 
+- [x] 2026-07-10 negative-control calibration augmented `tools/optimizer/runs/20260615_004637_compare_models` to 17 candidates and 153 replicate rows: word shuffle scored 0.5589, cross-field scored 0.0000, and all 18 new replicates completed the configured dual-judge Eval path without failed or degraded status.
 - [x] Active spec system consolidated around `README.md`, `spec.md`, `architecture.md`, `contracts.md`, `ui-review-workflow.md`, `eval-and-optimizer.md`, `decisions.md`, `plan.md`, `tasks.md`, and `contracts/schemas/*.json`.
 - [x] Actual agent skill directories are `skills/papers-to-table-agent-kit/` and `skills/papers-to-table-local-app/`.
 - [x] Active benchmark dataset directories are `massively_parallel_reporter_assays`, `genome_editing_tools`, and `spatial_transcriptomics`.

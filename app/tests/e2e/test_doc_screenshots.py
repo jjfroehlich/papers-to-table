@@ -1,4 +1,4 @@
-"""Refresh README screenshots from deterministic Playwright UI states."""
+"""Refresh documentation screenshots from deterministic Playwright UI states."""
 from __future__ import annotations
 
 import pathlib
@@ -34,7 +34,16 @@ def _capture(locator, path: pathlib.Path) -> None:
     locator.screenshot(path=str(path))
 
 
-def test_capture_readme_screenshots(
+def _focus_primary_pdf_highlight(page: Page) -> None:
+    highlight = page.get_by_test_id("evidence-highlight-primary")
+    expect(highlight).to_be_visible()
+    highlight.evaluate(
+        "(node) => node.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' })"
+    )
+    page.wait_for_timeout(150)
+
+
+def test_capture_documentation_screenshots(
     page: Page,
     frontend_url: str,
     demo_run_ids: DemoRunIds,
@@ -42,7 +51,7 @@ def test_capture_readme_screenshots(
     capture_doc_screenshots: bool,
 ):
     if not capture_doc_screenshots:
-        pytest.skip("Run with --capture-doc-screenshots to refresh README images.")
+        pytest.skip("Run with --capture-doc-screenshots to refresh documentation images.")
 
     page.set_viewport_size({"width": 1680, "height": 1180})
 
@@ -56,25 +65,32 @@ def test_capture_readme_screenshots(
 
     _open_review_workspace(page, frontend_url, demo_run_ids.screenshots)
     page.wait_for_timeout(1500)
+    page.get_by_role("button", name="By Paper").click()
+    expect(page.get_by_test_id("proposal-queue-scroll")).to_be_visible()
+    _focus_primary_pdf_highlight(page)
     _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "review-workspace.png")
 
     page.get_by_role("button", name="Diagnostics").click()
-    expect(page.get_by_text("Run warnings and unresolved review context")).to_be_visible()
+    expect(page.get_by_role("heading", name="Run diagnostics")).to_be_visible()
     _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "review-diagnostics-open.png")
     page.get_by_role("button", name="Close").click()
 
     queue_scroll = page.get_by_test_id("proposal-queue-scroll")
     queue_scroll.evaluate("(node) => { node.scrollTop = Math.max(node.scrollHeight * 0.45, 240); return node.scrollTop; }")
     page.wait_for_timeout(300)
+    _focus_primary_pdf_highlight(page)
     _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "review-queue-scrolled.png")
 
-    evidence_scroll = page.get_by_test_id("evidence-scroll-region")
-    evidence_scroll.evaluate("(node) => { node.scrollTop = Math.max(node.scrollHeight * 0.35, 320); return node.scrollTop; }")
-    page.wait_for_timeout(300)
+    _focus_primary_pdf_highlight(page)
     _capture(page.locator("[data-testid='review-workspace']"), docs_screenshot_dir / "review-evidence-scrolled.png")
 
     page.get_by_role("button", name="Accept", exact=True).click()
     expect(page.get_by_text("HEK293T", exact=True).first).to_be_visible()
+    page.locator("select").select_option("all")
+    species_card = page.locator("button[data-proposal-id]", has_text="Species")
+    expect(species_card).to_be_visible()
+    species_card.click()
+    _focus_primary_pdf_highlight(page)
     page.get_by_role("button", name="Export reviewed workbook").click()
     expect(page.get_by_text("Export completed at")).to_be_visible()
     page.get_by_role("button", name="Diagnostics").click()

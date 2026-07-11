@@ -1,10 +1,10 @@
 # Prepare Table and Schema
 
-The app needs a table and a schema that define which information needs to be extracted.
+The app needs a table and a schema that define which reported information needs to be extracted.
 
 The table is the working spreadsheet. Each row is a paper, and each column is a field you want filled or checked. The app uses `Title`, `Authors`, and `Publication Year` to match PDFs to existing rows. If a PDF does not match any row, the app stages a new row from extracted paper metadata and generates proposals for the schema-defined target columns.
 
-The schema is the extraction contract. Its descriptions are inserted into the extraction prompts, so they directly shape what the model looks for. Treat each description as prompt text: define the fact precisely, say what counts as evidence, and include units or scope boundaries. It is often useful to ask an LLM to draft or refine these descriptions, then review them for domain correctness before running extraction.
+The schema is the extraction contract. Its descriptions are inserted into the extraction prompts, so they directly shape what the model looks for. Treat each description as prompt text: define the reported information precisely, say what counts as source evidence, and include units or scope boundaries. Target columns may describe technical parameters, reported results, or claims made by the publication. They should not ask the app to decide whether those claims are scientifically supported or true; connect downstream analysis systems for that task. It is often useful to ask an LLM to draft or refine these descriptions, then review them for domain correctness before running extraction.
 
 ## Table
 
@@ -30,7 +30,7 @@ Model system,Cell line or organism context used for the reported experiment.
 Rules:
 
 - `column_name` must match a table column exactly.
-- `description` should define the paper-facing fact and acceptable evidence. These descriptions become model instructions, so unclear descriptions usually create unclear extractions.
+- `description` should define the paper-facing reported information and acceptable source evidence. These descriptions become model instructions, so unclear descriptions usually create unclear extractions.
 - `field_type` can be `text`, `number`, `categorical`, or `boolean`.
 - `allowed_values` is only for categorical fields and should be a JSON list.
 
@@ -40,8 +40,8 @@ For ordinary extraction tables, do not put `Title`, `Authors`, or `Publication Y
 
 Schema descriptions are crucial because they are converted into model prompts. A vague description is a vague prompt. You can use an LLM to draft or improve these descriptions, but review them before running. The final schema should clarify what is being looked for and should not smuggle in default answers that might be used in hallucinations.
 
-- Name the fact, not the workflow step.
-- Say what counts as evidence.
+- Name the reported parameter, result, or claim, not the workflow step.
+- Say what counts as source evidence in the publication.
 - Include units, scope, and disambiguators.
 - Prefer one extractable concept per column.
 - Use categorical allowed values when the answer must come from a fixed set.

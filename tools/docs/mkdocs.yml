@@ -35,6 +35,7 @@ extra_css:
 
 markdown_extensions:
   - admonition
+  - attr_list
   - toc:
       permalink: true
   - pymdownx.superfences:
@@ -53,6 +54,7 @@ nav:
       - Basics: index.md
   - Getting Started:
       - Model Provider (LM Studio): getting-started/lm-studio.md
+      - Model Choice: getting-started/model-choice.md
       - Installation: getting-started/installation.md
       - Prepare Table and Schema: getting-started/prepare-schema.md
       - Configuration: getting-started/configuration.md

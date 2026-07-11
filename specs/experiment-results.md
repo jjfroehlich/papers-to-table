@@ -124,6 +124,19 @@ This section records model-comparison conclusions that affect future experiment 
 | Decision | Use `google/gemma-4-12b` as a quality/runtime reference from this model sweep, but the 2026-06-17 development-default reversion below supersedes it for near-term improvement experiments that need comparability with earlier e4b work. Keep `qwen/qwen3.6-27b` as the non-Gemma quality reference and `google/gemma-4-12b-qat` only as an occasional slow ceiling, not the default. |
 | Retest boundary | Do not run another broad model sweep until the extraction workflow changes materially or a new local model is expected to change the quality/runtime frontier. Near-term experiments should test retrieval, context, recovery, figure/table handling, and evidence behavior with e4b unless the explicit goal is model sensitivity. |
 
+### 2026-07-10 Negative-Control Calibration
+
+| Field | Details |
+| --- | --- |
+| Status | Kept as calibration evidence for interpreting canonical model comparisons. |
+| Tested idea | Score the deterministic gold-derived word-shuffle and cross-field negative controls through the same dual-judge Eval path as model and external-result candidates. |
+| What was tested | The existing `tools/optimizer/runs/20260615_004637_compare_models` experiment was resumed in place for only `ext_gold_word_shuffle` and `ext_gold_cross_field`; its 15 existing candidates and 135 replicate payloads were reused unchanged. |
+| Evidence | Evaluation completed 2026-07-10. See `compare/experiment/results/results.csv`, `compare/experiment/results/benchmark_summary.csv`, `compare/experiment/report.html`, and run-root `negative_control_augmentation.json` under the run path above. |
+| Scope and judges | Three benchmark datasets with three independently generated control replicates each: 9 scored replicates per control and 18 total. Eval used `google/gemma-4-26b-a4b` and `openai/gpt-oss-20b`; all 18 summaries report completed dual judging, with no failed or degraded replicate. |
+| Result | Positive gold remained 1.0000. Word shuffle scored 0.5589 overall: MPRA 0.7500, genome editing 0.4067, and spatial transcriptomics 0.5200. Cross-field scored 0.0000 overall and on every benchmark. Mean replicate judge-disagreement rate was 7.61% for word shuffle and 0.00% for cross-field; mean absolute judge-correctness gaps were 5.41 and 0.59 percentage points. Eval also recorded explicit judge-request failures (word shuffle: 221 judge A, 29 judge B, 29 unscored text cells; cross-field: 301 judge A, 1 judge B, 1 unscored text cell), so the word-shuffle baseline remains judge-instability-caveated despite every replicate being scored. |
+| Decision | The expected ordering—positive gold above word shuffle above cross-field—was observed, so both negatives are useful report baselines. Keep them visible in comparison reports and replicate plots but excluded from winner and recommendation logic. Interpret the weak control by benchmark and with its judge caveat rather than as one universal chance score. |
+| Retest boundary | Re-score the controls when judge models, judge prompting, structured-output handling, or headline correctness semantics change materially; otherwise reuse this calibration with the augmented run. |
+
 ### 2026-06-17 Development Default Reversion
 
 | Field | Details |

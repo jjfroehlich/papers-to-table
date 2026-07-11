@@ -2,6 +2,8 @@
 
 Optimizer is an orchestration tool for testing and comparing different models, prompts, and config parameters. It launches main-app runs, launches eval on the resulting run bundles, then writes experiment reports.
 
+![Optimizer orchestration and Eval workflow](../diagrams/refined_svg/03_orchestrator_eval_benchmark_refined.svg)
+
 ## What It Is For
 
 Use optimizer when you need to answer questions like:
@@ -41,7 +43,7 @@ bash scripts/test-optimizer-tool.sh
 - model-specific request settings come from `app/backend/src/backend/app/model_profiles/default_profiles.json`; one can add optimizer knobs to compare model-settings such as temperature/top-p/chat-templates.
 - Python command delegates to `tools/optimizer/scripts/compare_models.sh`
 - uses `tools/optimizer/configs/compare_models.json`
-- Treat compare-models as an overnight run. It can take 10+ hrs with 11 models and 4 external baselines.
+- Treat compare-models as an overnight run. It can take 10+ hrs with 11 models and 6 external/control baselines.
 
 ```bash
 python scripts/papers_to_table.py optimizer compare-models
@@ -51,6 +53,12 @@ Options:
 - `--help`: help
 - `--label LABEL`: choose the run label instead of the timestamped default. 
 - `--initial-model MODEL_ID`: run a model comparison using the `tools/optimizer/configs/compare_models.json`, but restrict it to one text model. 
+
+Optimizer compares local models, and includes external-results, positive- and negative controls in the eval and reports.
+
+![Scores for all local-model candidates, Codex baselines, failed local-agent attempts, and positive and negative controls](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_scores_of_all_candidates.jpg){ .figure-wide }
+
+*Content-correctness [Eval scores](eval.md) for optimizer run `20260615_004637_compare_models`. Gray points are replicate scores, blue lines are medians, and black lines are means. “Failed” marks configurations without a complete scorable result. The positive control is gold data; the within-field word-shuffle and cross-field controls were added on 2026-07-10 to calibrate score sensitivity and are excluded from winner selection.*
 
 
 ### Development Check
@@ -100,7 +108,22 @@ Options:
 
 ## Runtimes
 
-Real world data below, three-benchmark suite with three replicates, with machine `Geforce RTX3090 24GB, 32GB RAM, AMD Ryzen 9 5959X 16-core processor, Win 64x`.
+Optimizer exposes the accuracy-runtime trade-off: among the tested local models, longer runtime did not consistently produce a higher average score.
+
+![Average benchmark score plotted against runtime for local papers-to-table models and Codex baselines](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_score_vs_runtime.jpg){ .figure-half }
+
+*Average content-correctness [Eval score](eval.md) versus wall-clock runtime for 15 papers, 31 target columns, and three replicates in optimizer run `20260615_004637_compare_models`. Local-model timings were measured on the benchmark workstation documented below; the pale Codex points are external GPT-5.5 xhigh baselines and should not be interpreted as locally measured model runtimes.*
+
+The real-world runtimes below were measured on the project's development and benchmarking workstation. This environment snapshot was captured on 2026-07-10; software and driver versions may differ from older runs.
+
+| Component | Specification |
+|---|---|
+| Operating system | Windows 11 Pro 64-bit, build 26200 |
+| CPU | AMD Ryzen 9 5950X, 16 cores / 32 threads |
+| Memory | 32 GB RAM |
+| GPU | NVIDIA GeForce RTX 3090, 24 GB VRAM |
+| NVIDIA driver | 591.86 |
+| Repository and benchmark-data storage | `D:` on a TOSHIBA HDWD220 2 TB SATA HDD, NTFS |
 
 The checked-in routine full-benchmark preset now uses this bounded phase size:
 
@@ -169,6 +192,18 @@ A simple run is on one benchmark dataset with 1 replicate, for example used by `
 ## External Result Baselines
 
 Benchmarks can include precomputed filled tables from external software. Optimizer scores them with Eval before the internal candidates and includes them in `results/results.csv`, plots, and the HTML report as external baseline rows. Set a short <40 char `candidate_id` for each external result to avoid long paths that may exceed operating system limits.
+
+The canonical model comparison currently includes six external/control baselines: three completed external-agent systems, the gold positive control, and two deterministic gold-derived negative controls. All six use the same Eval path but are excluded from winner selection, recommendation rationale, and benchmark-best plots.
+
+- `ext_gold_word_shuffle` is a weak order-sensitivity control. It shuffles whitespace-delimited words within each non-empty target cell; single-token and otherwise unshufflable cells remain unchanged.
+- `ext_gold_cross_field` is a strong score-floor control. It reassigns whole non-empty values across target rows and columns and guarantees that no non-empty target cell retains its original gold value. It intentionally mixes field types and is not intended to resemble a realistic extraction system.
+
+Regenerate the checked-in controls, or verify that they still match their gold sources and algorithm:
+
+```bash
+python tools/optimizer/scripts/generate_negative_controls.py
+python tools/optimizer/scripts/generate_negative_controls.py --check
+```
 
 ```json
 "external_results": [
@@ -244,3 +279,4 @@ Each experiment writes an experiment directory with:
 - winner: best benchmark result under the scoring and acceptance rules
 - recommended default: operational recommendation after trust, degraded-mode, evidence, or runtime caveats are considered
 - degraded candidate: a candidate that ran with capability degradation or contract caveats and should not be treated like a healthy peer
+- content-correctness replicate distribution: boxplots retain individual replicate points and start the y-axis at zero; other primary metrics keep automatic scaling

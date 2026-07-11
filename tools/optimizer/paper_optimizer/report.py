@@ -955,7 +955,11 @@ def build_experiment_report_view(experiment_dir: Path) -> dict[str, Any] | None:
     )
     caveats = _build_caveats(candidate_rows, study_type=study_type)
     if any(_is_external_control(row) for row in candidate_rows):
-        caveats.insert(0, "External results and external gold are shown only as controls; they are excluded from report recommendations, winner rationale, and benchmark-best plots.")
+        caveats.insert(
+            0,
+            "External systems plus gold-derived positive and negative controls are shown only for comparison; "
+            "they are excluded from report recommendations, winner rationale, and benchmark-best plots.",
+        )
     if str(run_metadata.get("status") or "").lower() == "running" and ended_at not in {"not recorded", "", None}:
         caveats.insert(0, "Wrapper run metadata still says running even though experiment artifacts show an end time; treat wrapper status as stale.")
     next_checks = _build_next_checks(report_rows, variant=variant, study_type=study_type)

@@ -6,6 +6,8 @@ papers-to-table is a local-first app with three layers:
 - Backend API: config resolution, preflight, run orchestration, review endpoints, assets, and exports.
 - Run bundle: filesystem artifacts that connect the main app, eval, optimizer, and audits.
 
+![Main-app extraction, review, and export lifecycle](../diagrams/refined_svg/02_main_app_lifecycle_refined.svg)
+
 ```mermaid
 flowchart TD
   UI["Browser UI"] --> API["FastAPI backend"]

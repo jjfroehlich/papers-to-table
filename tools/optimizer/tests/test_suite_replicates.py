@@ -240,7 +240,7 @@ def test_failed_and_single_replicates_remain_visible(
     assert "n = 1" in report_html
 
 
-def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path) -> None:
+def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path, monkeypatch) -> None:
     experiment_dir = tmp_path / "suite_exp"
     results_dir = experiment_dir / "results"
     results_dir.mkdir(parents=True)
@@ -354,6 +354,18 @@ def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path) -> 
             }
         )
 
+    import paper_optimizer.plotting as plotting_module
+
+    original_save_plot = plotting_module._save_plot
+    captured_ylim: tuple[float, float] | None = None
+
+    def capture_score_distribution_ylim(path: Path) -> None:
+        nonlocal captured_ylim
+        if path.name == "suite_replicate_score_distribution.png":
+            captured_ylim = plotting_module.plt.gca().get_ylim()
+        original_save_plot(path)
+
+    monkeypatch.setattr(plotting_module, "_save_plot", capture_score_distribution_ylim)
     generate_suite_plots(experiment_dir, "correctness")
 
     assert (experiment_dir / "plots" / "suite_benchmark_breakdown.png").exists()
@@ -373,6 +385,9 @@ def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path) -> 
     assert breakdown_rows[0]["benchmark_id"] == "bench_dev"
     assert breakdown_rows[0]["best_primary_score"] == "0.81"
     assert breakdown_rows[0]["external_control_count"] == "1"
+    assert captured_ylim is not None
+    assert captured_ylim[0] == 0.0
+    assert captured_ylim[1] > 0.8
 
 
 def test_external_replicates_load_adjacent_runtime_file(tmp_path: Path) -> None:

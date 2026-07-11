@@ -7,7 +7,7 @@
 
 ## Purpose
 
-This file owns the browser review workflow. The reviewer is deciding what the paper supports and what should be exported, not grading the model.
+This file owns the browser review workflow. The reviewer is deciding which source-linked extracted information should be exported, not grading the model or adjudicating whether a publication's scientific claims are supported or true.
 
 ## Primary Surface
 

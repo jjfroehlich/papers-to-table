@@ -245,7 +245,7 @@ def _build_demo_run(
             proposal_id=species_proposal_id,
             pdf_id=pdf_id,
             source_type=EvidenceSourceType.direct_quote,
-            quote_text="We apply VAMP-seq to quantify the abundance of 7,801 single-amino-acid variants of PTEN and TPMT in human cells.",
+            quote_text="Here, we measured the transcriptional activity of sequence motifs spanning the human genome using massively parallel reporter assays.",
             page_number=1,
             exact_highlight_regions=[{"x0": 72, "y0": 540, "x1": 356, "y1": 575, "page": 1}],
             approximate_highlight_regions=None,

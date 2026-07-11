@@ -11,7 +11,7 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
 from paper_optimizer.benchmarks import load_benchmarks
-from paper_optimizer.plotting import generate_suite_plots
+from paper_optimizer.plotting import _is_bounded_correctness_metric, generate_suite_plots
 from paper_optimizer.proposal_tables import write_proposal_tables
 from paper_optimizer.report import generate_experiment_report
 from paper_optimizer.results import ResultsWriter
@@ -144,6 +144,8 @@ def _plot_combined(rows: list[dict[str, Any]], path: Path, *, primary_metric: st
             tick.set_color("#7a2e00")
     ax.set_ylabel(primary_metric)
     ax.set_title("Model compare with external filled-table results")
+    if _is_bounded_correctness_metric(primary_metric):
+        ax.set_ylim(bottom=0)
     fig.tight_layout()
     fig.savefig(path, dpi=160)
     fig.savefig(path.with_suffix(".pdf"))
