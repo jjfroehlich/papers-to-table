@@ -1,10 +1,10 @@
 # Prepare Table and Schema
 
-The app needs a table and a schema that define which reported information needs to be extracted.
+The app needs a table and a schema that define which information needs to be extracted.
 
 The table is the working spreadsheet. Each row is a paper, and each column is a field you want filled or checked. The app uses `Title`, `Authors`, and `Publication Year` to match PDFs to existing rows. If a PDF does not match any row, the app stages a new row from extracted paper metadata and generates proposals for the schema-defined target columns.
 
-The schema is the extraction contract. Its descriptions are inserted into the extraction prompts, so they directly shape what the model looks for. Treat each description as prompt text: define the reported information precisely, say what counts as source evidence, and include units or scope boundaries. Target columns may describe technical parameters, reported results, or claims made by the publication. They should not ask the app to decide whether those claims are scientifically supported or true; connect downstream analysis systems for that task. It is often useful to ask an LLM to draft or refine these descriptions, then review them for domain correctness before running extraction.
+The schema is the extraction contract. Its descriptions are inserted into the extraction prompts, so they directly shape what the model looks for. Treat each description as prompt text: define the reported information precisely, and optional say what counts as source evidence, and include units or scope boundaries. Target columns may describe technical parameters, reported results, or claims made by the authors. You can ask an LLM to draft or refine these descriptions.
 
 ## Table
 
@@ -15,7 +15,7 @@ Title,Authors,Publication Year,Species,Model system,Readout
 Example paper title,"Smith, J.; Doe, A.",2024,,,
 ```
 
-Use one row per paper when you already know the literature set. Leave target cells blank when you want proposals. Already pre-filled cells are skipped in normal mode, checked in `verify mode`, and masked in `eval mode`.
+Use one row per paper when you already know the literature set. Leave cells blank where you want the system to extract information ("proposal"). Already pre-filled cells are skipped in normal mode, and checked in `verify mode`.
 
 ## Schema
 
