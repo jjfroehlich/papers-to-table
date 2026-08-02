@@ -13,10 +13,10 @@ Papers-to-table is an experimental system to extract information from scientific
 Commercial literature tools extract structured information into table formats, see for example [Google Labs Science](https://labs.google/science/), [Elicit](https://elicit.com/), or [Scite](https://scite.ai/). This project here is free, open source, and can run fully local. It can be used for literature reviews, to experiment with large language models, or to be integrated in larger agentic research systems.
 
 ## Capability
-Papers-to-table can successfully extract information as a long-running job and entirely local. Performance closes in on commercial agent systems (Codex with GPT-5.5 xhigh). Other local agents failed to complete even the simplest extraction jobs. Hermes, or Codex running with local models, both failed to extract information for 10 fields from 1 paper. Additionally, the browser interface supports systematic human review, even though such review interface could be implemented for commercial agents [as well](docs/tools/papers-to-table-agent-kit.md). 
+Papers-to-table can successfully extract information as a long-running job and entirely local. Performance closes in on commercial agent systems (Codex with GPT-5.5 xhigh). Other local agents failed to complete even the simplest extraction jobs. Hermes, or Codex running with local models, both failed to extract information for 10 fields from 1 paper. Additionally, the browser interface supports systematic human review.
 
 <p align="center">
-  <img src="docs/plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_readme.jpg" width="380" alt="Benchmark scores for seven local papers-to-table models and Codex with GPT-5.5 xhigh" />
+  <img src="docs/plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_readme.jpg" width="300" alt="Benchmark scores for two local papers-to-table models and Codex with GPT-5.5 xhigh" />
 </p>
 
 *[Eval scores](docs/tools/eval.md) across 3 benchmark datasets (15 papers, 31 information fields) x 3 replicates, a total of 1,395 individual extractions. Each point shows one replicate of one benchmark dataset. Boxes summarize distributions, bars and black lines show averages, and the numbers above the boxes give those means to one decimal percentage point. Some benchmark fields do not have a single correct answer, [so the achievable ceiling with the current benchmark is not 100%, but more likely 80-90%](docs/tools/benchmark-datasets.md#interpreting-benchmark-scores).*
