@@ -13,7 +13,7 @@ Papers-to-table is an experimental system to extract information from scientific
 Commercial literature tools extract structured information into table formats, see for example [Google Labs Science](https://labs.google/science/), [Elicit](https://elicit.com/), or [Scite](https://scite.ai/). This project here is free, open source, and can run fully local. It can be used for literature reviews, to experiment with large language models, or to be integrated in larger agentic research systems.
 
 ## Capability
-Papers-to-table can successfully extract information from many papers as a long-running job and entirely local. And performance closes in on commercial systems. While other local agents (Hermes, or Codex with local LLM) failed to complete even the simplest extraction jobs. On top of that, the browser interface supports human review so you can verify everything if needed.
+Papers-to-table can successfully extract information from many papers as a long-running job and entirely local. And performance closes in on commercial systems. While other local agents (Hermes, or Codex with local LLM) failed to complete even the simplest extraction jobs. On top of that, there is a review interface so you can verify everything.
 
 <p align="center">
   <img src="docs/plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_readme.jpg" width="260" alt="Benchmark scores for two local papers-to-table models and Codex with GPT-5.5 xhigh" />
