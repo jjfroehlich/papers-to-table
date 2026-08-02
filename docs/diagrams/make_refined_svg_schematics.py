@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+import re
 import textwrap
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -328,6 +329,137 @@ def diagram_readme_user_overview() -> str:
     return s.finish()
 
 
+def diagram_readme_user_overview_larger() -> str:
+    """Create the refined README variant with larger, reflowed stages and text."""
+    payload = diagram_readme_user_overview()
+
+    # Reflow the paper excerpt so the larger type keeps comfortable side margins.
+    source_copy = {
+        "We discovered that PE efficiency in": "We discovered that",
+        "HEK293T cells was much higher than": "PE efficiency in HEK293T cells",
+        "previously observed,": "was much higher than previously",
+        "reaching up to 95%": "observed, reaching up to 95%",
+    }
+    for old, new in source_copy.items():
+        old_tspan = f'>{old}</tspan>'
+        if payload.count(old_tspan) != 1:
+            raise ValueError(f"Expected one README source-text match for {old!r}")
+        payload = payload.replace(old_tspan, f'>{new}</tspan>')
+
+    # Let the review decision read as a compact caption beneath its icon.
+    old_review = '<tspan x="944" dy="0">human decision or skip</tspan>'
+    new_review = (
+        '<tspan x="944" dy="0">human decision</tspan>\n'
+        '<tspan x="944" dy="16">or skip</tspan>'
+    )
+    if payload.count(old_review) != 1:
+        raise ValueError("Expected one README review-caption match")
+    payload = payload.replace('x="944" y="424"', 'x="944" y="414"', 1)
+    payload = payload.replace(old_review, new_review)
+
+    # Widen the accepted-values badge while keeping it centered under the table.
+    old_pill = '<rect x="1138" y="500" width="192" height="30"'
+    new_pill = '<rect x="1118" y="500" width="232" height="30"'
+    if payload.count(old_pill) != 1:
+        raise ValueError("Expected one README accepted-values badge match")
+    payload = payload.replace(old_pill, new_pill)
+
+    # Shift the two crowded middle stages apart and keep their headings aligned.
+    heading_adjustments = {
+        '<text x="176" y="72"': '<text x="171" y="72"',
+        '<line x1="156" y1="88" x2="196"': '<line x1="151" y1="88" x2="191"',
+        '<text x="446" y="72"': '<text x="428" y="72"',
+        '<line x1="426" y1="88" x2="466"': '<line x1="408" y1="88" x2="448"',
+        '<text x="690" y="72"': '<text x="695" y="72"',
+        '<line x1="670" y1="88" x2="710"': '<line x1="675" y1="88" x2="715"',
+        '<text x="944" y="72"': '<text x="954" y="72"',
+        '<line x1="924" y1="88" x2="964"': '<line x1="934" y1="88" x2="974"',
+        '<text x="1232" y="72"': '<text x="1234" y="72"',
+        '<line x1="1212" y1="88" x2="1252"': '<line x1="1214" y1="88" x2="1254"',
+    }
+    for old, new in heading_adjustments.items():
+        if payload.count(old) != 1:
+            raise ValueError(f"Expected one README heading match for {old!r}")
+        payload = payload.replace(old, new)
+
+    # Connect the three manifested artifacts directly. The Local LLM and Review
+    # circles sit on top of the route as transitional steps, without ports of
+    # their own; only the paper, proposal, and table expose attachment points.
+    lines = payload.splitlines()
+    connector_index = next(
+        (i for i, line in enumerate(lines) if line.startswith('<path d="M 286 366 ')),
+        None,
+    )
+    if connector_index is None:
+        raise ValueError("Expected the README overview connector path")
+    connector_lines = [
+        '<path d="M 317.6 339.1 C 355 339.1, 390 338, 428 338 '
+        'S 500 337.4, 537.7 337.4" '
+        'fill="none" stroke="#AAB6C4" stroke-width="2.5" stroke-linecap="round" '
+        'stroke-linejoin="round" />',
+        '<path d="M 852.3 337.4 C 890 337.4, 914 329, 954 329 '
+        'C 990 329, 1018 390.7, 1052.1 390.7" fill="none" '
+        'stroke="#AAB6C4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />',
+    ]
+    # The original path is followed by six endpoint circles.
+    lines[connector_index:connector_index + 7] = connector_lines
+    payload = "\n".join(lines) + "\n"
+
+    stage_starts = {
+        '<rect x="34" ': (171, 323, 0, "(mean 67%)."),
+        '<circle cx="446" ': (446, 338, -18, "local · LM Studio"),
+        '<rect x="558" ': (705, 346, -10, "GE02_optimized_prime_editing_cells.pdf"),
+        '<circle cx="944" ': (944, 345, 10, "or skip"),
+        '<rect x="1064" ': (1234, 350, 0, "ACCEPTED VALUES ONLY"),
+    }
+    component_scale = 1.07
+    font_attribute_scale = 1.20 / component_scale
+    font_pattern = re.compile(r'font-size="([0-9.]+)"')
+
+    def scale_font(match: re.Match[str]) -> str:
+        value = round(float(match.group(1)) * font_attribute_scale, 1)
+        rendered = f"{value:.1f}".rstrip("0").rstrip(".")
+        return f'font-size="{rendered}"'
+
+    output: list[str] = []
+    active_end_text: str | None = None
+    close_after_text = False
+    for line in payload.splitlines():
+        if active_end_text is None:
+            for prefix, (cx, cy, dx, end_text) in stage_starts.items():
+                if line.startswith(prefix):
+                    output.append(
+                        f'<g transform="translate({dx} 0) translate({cx} {cy}) '
+                        f'scale({component_scale}) translate(-{cx} -{cy})">'
+                    )
+                    active_end_text = end_text
+                    break
+
+        if active_end_text is not None:
+            line = font_pattern.sub(scale_font, line)
+        elif 'font-size="20"' in line:
+            line = line.replace('font-size="20"', 'font-size="24"')
+
+        output.append(line)
+        if active_end_text is not None and active_end_text in line:
+            close_after_text = True
+        elif close_after_text and line == "</text>":
+            output.append("</g>")
+            active_end_text = None
+            close_after_text = False
+
+    rendered = "\n".join(output) + "\n"
+    ports = "\n".join(
+        f'<circle cx="{x}" cy="{y}" r="4.5" fill="#FFFFFF" stroke="#AAB6C4" stroke-width="2"/>'
+        for x, y in [
+            (317.6, 339.1),
+            (537.7, 337.4), (852.3, 337.4),
+            (1052.1, 390.7),
+        ]
+    )
+    return rendered.replace("</svg>\n", f"{ports}\n</svg>\n")
+
+
 def lane(s: SVG, x: float, y: float, w: float, h: float, title: str, color: str, soft: str) -> None:
     s.rect(x, y, w, h, fill=soft, stroke=COLORS["border"], sw=1.3, rx=18)
     s.text(x+22, y+34, title, size=17, weight=700, fill=color)
@@ -434,6 +566,7 @@ FIGURES = [
     ("00_icon_library", diagram_icon_library),
     ("01_readme_overview_refined", diagram_readme),
     ("01_readme_user_overview_refined", diagram_readme_user_overview),
+    ("01_readme_user_overview_refined_larger", diagram_readme_user_overview_larger),
     ("02_main_app_lifecycle_refined", diagram_lifecycle),
     ("03_orchestrator_eval_benchmark_refined", diagram_optimizer),
     ("04_agent_skills_refined", diagram_agents),
@@ -449,6 +582,7 @@ Generated by `docs/diagrams/make_refined_svg_schematics.py`. This is the canonic
 - `00_icon_library`: normalized icons grouped by semantic role.
 - `01_readme_overview_refined`: concise technical workflow for the MkDocs home page.
 - `01_readme_user_overview_refined`: example-driven overview for first-time README visitors.
+- `01_readme_user_overview_refined_larger`: README-approved larger-text variant; the original remains as a backup.
 - `02_main_app_lifecycle_refined`: four-lane main-app lifecycle with an optional bounded-processing rail.
 - `03_orchestrator_eval_benchmark_refined`: candidate × benchmark × replicate orchestration, persisted run bundles, Eval inputs, aggregation, and reporting.
 - `04_agent_skills_refined`: aligned comparison of the app-backed and standalone agent workflows.

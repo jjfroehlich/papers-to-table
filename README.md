@@ -6,7 +6,7 @@
 Papers-to-table is an experimental system to extract information from scientific PDFs into structured tables, using large language models. It can extract technical parameters, descriptions of results, or claims made by the authors. It runs fully local, and includes an interface for human review, auditable source evidence, and tools for benchmarking and development.
 
 <p align="center">
-  <img src="docs/diagrams/refined_svg/01_readme_user_overview_refined.svg" width="760" alt="Illustrative papers-to-table workflow" />
+  <img src="docs/diagrams/refined_svg/01_readme_user_overview_refined_larger.svg" width="760" alt="Illustrative papers-to-table workflow" />
 </p>
 
 ## Relevance
