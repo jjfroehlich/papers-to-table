@@ -16,7 +16,7 @@ Commercial literature tools extract structured information into table formats, s
 Papers-to-table can successfully extract information as a long-running job and entirely local. Performance closes in on commercial agent systems (Codex with GPT-5.5 xhigh). Other local agents failed to complete even the simplest extraction jobs. Hermes, or Codex running with local models, both failed to extract information for 10 fields from 1 paper. Additionally, the browser interface supports systematic human review.
 
 <p align="center">
-  <img src="docs/plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_readme.jpg" width="300" alt="Benchmark scores for two local papers-to-table models and Codex with GPT-5.5 xhigh" />
+  <img src="docs/plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_readme.jpg" width="260" alt="Benchmark scores for two local papers-to-table models and Codex with GPT-5.5 xhigh" />
 </p>
 
 *[Eval scores](docs/tools/eval.md) across 3 benchmark datasets (15 papers, 31 information fields) x 3 replicates, a total of 1,395 individual extractions. Each point shows one replicate of one benchmark dataset. Boxes summarize distributions, bars and black lines show averages, and the numbers above the boxes give those means to one decimal percentage point. Some benchmark fields do not have a single correct answer, [so the achievable ceiling with the current benchmark is not 100%, but more likely 80-90%](docs/tools/benchmark-datasets.md#interpreting-benchmark-scores).*
