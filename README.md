@@ -53,6 +53,18 @@ python scripts/papers_to_table.py review
 This starts the [browser-based app](docs/main-app/browser-review.md), which will be available at `http://127.0.0.1:5173`.
 
 
+## Review interface
+
+<img src="docs/screenshots/review-workspace.png" width="800" alt="Review workspace screenshot" />
+
+
+## Architecture
+
+![Technical papers-to-table workflow](docs/diagrams/refined_svg/01_readme_overview_refined.svg)
+
+![Main-app extraction, review, and export lifecycle](docs/diagrams/refined_svg/02_main_app_lifecycle_refined.svg)
+
+
 ## Core commands
 
 ### Main app 
@@ -97,17 +109,6 @@ python scripts/papers_to_table.py eval \
 - [Local-first skill](docs/tools/papers-to-table-local-app.md) for agents to run the locally installed app with a local LLM provider LM Studio.
 
 Install by telling your agent, for example `install the skills at https://github.com/jjfroehlich/papers-to-table/tree/main/skills/`. Alternatively, copy the relevant skill folder into your agent system's skill directory.
-
-## Review interface
-
-<img src="docs/screenshots/review-workspace.png" width="800" alt="Review workspace screenshot" />
-
-
-## Architecture
-
-![Technical papers-to-table workflow](docs/diagrams/refined_svg/01_readme_overview_refined.svg)
-
-![Main-app extraction, review, and export lifecycle](docs/diagrams/refined_svg/02_main_app_lifecycle_refined.svg)
 
 
 ## Full Documentation
