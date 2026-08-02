@@ -103,6 +103,46 @@
   font-size: 0.72rem;
 }
 
+/* Keep the detailed benchmark tables compact and horizontally scrollable. */
+.md-typeset .gold-table-details {
+  margin: 1rem 0;
+}
+
+.md-typeset .gold-table-details summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.md-typeset .gold-table-scroll {
+  margin-top: 0.75rem;
+  overflow-x: auto;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.35rem;
+}
+
+.md-typeset .gold-table-scroll table {
+  min-width: 1200px;
+  margin: 0;
+  font-size: 0.72rem;
+  table-layout: fixed;
+}
+
+.md-typeset .gold-table-scroll th,
+.md-typeset .gold-table-scroll td {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.md-typeset .gold-table-scroll th:first-child,
+.md-typeset .gold-table-scroll td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--md-default-bg-color);
+}
+
 /* Per-embed figure sizes keep plots proportional to their information density. */
 .md-typeset img.figure-half,
 .md-typeset img.figure-tall,

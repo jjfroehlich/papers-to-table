@@ -56,9 +56,9 @@ Options:
 
 Optimizer compares local models, and includes external-results, positive- and negative controls in the eval and reports.
 
-![Scores for all local-model candidates, Codex baselines, failed local-agent attempts, and positive and negative controls](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_scores_of_all_candidates.jpg){ .figure-wide }
+<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_scores_of_all_candidates.jpg" alt="Scores for all local-model candidates, Codex baselines, failed local-agent attempts, and positive and negative controls" class="figure-wide" width="92%" />
 
-*Content-correctness [Eval scores](eval.md) for optimizer run `20260615_004637_compare_models`. Gray points are replicate scores, blue lines are medians, and black lines are means. “Failed” marks configurations without a complete scorable result. The positive control is gold data; the within-field word-shuffle and cross-field controls were added on 2026-07-10 to calibrate score sensitivity and are excluded from winner selection.*
+*Content-correctness [Eval scores](eval.md) for optimizer run `20260615_004637_compare_models`. Gray points are replicate scores, blue lines are medians, black lines are means, and the numbers above the boxes give those means to one decimal percentage point. “Failed” marks configurations without a complete scorable result. The positive control is gold data; the within-field word-shuffle and cross-field controls were added on 2026-07-10 to calibrate score sensitivity and are excluded from winner selection.*
 
 
 ### Development Check
@@ -110,7 +110,7 @@ Options:
 
 Optimizer exposes the accuracy-runtime trade-off: among the tested local models, longer runtime did not consistently produce a higher average score.
 
-![Average benchmark score plotted against runtime for local papers-to-table models and Codex baselines](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_score_vs_runtime.jpg){ .figure-half }
+<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_score_vs_runtime.jpg" alt="Average benchmark score plotted against runtime for local papers-to-table models and Codex baselines" class="figure-half" width="50%" />
 
 *Average content-correctness [Eval score](eval.md) versus wall-clock runtime for 15 papers, 31 target columns, and three replicates in optimizer run `20260615_004637_compare_models`. Local-model timings were measured on the benchmark workstation documented below; the pale Codex points are external GPT-5.5 xhigh baselines and should not be interpreted as locally measured model runtimes.*
 
@@ -279,4 +279,16 @@ Each experiment writes an experiment directory with:
 - winner: best benchmark result under the scoring and acceptance rules
 - recommended default: operational recommendation after trust, degraded-mode, evidence, or runtime caveats are considered
 - degraded candidate: a candidate that ran with capability degradation or contract caveats and should not be treated like a healthy peer
-- content-correctness replicate distribution: boxplots retain individual replicate points and start the y-axis at zero; other primary metrics keep automatic scaling
+- content-correctness replicate distribution: boxplots retain individual replicate points, label each mean above the highest plotted replicate, and start the y-axis at zero; other primary metrics keep automatic scaling
+
+### Regenerate The Published 2026-06-15 Boxplots
+
+The documentation's percentage-scale boxplots are reproducible from the historical run's persisted replicate-distribution CSV. From the repository root:
+
+```bash
+python tools/optimizer/scripts/render_compare_model_docs_plots.py \
+  --input-csv tools/optimizer/runs/20260615_004637_compare_models/compare/experiment/plots/suite_replicate_score_distribution.csv \
+  --output-dir docs/plots/20260615_004637_compare_models_plots_v2
+```
+
+These published views show means to one decimal percentage point. Normal optimizer report plots retain the metric's native 0–1 scale and show two decimals.

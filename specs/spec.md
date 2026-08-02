@@ -308,7 +308,7 @@ Optimizer phases:
 
 Optimizer is sequential by default. Future parallel mode must be explicit and preserve local provider locking and model-residency safety.
 
-Canonical model comparisons score completed external-agent tables plus gold-derived positive and negative controls through the same Eval path as local candidates. External systems and controls remain visible in comparison rows and replicate distributions but are excluded from winner selection, recommended-default rationale, and benchmark-best plots. For the bounded `content_correctness`/`correctness` replicate distribution, the report boxplot uses a lower y-axis bound of zero while retaining automatic upper scaling.
+Canonical model comparisons score completed external-agent tables plus gold-derived positive and negative controls through the same Eval path as local candidates. External systems and controls remain visible in comparison rows and replicate distributions but are excluded from winner selection, recommended-default rationale, and benchmark-best plots. Replicate-distribution boxplots show each candidate mean as a compact numeric label above that candidate's highest plotted observation, with enough automatic y-axis headroom to avoid clipping. For the bounded `content_correctness`/`correctness` replicate distribution, the report boxplot uses a lower y-axis bound of zero while retaining automatic upper scaling.
 
 
 ## 14. Benchmark Datasets

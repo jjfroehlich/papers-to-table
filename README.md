@@ -13,14 +13,16 @@ Papers-to-table is an experimental system to extract information from scientific
 Commercial literature tools extract structured information into table formats, see for example [Google Labs Science](https://labs.google/science/), [Elicit](https://elicit.com/), or [Scite](https://scite.ai/). This project here is free, open source, and can run fully local. It can be used for literature reviews, to experiment with large language models, or to be integrated in larger agentic research systems.
 
 ## Capability
+Papers-to-table can successfully extract information as a long-running job and entirely local. Performance closes in on commercial agent systems (Codex with GPT-5.5 xhigh). Other local agents failed to complete even the simplest extraction jobs. Hermes, or Codex running with local models, both failed to extract information for 10 fields from 1 paper. Additionally, the browser interface supports systematic human review, even though such review interface could be implemented for commercial agents [as well](docs/tools/papers-to-table-agent-kit.md). 
+
 <p align="center">
   <img src="docs/plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_readme.jpg" width="380" alt="Benchmark scores for seven local papers-to-table models and Codex with GPT-5.5 xhigh" />
 </p>
 
-*Content-correctness [Eval scores](docs/tools/eval.md) across 3 benchmark datasets (15 papers and 31 columns) x 3 replicates (=1,395 individual extractions). Each point shows one replicate of one benchmark dataset. Boxes summarize distribution, bars show the average. Results are from optimizer run `20260615_004637_compare_models`. The scores measure agreement with the current gold answers, but they are not literal percentages of objectively right values: some benchmark fields do not have a single correct answer, [so the achievable ceiling with the current benchmark is not 100%](docs/tools/benchmark-datasets.md#interpreting-benchmark-scores).*
+*[Eval scores](docs/tools/eval.md) across 3 benchmark datasets (15 papers, 31 information fields) x 3 replicates, a total of 1,395 individual extractions. Each point shows one replicate of one benchmark dataset. Boxes summarize distributions, bars and black lines show averages, and the numbers above the boxes give those means to one decimal percentage point. Some benchmark fields do not have a single correct answer, [so the achievable ceiling with the current benchmark is not 100%, but more likely 80-90%](docs/tools/benchmark-datasets.md#interpreting-benchmark-scores).*
 
 ## Runtime
-**3 hrs** to extract information for **30 columns from 50 publications** with model `google/gemma-4-12b-qat`. This was the best-scoring model in the latest benchmark (14.06.2026), with an eval score of 68% (close to the ceiling of probably 80-90%). For development tests, models `openai/gpt-oss-20b` or `google/gemma-4-e4b` take **5 or 10 minutes** for **50 individual extractions**. Runtime and capability depends on [model choice](docs/getting-started/model-choice.md).
+**3 hrs** to extract information for **30 columns from 50 publications** with model `google/gemma-4-12b-qat`. This was the best-scoring model in the latest benchmark (14.06.2026), with an eval score of 68% (close to the ceiling of probably 80-90%). For development tests, models `openai/gpt-oss-20b` or `google/gemma-4-e4b` can be used that take **5 or 10 minutes** for **50 individual extractions**. Runtime and capability depends on [model choice](docs/getting-started/model-choice.md).
 
 ## Hardware
 Developed and benchmarked on 
@@ -91,7 +93,7 @@ python scripts/papers_to_table.py eval \
 ```
 
 ### Agent skills
-- [Standalone skill](docs/tools/papers-to-table-agent-kit.md) for regular agent systems (Codex, Claude, Hermes, etc.), which instructs an agent for systematic extraction and provides an interface for human review. 
+- [Standalone skill](docs/tools/papers-to-table-agent-kit.md) for regular agent systems (Codex, Claude, Hermes, etc.), which instructs an agent for systematic extraction. This also provides a browser interface for human review. 
 - [Local-first skill](docs/tools/papers-to-table-local-app.md) for agents to run the locally installed app with a local LLM provider LM Studio.
 
 Install by telling your agent, for example `install the skills at https://github.com/jjfroehlich/papers-to-table/tree/main/skills/`. Alternatively, copy the relevant skill folder into your agent system's skill directory.

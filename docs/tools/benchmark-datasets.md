@@ -52,9 +52,9 @@ Local agent systems such as Hermes or Codex running with local models could be a
 
 Papers-to-table enables long-running extractions with local LLMs, while the tested Codex Local and Hermes Local configurations did not complete a scorable extraction:
 
-![Completed papers-to-table benchmark scores compared with failed Codex Local and Hermes Local attempts](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_compare_to_local_agents.jpg){ .figure-tall }
+<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_compare_to_local_agents.jpg" alt="Completed papers-to-table benchmark scores compared with failed Codex Local and Hermes Local attempts" class="figure-tall" width="46%" />
 
-*Content-correctness [Eval scores](eval.md) for completed local papers-to-table runs in optimizer run `20260615_004637_compare_models`. “Failed” means the specific Codex App and Hermes configurations described below produced no complete scorable result.*
+*Content-correctness [Eval scores](eval.md) for completed local papers-to-table runs in optimizer run `20260615_004637_compare_models`. Numbers above the boxes give mean scores to one decimal percentage point. “Failed” means the specific Codex App and Hermes configurations described below produced no complete scorable result.*
 
 ### Codex App with local models
 
@@ -65,42 +65,6 @@ Failed so far. Codex App v26.707.31123 was tested with `google/gemma-4-12b-qat`,
 Failed so far. Hermes v0.18.2 was used out of the box, without additional customization, with `google/gemma-4-12b-qat` and `google/gemma-4-26b-a4b`. Using the same prompt as for the commercial agents above. Runs failed by being unable to establish a reliable Python PDF-text extraction workflow despite PyMuPDF being installed, entering repetitive output loops, or declaring completion after only 1-3 of 31 columns (about 3-10% of the attempted task). No complete scorable result was produced.
 
 ## Gold datasets tables in detail
-
-<style>
-.gold-table-details {
-  margin: 1rem 0;
-}
-.gold-table-details summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-.gold-table-scroll {
-  margin-top: 0.75rem;
-  overflow-x: auto;
-  border: 1px solid var(--md-default-fg-color--lightest);
-  border-radius: 0.35rem;
-}
-.gold-table-scroll table {
-  min-width: 1200px;
-  margin: 0;
-  font-size: 0.72rem;
-  table-layout: fixed;
-}
-.gold-table-scroll th,
-.gold-table-scroll td {
-  max-width: 18rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-.gold-table-scroll th:first-child,
-.gold-table-scroll td:first-child {
-  position: sticky;
-  left: 0;
-  background: var(--md-default-bg-color);
-}
-</style>
 
 <details class="gold-table-details">
 <summary>Massively parallel reporter assays gold table</summary>

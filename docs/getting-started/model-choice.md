@@ -26,13 +26,13 @@ These are results from optimizer run `20260615_004637_compare_models`, not promi
 
 ## Quality Across Tested Candidates
 
-![Scores for local models, external baselines, failures, and score-calibration controls](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_scores_of_all_candidates.jpg){ .figure-wide }
+<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_scores_of_all_candidates.jpg" alt="Scores for local models, external baselines, failures, and score-calibration controls" class="figure-wide" width="92%" />
 
-*Content-correctness scores from the 2026-06-15 model comparison. Gray points are replicate scores, blue lines are medians, and black lines are means. External agent baselines and gold-derived controls provide context but are not local model candidates. See [Interpreting benchmark scores](../tools/benchmark-datasets.md#interpreting-benchmark-scores) before treating the values as literal error rates.*
+*Content-correctness scores from the 2026-06-15 model comparison. Gray points are replicate scores, blue lines are medians, black lines are means, and the numbers above the boxes give those means to one decimal percentage point. External agent baselines and gold-derived controls provide context but are not local model candidates. See [Interpreting benchmark scores](../tools/benchmark-datasets.md#interpreting-benchmark-scores) before treating the values as literal error rates.*
 
 ## Quality Versus Runtime
 
-![Average benchmark score plotted against runtime for tested models](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_score_vs_runtime.jpg){ .figure-half }
+<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_score_vs_runtime.jpg" alt="Average benchmark score plotted against runtime for tested models" class="figure-half" width="50%" />
 
 *Average content-correctness versus comparison runtime for the same run. Local-model timings were measured on the benchmark workstation. The pale Codex points are external GPT-5.5 xhigh baselines and are not locally measured model runtimes.*
 

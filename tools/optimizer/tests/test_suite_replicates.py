@@ -358,11 +358,18 @@ def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path, mon
 
     original_save_plot = plotting_module._save_plot
     captured_ylim: tuple[float, float] | None = None
+    captured_mean_labels: list[tuple[str, tuple[float, float]]] = []
 
     def capture_score_distribution_ylim(path: Path) -> None:
-        nonlocal captured_ylim
+        nonlocal captured_ylim, captured_mean_labels
         if path.name == "suite_replicate_score_distribution.png":
-            captured_ylim = plotting_module.plt.gca().get_ylim()
+            axes = plotting_module.plt.gca()
+            captured_ylim = axes.get_ylim()
+            captured_mean_labels = [
+                (label.get_text(), label.get_position())
+                for label in axes.texts
+                if label.get_gid() == "boxplot-mean-label"
+            ]
         original_save_plot(path)
 
     monkeypatch.setattr(plotting_module, "_save_plot", capture_score_distribution_ylim)
@@ -388,6 +395,8 @@ def test_suite_plots_include_replicate_variability_artifacts(tmp_path: Path, mon
     assert captured_ylim is not None
     assert captured_ylim[0] == 0.0
     assert captured_ylim[1] > 0.8
+    assert captured_mean_labels == [("0.80", (1, pytest.approx(0.82, abs=0.01)))]
+    assert captured_ylim[1] > captured_mean_labels[0][1][1]
 
 
 def test_external_replicates_load_adjacent_runtime_file(tmp_path: Path) -> None:

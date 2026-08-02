@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import re
 from pathlib import Path
+from collections.abc import Callable, Sequence
 from typing import Any
 
 import matplotlib
@@ -27,6 +28,54 @@ def _safe_float(value: Any) -> float | None:
 
 def _is_bounded_correctness_metric(metric: str) -> bool:
     return str(metric or "").strip().casefold() in BOUNDED_CORRECTNESS_METRICS
+
+
+def _annotate_boxplot_means(
+    ax: Any,
+    data: Sequence[Sequence[float]],
+    *,
+    formatter: Callable[[float], str] | None = None,
+    color: str = "#166534",
+    positions: Sequence[float] | None = None,
+) -> None:
+    """Direct-label each boxplot mean above its highest visible observation."""
+    populated = [list(values) for values in data if values]
+    if not populated:
+        return
+
+    format_value = formatter or (lambda value: f"{value:.2f}")
+    axis_bottom, axis_top = ax.get_ylim()
+    axis_span = max(axis_top - axis_bottom, 1e-9)
+    label_offset = axis_span * 0.025
+    label_positions: list[float] = []
+    x_positions = list(positions) if positions is not None else list(range(1, len(data) + 1))
+    if len(x_positions) != len(data):
+        raise ValueError("Boxplot mean-label positions must match the number of data groups")
+
+    for x_position, values in zip(x_positions, data, strict=True):
+        if not values:
+            continue
+        mean_value = sum(values) / len(values)
+        label_y = max(values) + label_offset
+        label_positions.append(label_y)
+        label = ax.text(
+            x_position,
+            label_y,
+            format_value(mean_value),
+            ha="center",
+            va="bottom",
+            fontsize=8,
+            fontweight="semibold",
+            color=color,
+            zorder=5,
+            bbox={"boxstyle": "round,pad=0.15", "facecolor": "white", "edgecolor": "none", "alpha": 0.82},
+        )
+        label.set_gid("boxplot-mean-label")
+
+    if label_positions:
+        required_top = max(label_positions) + axis_span * 0.06
+        if required_top > axis_top:
+            ax.set_ylim(top=required_top)
 
 
 def _seconds_to_minutes(seconds: float) -> float:
@@ -827,8 +876,8 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
             data = [grouped_scores[candidate_id] for candidate_id in ordered_ids]
             labels = [_candidate_axis_label(candidate_id, grouped_labels.get(candidate_id, candidate_id)) for candidate_id in ordered_ids]
             labels = [_short_plot_label(label, max_len=42) for label in labels]
-            plt.figure(figsize=(max(9, len(labels) * 1.35), 6.2))
-            plt.boxplot(
+            _, ax = plt.subplots(figsize=(max(9, len(labels) * 1.35), 6.2))
+            ax.boxplot(
                 data,
                 tick_labels=labels,
                 showmeans=True,
@@ -841,7 +890,7 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
             for x_index, values_for_candidate in enumerate(data, start=1):
                 count = len(values_for_candidate)
                 offsets = [0.0] if count == 1 else [(-0.18 + (0.36 * i / (count - 1))) for i in range(count)]
-                plt.scatter(
+                ax.scatter(
                     [x_index + offset for offset in offsets],
                     values_for_candidate,
                     color="#1f2d2f",
@@ -849,12 +898,15 @@ def generate_suite_plots(experiment_dir: Path, primary_metric: str) -> None:
                     alpha=0.78,
                     zorder=3,
                 )
-            plt.xticks(rotation=35, ha="right")
-            plt.ylabel(primary_metric)
-            plt.title("Replicate score distribution by model")
+            ax.tick_params(axis="x", labelrotation=35)
+            for tick in ax.get_xticklabels():
+                tick.set_ha("right")
+            ax.set_ylabel(primary_metric)
+            ax.set_title("Replicate score distribution by model")
             if _is_bounded_correctness_metric(primary_metric):
-                plt.ylim(bottom=0)
-            plt.legend(
+                ax.set_ylim(bottom=0)
+            _annotate_boxplot_means(ax, data)
+            ax.legend(
                 handles=[
                     Line2D([0], [0], color="tab:orange", linewidth=1.6, label="median"),
                     Line2D([0], [0], color="tab:green", linewidth=1.6, label="mean"),

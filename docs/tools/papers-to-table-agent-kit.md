@@ -10,9 +10,9 @@ For document-to-table extraction, the default deliverable is the formal review p
 
 Using the agent-kit skill did not degrade performance in this benchmark: Codex with GPT-5.5 xhigh produced closely overlapping score distributions with its default extraction workflow and with the skill.
 
-![Codex benchmark score distributions with its default workflow and with the papers-to-table agent-kit skill](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_agent_kit.jpg){ .figure-tall }
+<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_agent_kit.jpg" alt="Codex benchmark score distributions with its default workflow and with the papers-to-table agent-kit skill" class="figure-tall" width="46%" />
 
-*Content-correctness [Eval scores](eval.md) from three replicates across 15 papers and 31 target columns in optimizer run `20260615_004637_compare_models`. The observed similarity is specific to this benchmark and configuration, rather than a guarantee for other tasks or agent versions.*
+*Content-correctness [Eval scores](eval.md) from three replicates across 15 papers and 31 target columns in optimizer run `20260615_004637_compare_models`. Numbers above the boxes give mean scores to one decimal percentage point. The observed similarity is specific to this benchmark and configuration, rather than a guarantee for other tasks or agent versions.*
 
 ## Input Layout
 

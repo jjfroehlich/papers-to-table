@@ -4,9 +4,9 @@ papers-to-table is a local-first system for extracting reported information from
 
 Papers-to-table uses local LLMs to extract structured information from scientific documents with measurable accuracy on the project's checked-in benchmarks.
 
-![Benchmark score distributions for local papers-to-table models and Codex with the agent-kit skill](plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_docs.jpg){ .figure-half }
+<img src="plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_docs.jpg" alt="Benchmark score distributions for local papers-to-table models and Codex with the agent-kit skill" class="figure-half" width="50%" />
 
-*Content-correctness [Eval scores](tools/eval.md) from the 2026-06-15 three-dataset comparison. Points are replicate-level scores, boxes show their distribution, and black lines mark means. The commercial comparison is Codex with GPT-5.5 xhigh using the papers-to-table agent-kit skill; results are specific to optimizer run `20260615_004637_compare_models`. Scores measure agreement with the current gold answers and rubric, not a literal percentage of objectively right and wrong values; see [Interpreting benchmark scores](tools/benchmark-datasets.md#interpreting-benchmark-scores).*
+*Content-correctness [Eval scores](tools/eval.md) from the 2026-06-15 three-dataset comparison. Points are replicate-level scores, boxes show their distribution, black lines mark means, and the numbers above the boxes give those means to one decimal percentage point. The commercial comparison is Codex with GPT-5.5 xhigh using the papers-to-table agent-kit skill; results are specific to optimizer run `20260615_004637_compare_models`. Scores measure agreement with the current gold answers and rubric, not a literal percentage of objectively right and wrong values; see [Interpreting benchmark scores](tools/benchmark-datasets.md#interpreting-benchmark-scores).*
 
 ## What The System Does
 
