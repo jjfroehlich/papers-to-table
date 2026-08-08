@@ -12,16 +12,21 @@ This file owns the repository layout, runtime boundaries, and cross-tool integra
 ## Repository Layout
 
 - `README.md`: concise repository entry point and happy-path commands.
+- `LICENSE` and `NOTICE`: Apache License 2.0 terms and project attribution for
+  original software and documentation; third-party material retains its own
+  terms.
+- `.readthedocs.yaml`: hosted MkDocs build configuration for Read the Docs.
 - `AGENTS.md`: repo-wide operating rules for coding agents.
 - `app/backend/src/backend/app/`: FastAPI backend, config resolution, preflight, pipeline execution, provider adapters, review/export APIs, and run-bundle writing.
 - `app/frontend/`: React browser UI for run setup, status, proposal review, diagnostics, and export.
 - `benchmark_datasets/`: checked-in benchmark inputs and external-result comparison data. Current active benchmark datasets are `massively_parallel_reporter_assays`, `genome_editing_tools`, and `spatial_transcriptomics`; historical/external result tables live under `benchmark_datasets/data/`.
 - `docs/`: MkDocs manual for operators, agents, and developers.
-- `skills/`: reusable external agent workflows. The current skill directories are `skills/papers-to-table-agent-kit/` and `skills/papers-to-table-local-app/`; there is no alternate active skill-root directory. `papers-to-table-agent-kit` is a portable rich review handoff kit whose authored input is `review_input.json` plus PDFs and optional table/schema files; its scripts generate static/local review, normalized, decision, summary, and export artifacts without running the main app backend or extraction pipeline.
+- `skills/`: reusable external agent workflows. The current skill directories are `skills/papers-to-table-agent-kit/` and `skills/papers-to-table-local-app/`; there is no alternate active skill-root directory. `papers-to-table-agent-kit` is a portable extraction and optional-review handoff. Agents author `RUN_DIR/extraction/review_input.json` with path references to PDFs and optional table/schema inputs; scripts generate a root filled CSV, extraction provenance, and, after opt-in, local review and accepted-only reviewed outputs without running the main app backend or extraction pipeline.
 - `specs/`: canonical active spec set plus historical archive.
 - `tools/eval/`: file-driven evaluator companion tool.
 - `tools/optimizer/`: orchestration-only optimizer companion tool.
-- `tools/docs/`: MkDocs configuration and docs requirements.
+- `tools/docs/`: MkDocs configuration and pinned docs-only requirements used by
+  both local and Read the Docs builds.
 - `scripts/`: repository-level wrapper scripts and checks.
 
 ## Runtime Boundaries
@@ -92,6 +97,10 @@ Lower-level scripts remain useful for tests and development, but operator docs s
 - Main-app config examples live at `app/config.example.json`; `app/config.json` is the normal local operator config created or edited during use.
 - Optimizer presets live under `tools/optimizer/configs/`.
 - Manual pages live under `docs/` and are navigated by `tools/docs/mkdocs.yml`.
+- Local docs builds use the wrapper command surface; hosted builds use the
+  repository-root `.readthedocs.yaml` and the same MkDocs configuration and
+  requirements. Read the Docs Community is the intended host once the
+  repository is public; private-repository hosting is outside that free path.
 - Browser screenshots referenced by docs live under `docs/screenshots/`.
 - Agent skill packages live under `skills/`.
 - Run bundles and optimizer study outputs are generated artifacts, not spec truth.

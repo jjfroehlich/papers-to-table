@@ -1,7 +1,21 @@
 # Eval
 
 Eval can score main-app output (that was run without human review) against human-verified benchmarking data to create an evaluation score. 
-It is also the scoring step the optimizer uses when it runs model/prompt/retrieval comparisons and produces reports.
+
+## What It Is For
+
+Use this if you want to:
+
+- score extracted values against benchmark data (table with "gold" values)
+- compare several runs side by side, for instance to compare different LLM models, prompts, or parameters.
+- score a filled table from external software with `--external-result` and compare it to regular main-app runs.
+
+Eval tool will:
+
+- compare the values with the correct values, and use LLMs as judges to determine if the proposed values are correct.
+- evaluate per-cell correctness and evidence quality
+- quantify judge disagreement and degraded behavior
+- inspect deterministic structured false-negative risk through normal eval diagnostics
 
 ## Quick Start
 Eval a run bundle:
@@ -28,27 +42,10 @@ Common optional arguments:
 - `--judge-api-base`
 - `--judge-api-base-b`
 
-Low-level `paper_eval evaluate` also supports `--enable-text-exact-match-fast-path` for diagnostic runs that intentionally want normalized exact-match text cells to bypass judge scoring. This is disabled by default.
-
 Real benchmark studies should use two judges. Current defaults are:
 
 - `judge_a=google/gemma-4-26b-a4b`
 - `judge_b=openai/gpt-oss-20b`
-
-## What It Is For
-
-Use this if you want to:
-
-- score extracted values against benchmark data (table with "gold" values)
-- compare several runs side by side, for instance to compare different LLM models, prompts, or parameters.
-- score a filled table from external software with `--external-result` and compare it to regular main-app runs.
-
-Eval tool will: 
-
-- compare the values with the correct values, and use LLMs as judges to determine if the proposed values are correct. 
-- evaluate per-cell correctness and evidence quality
-- quantify judge disagreement and degraded behavior
-- inspect deterministic structured false-negative risk through normal eval diagnostics
 
 ## Install
 The main installation command will have this installed already. 
@@ -106,14 +103,17 @@ You need:
 - gold table (csv/xlsx)
 - optional eval schema JSON for field typing, aliases, tolerances, and text-scoring overrides
 
-Eval accepts canonical field types `boolean`, `categorical`, `numeric`, and `text`. It also accepts aliases: `bool` for `boolean`; `category` and `enum` for `categorical`; `number`, `int`, `integer`, and `float` for `numeric`; and `string`, `free_text`, and `free-text` for `text`. Unknown field types in schema or proposal metadata fail early with an explicit contract error.
+## Field Type
+Non-text fields use deterministic scoring by default; text fields use LLM judges by default.
 
-When no eval schema JSON declares a column `field_type`, eval resolves the scoring type per cell from proposal metadata first, then schema metadata, then inference from the values. Columns with allowed values infer `categorical`; pairs where both values parse as numbers infer `numeric`, so bare `0`/`1` count-like fields do not become boolean; clear boolean vocabulary such as `yes/no`, `present/absent`, and `true/false` infers `boolean`; everything else becomes `text`. Non-text fields use deterministic scoring by default; text fields use LLM judges by default, including normalized exact matches unless `--enable-text-exact-match-fast-path` is explicitly enabled.
+Eval accepts canonical field types `boolean`, `categorical`, `numeric`, and `text`.
 
-Required run-bundle artifacts:
+It also accepts aliases: `bool` for `boolean`; `category` and `enum` for `categorical`; `number`, `int`, `integer`, and `float` for `numeric`; and `string`, `free_text`, and `free-text` for `text`. Unknown field types in schema or proposal metadata fail early with an explicit contract error.
 
-- `run.json`
-- `proposals/proposals.jsonl`
+When no eval schema JSON declares a column `field_type`, eval resolves the scoring type per cell from proposal metadata first, then schema metadata, then inference from the values.
+
+Columns with allowed values infer `categorical`; pairs where both values parse as numbers infer `numeric`, so bare `0`/`1` count-like fields do not become boolean; clear boolean vocabulary such as `yes/no`, `present/absent`, and `true/false` infers `boolean`; everything else becomes `text`.
+
 
 ## Outputs
 - summary metrics
@@ -139,49 +139,40 @@ out/
 
 ## Execution Phases
 
-Eval is intentionally staged so deterministic scoring and LLM judging are not interleaved cell by cell.
+Eval separates deterministic scoring from LLM judging.
 
-1. Load inputs: read the run bundle, proposals, gold table, optional eval schema, and run metadata.
-2. Join cells: align proposals to gold values by stable row and column identity. Missing or ambiguous joins become explicit metrics.
-3. Score deterministic cells: numeric, boolean, categorical, date-like, and text fields with an explicit deterministic policy are scored without an LLM.
-4. Collect judge-needed cells: judge-backed free-text cells, including normalized exact text matches by default, are collected into a pending judge queue. The low-level `--enable-text-exact-match-fast-path` flag restores the older exact-match bypass when deliberately requested.
-5. Run judge-major batches: eval iterates by judge label first, then groups cells by provider, model, and settings. This means judge A handles its grouped cells, then judge B handles its grouped cells, instead of switching models for every individual cell.
-6. Merge judged cells: per-judge verdicts, disagreement state, evidence checks, and deterministic scores are merged into `scored_cells`.
-7. Aggregate outputs: write per-run summaries first, then comparison files when multiple runs or existing summaries are compared.
+1. Load and validate the run bundle or external table, gold table, optional schema, and metadata.
+2. Join proposals to gold cells by stable row and column identity. Record missing, duplicate, or mismatched cells.
+3. Resolve each field as `boolean`, `categorical`, `numeric`, or `text`.
+4. Score structured fields and fields with an explicit deterministic policy.
+5. Queue judge-backed text cells, including normalized exact matches by default. Use `--enable-text-exact-match-fast-path` to bypass judging for those matches.
+6. Run all work for one judge before the next, grouping requests by provider, model, and settings.
+7. Merge judge verdicts, disagreements, evidence checks, and deterministic results into the per-cell records.
+8. Write run summaries, followed by comparison files when applicable.
 
 
 ## How To Read The Metrics
 
-Eval first joins canonical run proposals to gold rows and columns. It uses stable run metadata when available (`row_id`, `row_index`, `column_name`) plus the gold table and optional eval schema. Cells that cannot be joined become join failures or missing-proposal counts rather than being treated as wrong values silently.
+Start with `content_correctness`. It is the main score for target content cells and counts missing or unscored gold-present cells as incorrect. Use `content_correctness_scored_only` to inspect only cells that received a score.
 
-Metrics are calculated from these joined cells:
+| Metric | Meaning |
+| --- | --- |
+| `content_correctness` | Correctness for target content cells. Structured fields are deterministic; text fields normally use one or two LLM judges. |
+| `overall_correctness` | Broader correctness that may include metadata fields. |
+| `anchor_valid_rate` and `evidence_grounded_correctness` | Whether evidence exists, has valid anchors, and supports correct content. |
+| `judge_disagreement_rate` | Share of dual-judged text cells where the judges disagree. High values weaken confidence. |
+| `missing_proposal_count` | Gold target cells without a proposal. |
+| `join_failure_count` | Missing, duplicate, mismatched, or unmatched target-cell records. Excluded columns are counted separately in `excluded_proposal_count`. |
+| `structured_deterministic_failure_count` | Incorrect structured cells scored without an LLM. |
+| `structured_adjudication_eligible_count` and `structured_adjudication_eligible_failure_rate` | Structured failures that look like soft mismatches worth inspecting. They do not change the score. |
 
-- content correctness: the main score for target content cells. Numeric, boolean, and categorical fields are scored deterministically where possible; free-text fields can be judged by one or two configured LLM judges.
-- overall correctness: a broader aggregate that can include metadata lanes when the schema included them.
-- evidence quality: checks whether persisted evidence exists and remains usable, including anchor-valid highlights, page references, and evidence type.
-- canonical outcome accounting: `proposal_status`, `evidence_status`, `review_bucket`, and `reason_codes` are loaded from the proposal artifact. Diagnostic outcomes such as `error`, `not_attempted`, and `not_applicable` are accounted for separately from ordinary wrong values.
-- judge disagreement: the rate at which judge A and judge B differ on text-cell correctness.
-- missing proposals: target cells present in gold data but missing from the run proposals.
-- join failures: target run or gold records that could not be aligned to the expected row/column contract. Proposals for intentionally excluded or otherwise unscored metadata columns are reported separately as `excluded_proposal_count` and `excluded_proposal_diagnostics`, not as true join failures.
-- structured deterministic failures: `structured_deterministic_failure_count` counts incorrect deterministic structured cells; `structured_adjudication_eligible_count`, `structured_adjudication_eligible_failure_rate`, and the older compatibility alias `structured_adjudication_eligible_rate` show how many failures look like soft mismatches that might be worth future adjudication.
+Per-cell records explain the aggregates. Check `proposal_status`, `evidence_status`, `review_bucket`, `reason_codes`, `deterministic_failure_kind`, and `adjudication_eligible` when a summary looks surprising. Structured fields remain deterministic; Eval does not currently use LLM adjudication to override their scores.
 
-The evaluator writes per-cell records first, then aggregates those records into `run_summary.json`, `run_summary.csv`, and the cross-run comparison files.
-
-Structured per-cell records include `deterministic_failure_kind` and `adjudication_eligible`. These are diagnostics only in the current evaluator: headline correctness metrics remain deterministic for structured fields, and there is no structured LLM adjudication path yet.
+Eval writes the underlying records before aggregating them into `run_summary.json`, `run_summary.csv`, and cross-run comparison files.
 
 ## Warnings
 
-- high disagreement: judges disagree often, so ranking confidence is weaker
-- judge request failures: one judge could not complete some text-cell requests
-- missing evidence or invalid anchors: the run produced values but evidence grounding is weak or missing
-- unscored text cells: the evaluator could not get a deterministic or judged answer for every text cell
-
-## Rebuilding Comparison Outputs
-
-Can be used to re-generate cross-run comparison files for an existing batch of runs (when you already have per-run eval outputs).
-
-```bash
-cd tools/eval
-paper-eval compare --summaries /absolute/path/to/per-run --out /absolute/path/to/compare_out
-```
-
+- `"high disagreement"`: judges disagree often, so ranking confidence is weaker
+- `"judge request failures"`: one judge could not complete some text-cell requests
+- `"missing evidence or invalid anchors"`: the run produced values but evidence grounding is weak or missing
+- `"unscored text cells"`: the evaluator could not get a deterministic or judged answer for every text cell

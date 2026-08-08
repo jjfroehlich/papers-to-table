@@ -92,8 +92,8 @@ Implications: Active producers must write the canonical tags. Active consumers, 
 
 ## D012 Portable agent-kit authoring boundary
 
-Decision: External agents using `skills/papers-to-table-agent-kit/` author only `review_input.json`, `pdfs/`, and optional `source_table.csv` or `schema.json`.
+Decision: External agents using `skills/papers-to-table-agent-kit/` author `RUN_DIR/extraction/review_input.json`, which references PDFs and optional source-table/schema inputs by path. The default handoff is a root filled CSV plus extraction provenance; browser review is built only after user opt-in.
 
 Rationale: The kit's value is a rich human review handoff for agent-extracted values, not a second extraction app or a requirement that agents construct internal run artifacts correctly.
 
-Implications: Kit scripts derive normalized proposals/evidence, review-package JSON, validation summaries, decisions, audit logs, and accepted-only exports. Main-app-compatible artifacts are optional generated outputs, never required authored inputs.
+Implications: Kit scripts derive normalized proposals/evidence, validation summaries, and the unreviewed root filled CSV. The handoff checker gates completion and the agent asks the exact browser-review question. Optional review scripts derive `human_review/`, decisions, audit logs, and a root reviewed CSV containing accepted values only. Main-app-compatible artifacts remain optional generated outputs, never required authored inputs.

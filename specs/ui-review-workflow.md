@@ -137,7 +137,7 @@ Export should clearly report where the workbook and audit artifacts were written
 
 ## Portable Agent-Kit Review UI
 
-`skills/papers-to-table-agent-kit/` provides a static/local rich review UI for external-agent outputs. It follows the same review decision and accepted-only export semantics, but it is intentionally not full main-app parity.
+`skills/papers-to-table-agent-kit/` provides an optional static/local review UI for external-agent outputs. The default kit handoff is an agent-extracted root filled CSV plus `RUN_DIR/extraction/` provenance. The UI is built under `RUN_DIR/human_review/` only after the user opts in. It follows the same review decision and accepted-only export semantics, but it is intentionally not full main-app parity.
 
 The agent-kit review UI is acceptable for MVP when:
 
@@ -147,8 +147,10 @@ The agent-kit review UI is acceptable for MVP when:
 - page-only or reasoning-only evidence is visibly labeled weak/attention
 - reviewers can accept, accept with edit, reject, or confirm no data
 - decisions can be downloaded or written through localhost server writeback, and the UI visibly distinguishes browser-only saves from confirmed server writeback or writeback errors
-- accepted-only `exports/final_table.csv` is produced
+- an accepted-only root `<stem>_reviewed.csv` is produced beside the filled CSV
 - a valid package can be produced from quote/page evidence without bboxes, figure crops, page images, source table, or schema
+
+Review handoff uses `launch_review_servers.py`, which starts detached localhost servers, probes each URL, and returns exact links ending in `/human_review/index.html`. The user-visible handoff must include the exact URL. Static HTML may show proposal/evidence text, but served mode is required for reliable referenced-PDF rendering and quote highlighting.
 
 The agent-kit UI must not grow implicit full backend expectations such as provider diagnostics, run lifecycle state, eval mode, mandatory page image generation, mandatory figure extraction, or mandatory bbox anchoring.
 

@@ -1,5 +1,6 @@
 site_name: papers-to-table manual
 site_description: Local-first manual for papers-to-table workflows, tools, and operators.
+site_url: !ENV [READTHEDOCS_CANONICAL_URL, ""]
 site_dir: ../../site
 
 docs_dir: ../../docs
@@ -65,7 +66,6 @@ nav:
       - Headless and Accept-All: main-app/headless.md
       - Outputs and Artifacts: main-app/outputs-and-artifacts.md
       - Architecture: main-app/architecture.md
-      - Privacy and Locality: main-app/privacy-locality.md
   - Companion Tools:
       - Benchmark Datasets: tools/benchmark-datasets.md
       - Eval: tools/eval.md

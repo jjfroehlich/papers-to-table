@@ -168,32 +168,32 @@ Exports include only explicitly accepted changes. Rejected, unreviewed, diagnost
 
 `skills/papers-to-table-agent-kit/` has a separate authoring contract for external agents that bring their own extraction capability. It is not a main-app run bundle input contract.
 
-Agents author only:
+Agents author `RUN_DIR/extraction/review_input.json`. It references PDFs, the source table, and schema by path; those inputs are not copied into the run.
 
-- `review_input.json`
-- `pdfs/`
-- optional `source_table.csv`
-- optional `schema.json`
+`build_review_package.py` derives the default extraction artifacts:
 
-`build_review_package.py` derives the MVP generated artifacts:
+- `OUTPUT_DIR/<requested_or_dataset>_filled.csv`
+- `RUN_DIR/extraction/proposals.jsonl`
+- `RUN_DIR/extraction/evidence.jsonl`
+- `RUN_DIR/extraction/validation_report.json`
+- `RUN_DIR/extraction/extraction_summary.json`
 
-- `review/index.html`
-- `review/assets/*`
-- `review/review_package.json`
-- `normalized/proposals.jsonl`
-- `normalized/evidence.jsonl`
-- `summaries/validation_report.json`
+`finalize_extraction_handoff.py` validates these artifacts and fails handoff on missing outputs, failed validation, generic-rationale warnings, or unjustified reused-evidence warnings. The root filled CSV is agent-extracted and not human-reviewed.
 
-Review/export then generates:
+After explicit user opt-in, review/export generates:
 
-- `review/decisions.jsonl`
-- `exports/final_table.csv`
-- `exports/audit_log_*.json`
-- `summaries/reviewer_summary.json`
+- `RUN_DIR/human_review/index.html`
+- `RUN_DIR/human_review/assets/*`
+- `RUN_DIR/human_review/review_package.json`
+- `RUN_DIR/human_review/decisions.jsonl`
+- `RUN_DIR/human_review/reviewer_summary.json`
+- `RUN_DIR/human_review/audit_log_*.json`
+- `RUN_DIR/human_review/diagnostics_*.json`
+- `OUTPUT_DIR/<stem>_reviewed.csv`
 
 `review_input.json` uses `papers_to_table.review_input.v1`. Authored `proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional. The builder generates stable deterministic IDs when they are absent and validation checks uniqueness and references when they are supplied.
 
-Every non-empty proposed value must have at least one structured evidence record. Evidence is tiered for validation and UI labels:
+Every non-empty proposed value must have at least one structured evidence record and a value-specific rationale. Evidence is tiered for validation and UI labels:
 
 - Tier A: `pdf_id` plus `page_number` plus quote/table/caption/evidence text maps to `direct_strong`.
 - Tier B: `pdf_id` plus `page_number` plus exact/approximate bbox regions maps to `direct_strong` or `direct_weak`.

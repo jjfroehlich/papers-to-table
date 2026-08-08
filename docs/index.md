@@ -1,33 +1,30 @@
-# Home
+# Papers-to-table
 
-papers-to-table is a local-first system for extracting reported information from scientific PDFs into structured tables. Target fields can ask for technical parameters, descriptions of results, or claims made in a publication. The app links proposals to inspectable source evidence for human review, but it does not evaluate whether publication claims are scientifically supported or true. It combines a browser review app for human review, auditable run bundles, and companion tools for getting benchmarking scores and for optimizing parameters.
+Papers-to-table is a local-first system for extracting information from scientific PDFs into structured tables. Extracted infos can be for instance: technical parameters, descriptions of results, or claims made in a publication. The app links extracted values to text quotes with direct pdf highlights for human review. Every run bundles audit artifacts. There are also companion tools for getting benchmarking scores and for optimizing parameters or models.
 
-Papers-to-table uses local LLMs to extract structured information from scientific documents with measurable accuracy on the project's checked-in benchmarks.
+![Benchmark score distributions for local papers-to-table models and Codex with the agent-kit skill](plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_docs.jpg)
 
-<img src="plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_main_plot_docs.jpg" alt="Benchmark score distributions for local papers-to-table models and Codex with the agent-kit skill" class="figure-half" width="50%" />
-
-*Content-correctness [Eval scores](tools/eval.md) from the 2026-06-15 three-dataset comparison. Points are replicate-level scores, boxes show their distribution, black lines mark means, and the numbers above the boxes give those means to one decimal percentage point. The commercial comparison is Codex with GPT-5.5 xhigh using the papers-to-table agent-kit skill; results are specific to optimizer run `20260615_004637_compare_models`. Scores measure agreement with the current gold answers and rubric, not a literal percentage of objectively right and wrong values; see [Interpreting benchmark scores](tools/benchmark-datasets.md#interpreting-benchmark-scores).*
+*The achievable ceiling [is not 100%, but more likely 80-90%](tools/benchmark-datasets.md#interpreting-benchmark-scores) because some fields in the current benchmark datasets do not have a single correct answer. Shown: [Eval scores](tools/eval.md) for different tools. 3 replicates x 3 benchmark datasets (15 papers, 31 information fields) = total of 1,395 extractions for each tool. Each point = one replicate of one benchmark dataset. Bars show mean.*
 
 ## What The System Does
 
 - Reads one spreadsheet, one schema, and a directory of PDFs.
-- Runs preflight checks before extraction starts.
 - Parses and matches PDFs to table rows.
-- Proposes source-linked values for eligible cells.
+- Proposes source-linked values.
 - Lets a reviewer accept, edit, reject, or confirm no data.
 - Exports a content-only workbook copy plus audit artifacts.
 
 ## Primary Workflow
 
-1. Browser mode is the regular workflow which includes human-review or accept-all options.
+1. Browser mode is the regular workflow which includes human-review.
 
 ![Technical papers-to-table workflow](diagrams/refined_svg/01_readme_overview_refined.svg)
 
 ## Secondary Workflows
 
-1. Command-line interface usage without human-review for agent use or other programmatic use-cases. 
-2. Eval tool scores run bundles against benchmark "gold" data.
-3. Optimizer tool compares model, prompt, and retrieval studies.
+1. Command-line interface usage for direct agent use or other programmatic use-cases. 
+2. Eval tool scoring against benchmark "gold" data.
+3. Optimizer orchestrator tool can run benchmarking studies to compare models, prompts, and parameters.
 
 ## Agent Skills
 

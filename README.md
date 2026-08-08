@@ -2,6 +2,13 @@
   <img src="./app/frontend/public/banner_1.jpg" width="900" alt="Title banner" />
 </p>
 
+<p align="center">
+  <a href="https://papers-to-table.readthedocs.io/en/latest/">
+    <img src="https://readthedocs.org/projects/papers-to-table/badge/?version=latest"
+         alt="Documentation status" />
+  </a>
+</p>
+
 ## Purpose
 Papers-to-table is an experimental system to extract information from scientific PDFs into structured tables, using large language models. It can extract technical parameters, descriptions of results, or claims made by the authors. It runs fully local, and includes an interface for human review, auditable source evidence, and tools for benchmarking and development.
 
@@ -112,7 +119,8 @@ Install by telling your agent, for example `install the skills at https://github
 
 
 ## Full Documentation
-The manual lives in [`docs/`](docs/). 
+Read the [hosted manual](https://papers-to-table.readthedocs.io/en/latest/) or browse its [Markdown sources](docs/).
+
 Serve a static mkdocs site locally with:
 ```bash
 python scripts/papers_to_table.py docs serve
@@ -121,3 +129,12 @@ Compile the static site to /site:
 ```bash
 python scripts/papers_to_table.py docs build
 ```
+
+## Give Feedback and Contribute
+
+- Please get in touch if you have feedback or want to contribute.
+
+## License
+
+Papers-to-table software and documentation are licensed under the
+[Apache License 2.0](LICENSE).

@@ -19,7 +19,7 @@ The monorepo has three coordinated surfaces:
 
 Eval and optimizer support the main app. They do not redefine the product.
 
-The repo also ships `skills/papers-to-table-agent-kit/` as a portable review handoff kit for external agents. That kit does not run the main app, FastAPI backend, LM Studio provider path, or local extraction pipeline. It standardizes the handoff from agent extraction to human review by accepting `review_input.json`, PDFs, and optional table/schema files, then generating a rich local review bundle and accepted-only CSV export.
+The repo also ships `skills/papers-to-table-agent-kit/` as a portable extraction and optional-review handoff for external agents. It does not run the main app, FastAPI backend, LM Studio provider path, or local extraction pipeline. The agent authors evidence-backed proposals in `RUN_DIR/extraction/review_input.json`; kit scripts validate and normalize them, write a root filled CSV plus extraction provenance, and build a local review UI only after the user opts in.
 
 ## 2. Operating Principles
 
@@ -245,18 +245,23 @@ python scripts/papers_to_table.py verify-contract --run /abs/path/to/run_bundle
 
 ### 11.1 Portable Agent-Kit Review Contract
 
-The portable agent kit owns a separate authoring contract for external agents. Agents author only:
+The portable agent kit owns a separate authoring contract for external agents. One task uses `OUTPUT_DIR`, with final CSVs at its root and run provenance under `OUTPUT_DIR/runs/RUN_ID/`. The only authored control artifact is `RUN_DIR/extraction/review_input.json`; it references PDFs, source tables, and schemas by path instead of copying them into the run.
 
-- `review_input.json`
-- `pdfs/`
-- optional `source_table.csv`
-- optional `schema.json`
+The default build writes:
 
-The kit scripts derive generated artifacts under `review/`, `normalized/`, `summaries/`, and `exports/`. Main-app-compatible artifacts are optional generated outputs and are never required inputs.
+- `OUTPUT_DIR/<requested_or_dataset>_filled.csv`
+- `RUN_DIR/extraction/proposals.jsonl`
+- `RUN_DIR/extraction/evidence.jsonl`
+- `RUN_DIR/extraction/validation_report.json`
+- `RUN_DIR/extraction/extraction_summary.json`
+
+The filled CSV is agent-extracted and not human-reviewed. Before handoff, `finalize_extraction_handoff.py` must validate required artifacts and provenance warnings. The agent then asks exactly whether the user wants browser review. Review is optional and must not be built or served before opt-in.
+
+When requested, `launch_review_servers.py` builds `RUN_DIR/human_review/`, starts and probes detached localhost servers, and returns exact URLs ending in `/human_review/index.html`. Applied decisions write `OUTPUT_DIR/<stem>_reviewed.csv`; only accepted and accepted-with-edit values populate that file.
 
 `review_input.json` uses `papers_to_table.review_input.v1`. `proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional authoring fields. When absent, `build_review_package.py` generates stable deterministic IDs; when present, validation checks uniqueness and references.
 
-Every non-empty proposed value must carry at least one structured Tier A/B/C evidence record. Strong direct evidence requires `pdf_id`, `page_number`, and quote/table/caption/evidence text, exact/approximate bbox regions, or `figure_ref` plus `caption_text`. Page-plus-reasoning evidence remains reviewable but is visibly labeled weak/attention. Region-bearing evidence must validate finite numeric coordinates, positive pages, nonzero area, normalized-coordinate ranges when applicable, and emit warnings for ambiguous coordinate conventions.
+Every non-empty proposed value must carry at least one structured Tier A/B/C evidence record and a concise value-specific rationale. Strong direct evidence requires `pdf_id`, `page_number`, and quote/table/caption/evidence text, exact/approximate bbox regions, or `figure_ref` plus `caption_text`. Page-plus-reasoning evidence remains reviewable but is visibly labeled weak/attention. Region-bearing evidence must validate finite numeric coordinates, positive pages, nonzero area, normalized-coordinate ranges when applicable, and emit warnings for ambiguous coordinate conventions. Generic rationales and unjustified evidence reuse are handoff-blocking provenance warnings.
 
 The kit's generated evidence stream uses the canonical `main_evidence` tag plus main-compatible `source_type` values so downstream audit tooling can reuse evidence semantics. Kit-specific text evidence kinds are preserved separately in `authored_evidence_kind`. The generated bundle is not a main-app run bundle unless an optional later `main_compat/` export is explicitly generated and validated.
 
@@ -387,6 +392,21 @@ Active current truth lives in:
 - `specs/contracts/schemas/*.json`
 
 `README.md` is the concise repository entry point. `docs/` is the operator/developer manual. `skills/` contains reusable external agent procedures.
+
+Original project software and documentation are distributed under the Apache
+License 2.0, with attribution recorded in the root `NOTICE`. Dependency
+licenses and rights in bundled vendor assets, scientific papers, benchmark
+source PDFs, datasets, models, and other third-party material remain separate
+and are not overridden by the project license.
+
+The manual is generated with MkDocs Material. Local preview and build remain
+available through the repository wrapper commands. The root
+`.readthedocs.yaml` is the canonical hosted-build configuration: it uses the
+MkDocs configuration at `tools/docs/mkdocs.yml`, installs the pinned docs-only
+dependencies from `tools/docs/requirements.txt`, and targets Read the Docs
+Community after the repository becomes public. A private repository is not an
+assumed Community build path; hosting it directly requires Read the Docs
+Business or another private-repository-capable host.
 
 Archive material under `specs/archive/` is historical only. Current behavior must not require archive files.
 

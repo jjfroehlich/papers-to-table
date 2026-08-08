@@ -1,6 +1,6 @@
 # Headless And Accept-All
 
-Use headless mode when a terminal workflow, batch script, or coding agent needs to run the app without reviewing the extracted values and browser UI. 
+Use headless mode when a terminal workflow or coding agent needs to run the app. This is without reviewing the extracted values and browser UI. 
 
 ## Recommended Command
 
@@ -33,10 +33,9 @@ python scripts/papers_to_table.py headless \
 
 You can keep paths in the config or override them on the command line.
 
-## Accept-All Semantics
+## Accept-All
 
-- `--accept-all` is an explicit review bypass.
-- Auto-accepted proposals are obviously not human-reviewed, so they might be wrong.
+- `--accept-all` is just to make it explicit that review is bypassed. Auto-accepted proposals are obviously not human-reviewed.
 - `--export` without explicit review or `--accept-all` is rejected when reviewable proposals are still pending.
 - The output artifacts will record that extracted information was auto-accepted.
 
@@ -60,8 +59,6 @@ The command prints JSON that includes:
 - `review/decisions.jsonl`
 - `exports/audit_log_*.json`
 - `exports/diagnostics_*.json`
-
-Headless auto-accept records `decision_source="automation_accept_all"` and a reviewer note stating that `--accept-all` was used.
 
 ## Avoiding Over-Trust
 

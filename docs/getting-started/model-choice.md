@@ -1,19 +1,17 @@
 # Model Choice
 
-Start with `google/gemma-4-e4b` unless you have a specific reason to choose another model. It is the checked-in default, the development reference used for current improvement work, and the simplest choice for a first run.
+Start with `google/gemma-4-e4b`. It is the checked-in default, development reference, and simplest choice for a first run.
 
-Model choice affects extraction quality, runtime, memory use, and structured-output reliability. A larger or slower model is not automatically better for every paper or field, so treat the choices below as practical starting points rather than universal rankings.
+Model choice affects extraction quality, runtime, memory use, and structured-output reliability. A larger or slower model is not automatically better for every paper or field, so treat the choices below as practical starting points only. And obviously new models are released frequently, below is a snapshot of Spring 2026.
 
 ## Practical Choices
 
 | Goal | Model | Guidance |
 |---|---|---|
-| Regular first run and current development default | `google/gemma-4-e4b` | Start here. It keeps runs comparable with current development checks and was the fastest of these four models in the 2026-06-15 comparison. |
-| Stronger quality/runtime reference | `google/gemma-4-12b` | Use when the additional runtime is acceptable. It substantially improved the comparison score over e4b without being the slowest candidate. |
-| Non-Gemma quality reference | `qwen/qwen3.6-27b` | Useful for model-family sensitivity checks, but it was considerably slower than regular Gemma 12B in this study. |
-| Occasional slow quality ceiling | `google/gemma-4-12b-qat` | Highest-scoring tested local model in this comparison, but the modest gain over regular 12B came with much longer runtime. It is not the default. |
-
-The measured study-level results were:
+| Current development default | `google/gemma-4-e4b` | Start here. Keeps runs comparable with current development checks and was the fastest of these four models in the 2026-06-15 comparison. |
+| Stronger quality/runtime | `google/gemma-4-12b` | Substantially improved score over e4b but slower. |
+| Non-Gemma reference | `qwen/qwen3.6-27b` | For model-family checks, but considerably slower than regular Gemma 12B in this comparison. |
+| Quality ceiling | `google/gemma-4-12b-qat` | Highest-scoring local model in this comparison, but modest gain over regular 12B came with much longer runtime. |
 
 | Model | Content-correctness | Comparison runtime |
 |---|---:|---:|
@@ -22,21 +20,21 @@ The measured study-level results were:
 | `qwen/qwen3.6-27b` | 65.6% | 3.25 h |
 | `google/gemma-4-12b-qat` | 67.8% | 2.93 h |
 
-These are results from optimizer run `20260615_004637_compare_models`, not promises for a single user run. The comparison covered three benchmark datasets, 15 papers, 31 target columns, and three replicates on the project's RTX 3090 workstation. Different papers, quantizations, context sizes, hardware, and app versions can change both quality and runtime.
+These are results from optimizer run `20260615_004637_compare_models`, which covered three benchmark datasets, 15 papers, 31 target columns, and three replicates on an RTX 3090 workstation. 
 
 ## Quality Across Tested Candidates
 
-<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_scores_of_all_candidates.jpg" alt="Scores for local models, external baselines, failures, and score-calibration controls" class="figure-wide" width="92%" />
+![Scores for local models, external baselines, failures, and score-calibration controls](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_scores_of_all_candidates.jpg)
 
 *Content-correctness scores from the 2026-06-15 model comparison. Gray points are replicate scores, blue lines are medians, black lines are means, and the numbers above the boxes give those means to one decimal percentage point. External agent baselines and gold-derived controls provide context but are not local model candidates. See [Interpreting benchmark scores](../tools/benchmark-datasets.md#interpreting-benchmark-scores) before treating the values as literal error rates.*
 
 ## Quality Versus Runtime
 
-<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_score_vs_runtime.jpg" alt="Average benchmark score plotted against runtime for tested models" class="figure-half" width="50%" />
-
-*Average content-correctness versus comparison runtime for the same run. Local-model timings were measured on the benchmark workstation. The pale Codex points are external GPT-5.5 xhigh baselines and are not locally measured model runtimes.*
-
 The main lesson is that more runtime did not consistently produce a higher score. Regular Gemma 12B offered a useful quality/runtime balance in this sweep, while e4b remains the current default for development continuity and faster iteration.
+
+![Average benchmark score plotted against runtime for tested models](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_score_vs_runtime.jpg)
+
+*Average content-correctness versus comparison runtime for the same run. Local-model timings were measured on the benchmark workstation with 16 cores, 32 threads, 32 GB RAM, and an RTX 3090 GPU. The pale points are results on the external commercial Codex app with GPT-5.5 xhigh.*
 
 ## Change And Check A Model
 

@@ -143,10 +143,12 @@
   background: var(--md-default-bg-color);
 }
 
-/* Per-embed figure sizes keep plots proportional to their information density. */
-.md-typeset img.figure-half,
-.md-typeset img.figure-tall,
-.md-typeset img.figure-wide {
+/* Plot variants use Markdown image syntax so MkDocs can rewrite relative URLs. */
+.md-typeset img[src*="_main_plot_docs.jpg"],
+.md-typeset img[src*="_score_vs_runtime.jpg"],
+.md-typeset img[src*="_agent_kit.jpg"],
+.md-typeset img[src*="_compare_to_local_agents.jpg"],
+.md-typeset img[src*="_scores_of_all_candidates.jpg"] {
   display: block;
   width: auto;
   height: auto;
@@ -154,25 +156,29 @@
   margin-left: auto;
 }
 
-.md-typeset img.figure-half {
+.md-typeset img[src*="_main_plot_docs.jpg"],
+.md-typeset img[src*="_score_vs_runtime.jpg"] {
   max-width: 50%;
   max-height: 30rem;
 }
 
-.md-typeset img.figure-tall {
+.md-typeset img[src*="_agent_kit.jpg"],
+.md-typeset img[src*="_compare_to_local_agents.jpg"] {
   max-width: 46%;
   max-height: 30rem;
 }
 
-.md-typeset img.figure-wide {
+.md-typeset img[src*="_scores_of_all_candidates.jpg"] {
   max-width: 92%;
   max-height: 34rem;
 }
 
 @media screen and (max-width: 44.984375em) {
-  .md-typeset img.figure-half,
-  .md-typeset img.figure-tall,
-  .md-typeset img.figure-wide {
+  .md-typeset img[src*="_main_plot_docs.jpg"],
+  .md-typeset img[src*="_score_vs_runtime.jpg"],
+  .md-typeset img[src*="_agent_kit.jpg"],
+  .md-typeset img[src*="_compare_to_local_agents.jpg"],
+  .md-typeset img[src*="_scores_of_all_candidates.jpg"] {
     max-width: 100%;
     max-height: none;
   }

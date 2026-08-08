@@ -1,13 +1,13 @@
 # Benchmark Datasets
 
-Curated benchmark datasets live at the repository root under `benchmark_datasets/` so they are visible to users and usable by the app, Eval, and Optimizer.
+Curated benchmark datasets live at the repository root under `benchmark_datasets/`.
 
 ## Gold datasets for eval scoring
 
-Each dataset has the same basic shape:
+Each dataset has the same shape:
 
 - `table_template.csv`: app-facing input table with stable `row_id` / `row_index`, paper metadata, and blank target cells.
-- `schema.csv`: extraction schema used by the main app. The descriptions become prompt instructions.
+- `schema.csv`: extraction schema used by the main app. 
 - `table_gold.csv`: human-curated answer table.
 - `pdfs/`: source PDFs for the benchmark.
 
@@ -19,25 +19,25 @@ Available datasets:
 
 ## Interpreting benchmark scores
 
-Content-correctness scores measure agreement under the current Eval rubric with human-curated gold answers. They are useful for comparing candidates but currently a score of 80%  does not mean that 20% of the extracted values are objectively wrong. It is true that most benchmark fields ask for objectively recoverable facts such as identifiers, counts, or reported numeric values. But other fields, such as a paper's "main finding," may have more than one answer. The "gold" positive control reaches 100% by construction because it is scored against itself, but the realistic achievable ceiling is likely lower due to such ambiguous fields. Therefore it is possible that the score with the current benchmark datasets is almost saturated at 80%.
+Content-correctness scores measure agreement under the current Eval rubric with human-curated gold answers. But currently a score of 80%  does not mean that 20% of the extracted values are objectively wrong, because some fields, such as a paper's "main finding," may have more than one answer. The "gold" positive control reaches 100% only because it is scored against itself. Therefore it is possible that the current eval score is almost saturated at 80%.
 
-TODO: We should improve the benchmark in the future, so that all extraction tasks can objectively be correct.
+TODO: Improve benchmark, so that all extraction tasks can objectively be correct.
 
 ## Controls
 
 These are positive and negative controls.
 
-- `benchmark_datasets/data/20260517_gold` is the positive control "gold", it is a copy of the perfect solution, the human-curated answer table.
-- `benchmark_datasets/data/20260710_gold_word_shuffle` negative control, uses the perfect solution and shuffles word order within each cell.
-- `benchmark_datasets/data/20260710_gold_cross_field` negative control, uses the perfect solution and moves values across rows and columns within each dataset.
+- `benchmark_datasets/data/20260517_gold`: positive control "gold", a copy of the perfect solution, the human-curated answer table.
+- `benchmark_datasets/data/20260710_gold_word_shuffle`: negative control, shuffles word order within each cell of the perfect solution.
+- `benchmark_datasets/data/20260710_gold_cross_field`: negative control, moves values across rows and columns within each dataset of the perfect solution.
 
 ## Commercial agents
 
-For this the same prompt was used in the Codex App to extract information from the benchmark datasets.
+For this, the same prompt was used in the Codex App to extract information from the benchmark datasets.
 
 - `benchmark_datasets/data/20260517_ext_codex` Codex default.
 - `benchmark_datasets/data/20260517_ext_kitchin` Codex with skill "scientific-data-extraction" (https://github.com/jkitchin/skillz/tree/main/skills/research/scientific-data-extraction, commit 3e74b2f).
-- `benchmark_datasets/data/20260517_ext_agentkit` Codex with skill "papers-to-table-agent-kit", which includes a interface for human-review, from this repo.
+- `benchmark_datasets/data/20260517_ext_agentkit` Codex with our skill "papers-to-table-agent-kit", which includes an interface for human-review, from this repo.
 
 Each folder is organized by replicate:
 
@@ -47,22 +47,20 @@ rep2/{benchmark_name}_filled.csv
 rep3/{benchmark_name}_filled.csv
 ```
 
-## Local-agent attempts
-Local agent systems such as Hermes or Codex running with local models could be an alternative. But unfortunately such attempts failed and either errored or stopped after a fraction of the task.
+## Alternative local-agents fail
+Local agent systems such as Hermes or Codex running with local models could be an alternative. Unfortunately all attempts failed and either errored or stopped after a fraction of the task.
 
-Papers-to-table enables long-running extractions with local LLMs, while the tested Codex Local and Hermes Local configurations did not complete a scorable extraction:
+![Completed papers-to-table benchmark scores compared with failed Codex Local and Hermes Local attempts](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_compare_to_local_agents.jpg)
 
-<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_compare_to_local_agents.jpg" alt="Completed papers-to-table benchmark scores compared with failed Codex Local and Hermes Local attempts" class="figure-tall" width="46%" />
+*Papers-to-table enables long-running extractions with local LLMs, while the tested Codex Local and Hermes Local configurations did not complete a scorable extraction. Content-correctness [Eval scores](eval.md) for completed local papers-to-table runs in optimizer run `20260615_004637_compare_models`. Numbers above the boxes give mean scores to one decimal percentage point. “Failed” means the specific Codex App and Hermes configurations described below produced no complete scorable result.*
 
-*Content-correctness [Eval scores](eval.md) for completed local papers-to-table runs in optimizer run `20260615_004637_compare_models`. Numbers above the boxes give mean scores to one decimal percentage point. “Failed” means the specific Codex App and Hermes configurations described below produced no complete scorable result.*
+- **Codex App with local models**
 
-### Codex App with local models
+    Failed so far. Codex App v26.707.31123 was tested with `google/gemma-4-12b-qat`, `google/gemma-4-12b`, and `qwen/qwen3.6-27b`. Using the same prompt as for the commercial agents above. Configurations included 32K and 64K contexts and different tool-calling limits. Runs usually stopped before filling target information and frequently reported connection errors in the response stream. No complete scorable result was produced.
 
-Failed so far. Codex App v26.707.31123 was tested with `google/gemma-4-12b-qat`, `google/gemma-4-12b`, and `qwen/qwen3.6-27b`. Using the same prompt as for the commercial agents above. Configurations included 32K and 64K contexts and different tool-calling limits. Runs usually stopped before filling target information and frequently reported connection errors in the response stream. No complete scorable result was produced.
+- **Hermes with local models**
 
-### Hermes with local models
-
-Failed so far. Hermes v0.18.2 was used out of the box, without additional customization, with `google/gemma-4-12b-qat` and `google/gemma-4-26b-a4b`. Using the same prompt as for the commercial agents above. Runs failed by being unable to establish a reliable Python PDF-text extraction workflow despite PyMuPDF being installed, entering repetitive output loops, or declaring completion after only 1-3 of 31 columns (about 3-10% of the attempted task). No complete scorable result was produced.
+    Failed so far. Hermes v0.18.2 was used out of the box, without additional customization, with `google/gemma-4-12b-qat` and `google/gemma-4-26b-a4b`. Using the same prompt as for the commercial agents above. Runs failed by being unable to establish a reliable Python PDF-text extraction workflow despite PyMuPDF being installed, entering repetitive output loops, or declaring completion after only 1-3 of 31 columns (about 3-10% of the attempted task). No complete scorable result was produced.
 
 ## Gold datasets tables in detail
 

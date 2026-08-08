@@ -1,6 +1,6 @@
 # Configuration
 
-The main app uses JSON as the advanced-control authority.
+The main app uses JSON for configs.
 
 ## Configuration Files
 
@@ -25,7 +25,7 @@ The main app uses JSON as the advanced-control authority.
 }
 ```
 Default model provider path is LM Studio at the moment (`provider.token = "lm_studio"`).
-The `model_id` must match the model you downloaded or loaded in LM Studio.
+The `model_id` must match the model id in LM Studio.
 
 ## Current Defaults
 
@@ -43,6 +43,8 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 ## Most Important Parameters
 
 **Input / output**
+
+Can also be configured in the browser interface. 
 
 - `table_path`: the workbook or table you want to fill.
 - `schema_path`: the schema that tells the app what each column means.
@@ -78,16 +80,4 @@ The `model_id` must match the model you downloaded or loaded in LM Studio.
 - `figure_review.max_retries_per_cell`: intended cap for figure-review structured-output retries. Prompt-only schema issues that can be repaired locally are not retried; malformed JSON gets at most one retry. Default is `1`.
 - `extraction.candidate_selection_enabled`: when `true`, the app can run one generic selector call if collected candidates conflict or evidence is weak. Default is `true`.
 - `extraction.max_candidate_selection_calls_per_cell`: hard cap on selector calls per cell. Default is `1`.
-
-Retrieval includes figure-level chunks built from parsed figures when available. The app does not create panel-level retrieval chunks. Retrieval scoring text includes conservative chunk-type, section, figure, and table markers, but never page-number tokens; this is canonical app behavior, not a config flag. Runs also write prepared per-paper retrieval indexes under `retrieval/_indexes/`; these are generated run artifacts keyed by document fingerprint, retrieval mode, caption/table inclusion policy, and the canonical typed scoring behavior, with source counts for `built`, `disk`, and `memory` reuse. Figure review uses valid crops by default, falls back to full-page images when crops are missing or suspicious, and can prefer full-page images when the planner identifies layout or panel-counting work.
-
-Figure review is evidence-gated. Direct figure context is not enough by itself to call vision for a strong non-visual text answer. Vision remains available for weak, unresolved, missing, or contradictory text evidence, and for genuinely visual requests with promising figure retrieval. Prompt-only vision parsing repairs recoverable schema issues, including optional missing diagnostics and invalid `numeric_value_form` values such as `N/A`. If a figure response proposes a value, its `proposed_value` must contain the extracted answer.
-
-Recall rescue is selective and bounded to one extra rescue pass per cell. Whole-document fallback only runs when enabled and under `retrieval.whole_document_max_chars`; it is not a default path for every difficult cell.
-
-Candidate selection is also bounded. It compares existing text, rescue, evidence-recovery, and figure-review candidates, and should not let related but semantically mismatched figure evidence override a strong text answer.
-
-**Diagnostics**
-
 - `diagnostics.verbose_provider_logging`: record detailed provider request/response logs in the run bundle. Useful for debugging and development.
-- Run diagnostics include prepared-index source counts, figure planner counts and skip reasons, actual vision calls, image-source/fallback reasons, retry/repair details, dropped/no-hit reasons, accepted figure hits, successful vision calls without usable hits, candidate-selection outcomes, recall-rescue eligibility/use/skips, and whole-document eligibility/use/skips.

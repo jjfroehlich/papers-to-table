@@ -5,18 +5,16 @@ papers-to-table uses large language models and needs a LLM provider, currently i
 
 ## Install LM Studio
 
-You need to set up LM Studio before installing and running the app, it is available for Windows, macOS, and Linux.
-
 1. Download LM Studio from the [official downloads page](https://lmstudio.ai/download).
-2. Install it for your operating system.
+2. Install it for your operating system (Windows, macOS, or Linux).
 3. Open LM Studio and confirm it can browse/search models.
 
 
 ## Download A Model
 
-Download a model in LM Studio before starting papers-to-table.
+Download a model in LM Studio.
 
-The current default model documented by this repo is:
+The current default suggested model:
 
 ```text
 google/gemma-4-e4b
@@ -24,7 +22,7 @@ google/gemma-4-e4b
 
 If you choose a different model, update `provider.text_model.model_id` in `app/config.json` so the app and LM Studio agree.
 
-See [Model Choice](model-choice.md) for benchmark-based guidance on the quality and runtime trade-offs among tested local models.
+See [Model Choice](model-choice.md) for benchmark-based guidance on quality and runtime trade-offs.
 
 ## Start The Local Server
 
@@ -35,8 +33,6 @@ The local endpoint should automatically be available at:
 ```text
 http://localhost:1234
 ```
-
-The app expects an LM Studio/OpenAI-compatible local API at that base URL unless you configure a different `provider.base_url`.
 
 ## Expected Provider Values
 

@@ -1,20 +1,21 @@
 # Optimizer
 
-Optimizer is an orchestration tool for testing and comparing different models, prompts, and config parameters. It launches main-app runs, launches eval on the resulting run bundles, then writes experiment reports.
+Optimizer compares models, prompts, and configuration settings. It runs the main app, scores each run bundle with Eval, and writes experiment reports.
 
 ![Optimizer orchestration and Eval workflow](../diagrams/refined_svg/03_orchestrator_eval_benchmark_refined.svg)
 
 ## What It Is For
 
-Use optimizer when you need to answer questions like:
+Use Optimizer to answer questions such as:
 
-- which model should be the current default?
-- which prompt bundle performs best?
-- which retrieval settings are safest to recommend?
-- dev-check: how does the current app version perform?
+- Which model should be the default?
+- Which prompt bundle performs best?
+- Which retrieval settings are safe to recommend?
+- Does the current app still meet its development baseline?
 
 ## Install
-The main installation command will have this installed already. It is from the repository root:
+
+The main installation command includes Optimizer:
 
 ```bash
 python scripts/papers_to_table.py install
@@ -27,7 +28,8 @@ cd tools/optimizer
 python -m pip install -e .[dev]
 ```
 
-Test command:
+Run its tests from the repository root:
+
 ```bash
 bash scripts/test-optimizer-tool.sh
 ```
@@ -35,39 +37,33 @@ bash scripts/test-optimizer-tool.sh
 ## Recommended Commands
 
 ### Compare Models
-- use it to choose among fixed list of models
-- fixed candidate list
-- on current three-dataset benchmark suite
-- done in triplicate to measure variability
-- same prompt package, retrieval parameters, and extraction features
-- model-specific request settings come from `app/backend/src/backend/app/model_profiles/default_profiles.json`; one can add optimizer knobs to compare model-settings such as temperature/top-p/chat-templates.
-- Python command delegates to `tools/optimizer/scripts/compare_models.sh`
-- uses `tools/optimizer/configs/compare_models.json`
-- Treat compare-models as an overnight run. It can take 10+ hrs with 11 models and 6 external/control baselines.
+
+Use this command to rank a fixed model list. It holds prompts, retrieval, and extraction features constant across the three-dataset suite and runs three replicates.
+
+The preset is `tools/optimizer/configs/compare_models.json`. Model request settings come from `app/backend/src/backend/app/model_profiles/default_profiles.json`; explicit Optimizer settings can override them for comparisons. The wrapper delegates to `tools/optimizer/scripts/compare_models.sh`.
 
 ```bash
 python scripts/papers_to_table.py optimizer compare-models
 ```
 
 Options:
-- `--help`: help
-- `--label LABEL`: choose the run label instead of the timestamped default. 
-- `--initial-model MODEL_ID`: run a model comparison using the `tools/optimizer/configs/compare_models.json`, but restrict it to one text model. 
 
-Optimizer compares local models, and includes external-results, positive- and negative controls in the eval and reports.
+- `--label LABEL`: replace the timestamped run label.
+- `--initial-model MODEL_ID`: restrict the preset to one text model.
+- `--help`: show command help.
 
-<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_scores_of_all_candidates.jpg" alt="Scores for all local-model candidates, Codex baselines, failed local-agent attempts, and positive and negative controls" class="figure-wide" width="92%" />
+The full comparison includes external results and positive and negative controls. These baselines appear in Eval outputs and reports but do not compete for the winner. With 11 models and six baselines, expect an overnight run of 10 hours or more.
+
+![Scores for all local-model candidates, Codex baselines, failed local-agent attempts, and positive and negative controls](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_scores_of_all_candidates.jpg)
 
 *Content-correctness [Eval scores](eval.md) for optimizer run `20260615_004637_compare_models`. Gray points are replicate scores, blue lines are medians, black lines are means, and the numbers above the boxes give those means to one decimal percentage point. “Failed” marks configurations without a complete scorable result. The positive control is gold data; the within-field word-shuffle and cross-field controls were added on 2026-07-10 to calibrate score sensitivity and are excluded from winner selection.*
 
 
 ### Development Check
-- use during implementation to get one fast correctness/runtime signal
-- uses the same candidate settings as the canonical model-compare preset
-- runs one model, one benchmark, and one replicate
-- removes external-result scoring from the run-local config so the report reflects only the app candidate
-- defaults to `google/gemma-4-e4b` on `bench_genome_editing`
-- writes only run-local materialized config files; checked-in optimizer configs are unchanged
+
+Use this during implementation for one fast correctness and runtime signal. It runs one model, one benchmark, and one replicate using the canonical model-comparison settings. External baselines are removed from the run-local config.
+
+The defaults are `google/gemma-4-e4b` and `bench_genome_editing`. Materialized settings stay inside the run directory; checked-in presets are unchanged.
 
 ```bash
 python scripts/papers_to_table.py optimizer dev-check
@@ -75,24 +71,18 @@ python scripts/papers_to_table.py optimizer dev-check --label dev_check_after_pa
 ```
 
 Options:
-- `--help`: help
-- `--label LABEL`: choose the run directory label under `tools/optimizer/runs`.
-- `--model MODEL_ID`: choose the configured model id. Defaults to `google/gemma-4-e4b`.
-- `--benchmark-id BENCHMARK_ID`: choose one benchmark dataset. Defaults to `bench_genome_editing`, which has a useful mix of retrieval-heavy method fields and clear figure-dependent fields such as architecture figures and Figure 3 bar-chart counting.
+
+- `--label LABEL`: set the run-directory label under `tools/optimizer/runs`.
+- `--model MODEL_ID`: choose the model. Default: `google/gemma-4-e4b`.
+- `--benchmark-id BENCHMARK_ID`: choose one dataset. Default: `bench_genome_editing`.
+- `--help`: show command help.
 
 
 ### Full Benchmark
-- use when you want a broad end-to-end tuning pass rather than only model selection
-- compare models first, then compare prompt packages, retrieval parameters, and extraction feature toggles
-- each phase runs in triplicate on the current three-dataset dev suite
-- the routine preset is bounded: broad model compare, two prompt candidates, two retrieval candidates, and three extraction-feature candidates from the top retrieval seed
-- model-specific request settings are inherited from `app/backend/src/backend/app/model_profiles/default_profiles.json` unless a future config deliberately sweeps model settings
-- Python command delegates to `tools/optimizer/scripts/full_benchmark.sh`
-- model phase uses `tools/optimizer/configs/compare_models.json`
-- prompt phase materializes `compare_prompts.json` with the model-phase winner and compares `default` against `checklist_guided`
-- retrieval-parameter phase materializes `compare_retrieval_parameters.json` with the prompt-phase winner and compares `hybrid_experimental` top-k 8 against `lexical` top-k 12
-- extraction-feature phase materializes `compare_extraction_features.json` from the top retrieval-parameter candidate and compares three recall-rescue-enabled feature combinations
-- Full benchmark runtime scales roughly as: `candidate count x benchmark count x replicate count x model speed`. A single candidate costs about `1 - 3 h`, depending on model speed and feature settings. 
+
+Use this for a bounded end-to-end tuning pass. It compares models, then prompts, retrieval settings, and extraction features. Each phase runs three replicates on the three-dataset suite and passes its winner to the next phase.
+
+The phases use the four [canonical presets](#canonical-presets). Model request settings inherit from `app/backend/src/backend/app/model_profiles/default_profiles.json` unless a candidate overrides them. The wrapper delegates to `tools/optimizer/scripts/full_benchmark.sh`.
 
 ```bash
 python scripts/papers_to_table.py optimizer full-benchmark
@@ -101,20 +91,23 @@ python scripts/papers_to_table.py optimizer full-benchmark --resume tools/optimi
 ```
 
 Options:
-- `--help`: help
-- `--label LABEL`: choose the full-benchmark run label instead of the timestamped default. 
-- `--initial-model MODEL_ID`: Run a full benchmark using the model-compare config, but restrict it to one text model. Later phases still use the model-phase winner in the usual sequence, so this only shortens the first model-compare phase. 
-- `--resume PATH`: resume from an existing full-benchmark `overnight_manifest.json`. Resume skips stages already recorded in the manifest and, for the currently active compare stage, reuses completed candidate rows from `experiment/results/results.jsonl`.
+
+- `--label LABEL`: replace the timestamped run label.
+- `--initial-model MODEL_ID`: restrict only the first phase to one model; later phases still use its winner.
+- `--resume PATH`: resume from `overnight_manifest.json`, skipping completed stages and candidate rows.
+- `--help`: show command help.
+
+Runtime scales with candidate count × datasets × replicates × model speed. One candidate typically takes 1–3 hours on the benchmark workstation.
 
 ## Runtimes
 
 Optimizer exposes the accuracy-runtime trade-off: among the tested local models, longer runtime did not consistently produce a higher average score.
 
-<img src="../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_score_vs_runtime.jpg" alt="Average benchmark score plotted against runtime for local papers-to-table models and Codex baselines" class="figure-half" width="50%" />
+![Average benchmark score plotted against runtime for local papers-to-table models and Codex baselines](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_score_vs_runtime.jpg)
 
 *Average content-correctness [Eval score](eval.md) versus wall-clock runtime for 15 papers, 31 target columns, and three replicates in optimizer run `20260615_004637_compare_models`. Local-model timings were measured on the benchmark workstation documented below; the pale Codex points are external GPT-5.5 xhigh baselines and should not be interpreted as locally measured model runtimes.*
 
-The real-world runtimes below were measured on the project's development and benchmarking workstation. This environment snapshot was captured on 2026-07-10; software and driver versions may differ from older runs.
+The runtimes below were measured on the development workstation:
 
 | Component | Specification |
 |---|---|
@@ -125,7 +118,7 @@ The real-world runtimes below were measured on the project's development and ben
 | NVIDIA driver | 591.86 |
 | Repository and benchmark-data storage | `D:` on a TOSHIBA HDWD220 2 TB SATA HDD, NTFS |
 
-The checked-in routine full-benchmark preset now uses this bounded phase size:
+The checked-in routine full-benchmark:
 
 | Stage | Routine Candidates | Notes |
 |---|---:|---|
@@ -134,7 +127,9 @@ The checked-in routine full-benchmark preset now uses this bounded phase size:
 | retrieval compare | 2 | `hybrid_experimental` top-k 8 and `lexical` top-k 12 only. |
 | extraction feature compare | 3 | Top retrieval seed only; all candidates keep `recall_rescue_enabled=true`. |
 
-The 2026-05-15 full-benchmark attempt was broader and should be treated as a cautionary reference, not the current routine preset:
+### Historical Runtime Reference
+
+Run `20260515_142227_full_benchmark_full_benchmark_20260515-142227` used a broader search:
 
 | Stage | Completed Candidates | Completed Runtime | Mean Runtime Per Candidate |
 |---|---:|---:|---:|
@@ -143,19 +138,17 @@ The 2026-05-15 full-benchmark attempt was broader and should be treated as a cau
 | retrieval sweep | 10 | 22.54 h | 135 min |
 | extraction feature sweep | 4 | 8.64 h | 130 min |
 
-`20260515_142227_full_benchmark_full_benchmark_20260515-142227`
+Selected model runtimes from run `20260524_020807_compare_models`:
 
-| Stage |____________________________________________| Runtime Per Candidate |
-|---|---:|---:|
-| model compare openai/gpt-oss-20b || 48 min |
-| model compare google/gemma-4-e4b || 76 min |
-| model compare qwen/qwen3.6-27b || 204 min |
-
-`20260524_020807_compare_models`
+| Model | Runtime Per Candidate |
+|---|---:|
+| `openai/gpt-oss-20b` | 48 min |
+| `google/gemma-4-e4b` | 76 min |
+| `qwen/qwen3.6-27b` | 204 min |
 
 ## Canonical Presets
 
-These are the experiment templates. Each preset is focused on one comparison question. 
+Each preset answers one comparison question:
 
 - `tools/optimizer/configs/compare_models.json`
 - `tools/optimizer/configs/compare_prompts.json`
@@ -164,7 +157,7 @@ These are the experiment templates. Each preset is focused on one comparison que
 
 ## Config Structure
 
-Optimizer uses explicit JSON presets under `tools/optimizer/configs/`. 
+Optimizer uses explicit JSON presets under `tools/optimizer/configs/`.
 
 Common config areas:
 
@@ -182,28 +175,22 @@ Common config areas:
 ## Benchmark Datasets And Replicates
 
 There are three checked-in benchmark datasets:
+
 - `bench_massively_parallel_reporter_assays`
 - `bench_genome_editing`
 - `bench_spatial_transcriptomics`
 
-Regular optimizer runs, such as `compare-models` and `full-benchmark`, use the three benchmark datasets and 3 replicates. 
-A simple run is on one benchmark dataset with 1 replicate, for example used by `dev-check`. 
+`compare-models` and `full-benchmark` use all three datasets with three replicates. `dev-check` uses one dataset and one replicate.
 
 ## External Result Baselines
 
-Benchmarks can include precomputed filled tables from external software. Optimizer scores them with Eval before the internal candidates and includes them in `results/results.csv`, plots, and the HTML report as external baseline rows. Set a short <40 char `candidate_id` for each external result to avoid long paths that may exceed operating system limits.
+Benchmarks can include precomputed filled tables from external software. Optimizer scores them with Eval and includes them in reports.
 
-The canonical model comparison currently includes six external/control baselines: three completed external-agent systems, the gold positive control, and two deterministic gold-derived negative controls. All six use the same Eval path but are excluded from winner selection, recommendation rationale, and benchmark-best plots.
+The canonical model comparison includes three external-agent results and three controls. All use the same Eval path and are excluded from winner selection.
 
-- `ext_gold_word_shuffle` is a weak order-sensitivity control. It shuffles whitespace-delimited words within each non-empty target cell; single-token and otherwise unshufflable cells remain unchanged.
-- `ext_gold_cross_field` is a strong score-floor control. It reassigns whole non-empty values across target rows and columns and guarantees that no non-empty target cell retains its original gold value. It intentionally mixes field types and is not intended to resemble a realistic extraction system.
-
-Regenerate the checked-in controls, or verify that they still match their gold sources and algorithm:
-
-```bash
-python tools/optimizer/scripts/generate_negative_controls.py
-python tools/optimizer/scripts/generate_negative_controls.py --check
-```
+- `benchmark_datasets/data/20260517_gold`: positive control "gold", a copy of the perfect solution, the human-curated answer table.
+- `benchmark_datasets/data/20260710_gold_word_shuffle`: negative control, shuffles word order within each cell of the perfect solution.
+- `benchmark_datasets/data/20260710_gold_cross_field`: negative control, moves values across rows and columns within each dataset of the perfect solution.
 
 ```json
 "external_results": [
@@ -236,26 +223,28 @@ External runtimes are optional. When available, add `runtime_seconds` to each re
 
 ## Execution Phases
 
-Optimizer is orchestration-only. It does not extract values itself and it does not judge values itself. For every internal candidate x benchmark x replicate, it runs the same ordered phases:
+Optimizer orchestrates the main app and Eval; it does not extract or judge values itself. For each candidate × dataset × replicate, it:
 
-1. Resolve study config: load the preset, selected suite, benchmark manifests, replicate count, candidates, and search space.
-2. Materialize candidate bundle: write the candidate manifest and resolved config overlays for that candidate.
-3. Launch main-app extraction: start a headless/eval-mode main-app run for that candidate and benchmark. This run parses PDFs, matches rows, retrieves evidence, produces canonical proposal records, runs optional figure review, and writes the run bundle.
-4. Validate main-app output: confirm the expected run reference, run directory, `run.json`, config snapshot, summaries, and proposal artifacts exist.
-5. Launch eval: pass the completed run bundle to eval. Eval scores structured fields and explicit deterministic text overrides first, then sends judge-backed text cells to one or two judge language models; normalized exact text matches are judged by default unless a benchmark passes `--enable-text-exact-match-fast-path` through `eval_args`. In dual-judge mode, both judges' per-cell records are preserved and disagreement is reported as a trust signal.
-6. Validate eval output: confirm eval summary and expected per-run artifacts satisfy the optimizer contract.
-7. Record candidate result: merge main-app runtime metadata, eval metrics, diagnostics, warnings, and artifact references into candidate result rows.
-8. Aggregate replicates and suites: summarize candidate x benchmark, candidate x suite, and study-level results.
-9. Rank and recommend: rank raw results, apply guardrails and trust caveats, then write `best_candidate.json`, `summary.json`, plots, and `report.html`.
+1. Resolves the preset, suite, datasets, replicates, candidates, and search space.
+2. Writes the candidate manifest and resolved config overlays.
+3. Launches a headless main-app extraction run.
+4. Validates the completed run bundle and required artifacts.
+5. Launches Eval. Structured fields are scored deterministically; text fields normally use one or two judges.
+6. Validates Eval summaries and per-run artifacts.
+7. Records runtime, metrics, diagnostics, warnings, and artifact paths.
+8. Aggregates results by dataset, suite, candidate, and study.
+9. Ranks candidates, applies trust caveats, and writes the report and winner artifacts.
 
 
 ## Outputs
+
 ### Overview
+
 - study-level summary artifacts
 - per-candidate run/eval outputs
 - optional external-result baselines scored by Eval and shown beside internal candidates
 - recommended winner/default diagnostics
-- capability-use diagnostics when exposed by run bundles, including canonical typed retrieval scoring metadata, prepared retrieval index source counts, figure planner skip reasons, accepted figure hits, dropped/no-hit figure reasons, recovery use, and whole-document use
+- capability-use diagnostics from run bundles, including retrieval, figure review, recovery, and whole-document use
 
 ### How Outputs Are Organized
 
@@ -274,12 +263,14 @@ Each experiment writes an experiment directory with:
 - `runs/{candidate_id}/eval/` eval run bundle for that candidate
 - `plots/` generated comparison charts
 
-### How To Interpret Html Reports
+### How To Interpret HTML Reports
 
-- winner: best benchmark result under the scoring and acceptance rules
-- recommended default: operational recommendation after trust, degraded-mode, evidence, or runtime caveats are considered
-- degraded candidate: a candidate that ran with capability degradation or contract caveats and should not be treated like a healthy peer
-- content-correctness replicate distribution: boxplots retain individual replicate points, label each mean above the highest plotted replicate, and start the y-axis at zero; other primary metrics keep automatic scaling
+| Report item | Meaning |
+| --- | --- |
+| Winner | Highest result under the scoring and acceptance rules. |
+| Recommended default | Operational choice after trust, degradation, evidence, and runtime caveats. It may differ from the winner. |
+| Degraded candidate | A run with capability or contract caveats; do not compare it as a healthy peer. |
+| Replicate distribution | Individual replicate scores, their distribution, and the labeled mean. Content-correctness plots start at zero. |
 
 ### Regenerate The Published 2026-06-15 Boxplots
 
