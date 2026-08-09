@@ -123,7 +123,7 @@ Read the [manual](https://papers-to-table.readthedocs.io/en/latest/) or browse i
 
 ## Support
 
-- Please get in touch if you have feedback or want to contribute.
+Get in touch if you have feedback or want to contribute.
 
 ## License
 
