@@ -82,7 +82,7 @@ python scripts/papers_to_table.py review
 ```
 
 ### Command-line interface
-Use this [headless mode](docs/main-app/headless.md) when a terminal workflow, batch script, or agent needs to run the app without human review of the extracted values. 
+Use [headless mode](docs/main-app/headless.md) when a terminal workflow or agent needs to run the app without human review. 
 
 ```bash
 python scripts/papers_to_table.py headless \
@@ -92,7 +92,7 @@ python scripts/papers_to_table.py headless \
 ```
 
 ### Optimizer tool
-[Optimizer](docs/tools/optimizer.md) is an orchestration tool for testing different models, prompts, and configuration parameters with Eval scoring.
+[Optimizer](docs/tools/optimizer.md) is an orchestration tool for testing models, prompts, and configuration parameters.
 
 ```bash
 python scripts/papers_to_table.py optimizer dev-check
@@ -101,7 +101,7 @@ python scripts/papers_to_table.py optimizer full-benchmark
 ```
 
 ### Eval tool
-[Eval](docs/tools/eval.md) can score main-app output against [benchmarking datasets](docs/tools/benchmark-datasets.md) to create benchmark scores. 
+[Eval](docs/tools/eval.md) scores main-app output against [benchmarking datasets](docs/tools/benchmark-datasets.md) to create benchmark scores. 
 
 ```bash
 python scripts/papers_to_table.py eval \
@@ -118,23 +118,13 @@ python scripts/papers_to_table.py eval \
 Install by telling your agent, for example `install the skills at https://github.com/jjfroehlich/papers-to-table/tree/main/skills/`. Alternatively, copy the relevant skill folder into your agent system's skill directory.
 
 
-## Full Documentation
-Read the [hosted manual](https://papers-to-table.readthedocs.io/en/latest/) or browse its [Markdown sources](docs/).
+## Documentation
+Read the [manual](https://papers-to-table.readthedocs.io/en/latest/) or browse its [source files](docs/).
 
-Serve a static mkdocs site locally with:
-```bash
-python scripts/papers_to_table.py docs serve
-```
-Compile the static site to /site:
-```bash
-python scripts/papers_to_table.py docs build
-```
-
-## Give Feedback and Contribute
+## Support
 
 - Please get in touch if you have feedback or want to contribute.
 
 ## License
 
-Papers-to-table software and documentation are licensed under the
-[Apache License 2.0](LICENSE).
+See [Apache License 2.0](LICENSE).
