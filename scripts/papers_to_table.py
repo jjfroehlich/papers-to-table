@@ -129,6 +129,13 @@ def cmd_install(_args: argparse.Namespace) -> int:
 
 def cmd_review(args: argparse.Namespace) -> int:
     env = _env_with_pythonpath(BACKEND_SRC_DIR)
+    frontend_env = os.environ.copy()
+    if args.runs_dir:
+        runs_dir = Path(args.runs_dir).expanduser().resolve()
+        if not runs_dir.is_dir():
+            print(f"Runs directory does not exist or is not a directory: {runs_dir}", file=sys.stderr)
+            return 2
+        frontend_env["VITE_DEFAULT_RUNS_DIR"] = str(runs_dir)
     backend_cmd = [
         sys.executable,
         "-m",
@@ -165,7 +172,7 @@ def cmd_review(args: argparse.Namespace) -> int:
                     break
             except (urllib.error.URLError, TimeoutError):
                 time.sleep(1)
-        frontend = _popen(frontend_cmd, cwd=FRONTEND_DIR, env=os.environ.copy())
+        frontend = _popen(frontend_cmd, cwd=FRONTEND_DIR, env=frontend_env)
         if frontend is None:
             return 127
         print(
@@ -463,6 +470,7 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--backend-port", type=int, default=8000)
     review.add_argument("--frontend-host", default="127.0.0.1")
     review.add_argument("--frontend-port", type=int, default=5173)
+    review.add_argument("--runs-dir", help="Initial runs directory shown in the browser review interface")
     review.set_defaults(func=cmd_review)
 
     for name, help_text, handler in (

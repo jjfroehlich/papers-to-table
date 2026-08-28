@@ -16,7 +16,7 @@ export function RunList({ runs, selectedRunId, onSelect }: Props) {
   if (runs.length === 0) {
     return (
       <div className="text-sm text-gray-500 text-center py-8">
-        No runs yet. Create your first run above.
+        No runs found in this directory.
       </div>
     )
   }

@@ -33,6 +33,16 @@ class StagedInputResponse(BaseModel):
     runtime_locator: str
 
 
+class RunsDirectoryRequest(BaseModel):
+    path: Optional[str] = None
+    browse: bool = False
+
+
+class RunsDirectoryResponse(BaseModel):
+    status: str
+    path: Optional[str] = None
+
+
 class OpenPdfResponse(BaseModel):
     run_id: str
     pdf_id: str
@@ -49,3 +59,9 @@ class RecordDecisionRequest(BaseModel):
 
 class BulkAcceptRequest(BaseModel):
     proposal_ids: list[str]
+
+
+class BulkDecisionRequest(BaseModel):
+    proposal_ids: list[str]
+    decision: str
+    replace_existing: bool = False

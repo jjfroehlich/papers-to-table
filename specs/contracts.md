@@ -49,7 +49,7 @@ Stable files when produced:
 - `proposals/proposal_index.json`
 - evidence artifacts under `evidence/`
 - parsed or page-text-compatible artifacts needed for evidence anchor validation
-- matching artifacts for metadata extraction, candidate row scores, ambiguity, and duplicate-row diagnostics
+- matching artifacts for metadata extraction, candidate row scores, ambiguity, staged-new-row truth, and duplicate-row diagnostics. Row score breakdowns include DOI, exact-title bonus, title Jaccard similarity, shorter-title containment, year, first-author, author-overlap, and final-score fields. DOI candidates may originate from explicit DOI columns or DOI-shaped values in common Link/URL columns. A materialized unmatched PDF carries `staged_new_row=true`, remains listed in `matching/unmatched.json`, increments `unmatched` and `staged_new_rows`, and is excluded from the existing-row `matched` count even though extraction is unblocked against its staged row index.
 - retrieval artifacts under `retrieval/`, including per-cell retrieval records and prepared per-paper indexes under `retrieval/_indexes/`
 - export artifacts under `exports/`
 
@@ -152,11 +152,14 @@ New decision-source values are:
 
 - `human_individual`
 - `human_bulk_accept`
+- `human_bulk_selection`
 - `automation_accept_all`
 
 Legacy `human_reviewer` remains readable for backward compatibility, but new manual decisions must use the explicit individual or bulk values.
 
 Bulk accept applies only to the currently visible filtered subset. Headless `--accept-all` records automation acceptance explicitly and must not be confused with human review.
+
+An explicit multi-selection bulk decision accepts only proposal IDs selected in the current queue/table view, records `human_bulk_selection`, skips previously reviewed proposals by default, and may replace them only when the reviewer explicitly confirms replacement. Bulk selection supports accepted, rejected, and confirmed-no-data decisions; accepted-with-edit remains an individual action because each edited value is cell-specific.
 
 ## Export Contract
 
@@ -191,7 +194,17 @@ After explicit user opt-in, review/export generates:
 - `RUN_DIR/human_review/diagnostics_*.json`
 - `OUTPUT_DIR/<stem>_reviewed.csv`
 
-`review_input.json` uses `papers_to_table.review_input.v1`. Authored `proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional. The builder generates stable deterministic IDs when they are absent and validation checks uniqueness and references when they are supplied.
+`review_input.json` uses `papers_to_table.review_input.v1`. Its optional additive `extraction_mode` is `fill_blanks` by default or `fill_and_verify` when existing-value verification is explicitly requested. Authored `proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional. The builder generates stable deterministic IDs when they are absent and validation checks uniqueness and references when they are supplied.
+
+In `fill_blanks`, proposals against populated source cells are invalid. In `fill_and_verify`, normalized populated-cell proposals expose `is_verify_mode=true` and `existing_value`; they remain visible in review but do not overwrite the unreviewed filled CSV. Only an accepted decision changes the reviewed CSV.
+
+The portable scaffold is fail-closed for paper identity. By default every supplied PDF must be assigned exactly once through an explicit table `pdf_id` that resolves to a PDF stem, filename, label, or canonical identifier. Table-only rows may retain a blank `pdf_id`. Unknown, duplicate, or unused PDF assignments fail before run artifacts are created. Positional assignment requires explicit `--allow-positional-pdf-fallback`, no explicit mappings, equal row/PDF counts, and independently verified ordering. The scaffold reports mapping mode and mapped/unmapped row counts plus extraction-mode-aware blank, populated, and eligible target-cell counts over PDF-mapped rows; separate source-table and table-only totals describe preserved out-of-scope rows.
+
+The scaffold is also fail-closed for baseline authority. It recursively inspects compatible CSV/XLSX companions and stops before run creation when they contain target values missing from or conflicting with the selected template. `--authoritative-table` (plus optional `--authoritative-sheet`) identifies the approved source; `--allow-template-only` is an explicit override after independent confirmation. `table_gold.csv` is protected from baseline use. The generated `baseline_manifest.json` binds the effective source table to its SHA-256 and records preservation provenance. Authoring validation requires every non-empty source target value to appear byte-for-byte in the corresponding `rows[].values` entry.
+
+Portable CSV schemas accept categorical `allowed_values` as either a JSON-array string or pipe-delimited text and normalize both to JSON arrays. Partially populated source values are preserved data, never authoring evidence or implicit semantic exemplars; metadata/context fields are not targets unless included in the schema.
+
+Schema-driven authoring validation requires finite JSON numbers for `number` fields and exact `allowed_values` for categorical fields. `numeric_value_form` is `exact`, `range`, or `approximate`. The `calculation` reason code requires a calculation, `figure_estimate` requires page-specific figure evidence and approximate semantics, and `absence_inference` requires rationale plus structured evidence and routes to attention diagnostics.
 
 Every non-empty proposed value must have at least one structured evidence record and a value-specific rationale. Evidence is tiered for validation and UI labels:
 

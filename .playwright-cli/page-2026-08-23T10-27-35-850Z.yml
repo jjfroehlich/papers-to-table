@@ -1,0 +1,225 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#papers-to-table-agent-kit"
+  - banner [ref=e3]:
+    - navigation "Header" [ref=e4]:
+      - link "papers-to-table manual" [ref=e5] [cursor=pointer]:
+        - /url: ../..
+        - img "logo" [ref=e6]
+      - generic [ref=e8]:
+        - generic [ref=e9]: papers-to-table manual
+        - generic: Papers-to-Table Agent Kit
+      - dialog [ref=e11]:
+        - search [ref=e12]:
+          - generic [ref=e13]:
+            - textbox "Search" [ref=e14]
+            - navigation "Search":
+              - button "Clear"
+          - generic: Initializing search
+  - generic [ref=e18]:
+    - main [ref=e19]:
+      - generic [ref=e20]:
+        - navigation "Navigation" [ref=e24]:
+          - list [ref=e25]:
+            - listitem [ref=e26]:
+              - link "Start" [ref=e28] [cursor=pointer]:
+                - /url: ../..
+              - navigation [ref=e30]:
+                - list [ref=e31]
+            - listitem [ref=e32]:
+              - generic: Getting Started
+              - navigation "Getting Started" [ref=e33]:
+                - list [ref=e34]:
+                  - listitem [ref=e35]:
+                    - link "Model Provider (LM Studio)" [ref=e36] [cursor=pointer]:
+                      - /url: ../../getting-started/lm-studio/
+                  - listitem [ref=e38]:
+                    - link "Model Choice" [ref=e39] [cursor=pointer]:
+                      - /url: ../../getting-started/model-choice/
+                  - listitem [ref=e41]:
+                    - link "Installation" [ref=e42] [cursor=pointer]:
+                      - /url: ../../getting-started/installation/
+                  - listitem [ref=e44]:
+                    - link "Prepare Table and Schema" [ref=e45] [cursor=pointer]:
+                      - /url: ../../getting-started/prepare-schema/
+                  - listitem [ref=e47]:
+                    - link "Configuration" [ref=e48] [cursor=pointer]:
+                      - /url: ../../getting-started/configuration/
+                  - listitem [ref=e50]:
+                    - link "Preflight And Run Commands" [ref=e51] [cursor=pointer]:
+                      - /url: ../../getting-started/preflight-and-run/
+                  - listitem [ref=e53]:
+                    - link "Troubleshooting" [ref=e54] [cursor=pointer]:
+                      - /url: ../../getting-started/troubleshooting/
+            - listitem [ref=e56]:
+              - generic: Main App
+              - navigation "Main App" [ref=e57]:
+                - list [ref=e58]:
+                  - listitem [ref=e59]:
+                    - link "Browser Review" [ref=e60] [cursor=pointer]:
+                      - /url: ../../main-app/browser-review/
+                  - listitem [ref=e62]:
+                    - link "Headless and Accept-All" [ref=e63] [cursor=pointer]:
+                      - /url: ../../main-app/headless/
+                  - listitem [ref=e65]:
+                    - link "Outputs and Artifacts" [ref=e66] [cursor=pointer]:
+                      - /url: ../../main-app/outputs-and-artifacts/
+                  - listitem [ref=e68]:
+                    - link "Architecture" [ref=e69] [cursor=pointer]:
+                      - /url: ../../main-app/architecture/
+            - listitem [ref=e71]:
+              - generic: Companion Tools
+              - navigation "Companion Tools" [ref=e72]:
+                - list [ref=e73]:
+                  - listitem [ref=e74]:
+                    - link "Benchmark Datasets" [ref=e75] [cursor=pointer]:
+                      - /url: ../benchmark-datasets/
+                  - listitem [ref=e77]:
+                    - link "Eval" [ref=e78] [cursor=pointer]:
+                      - /url: ../eval/
+                  - listitem [ref=e80]:
+                    - link "Optimizer" [ref=e81] [cursor=pointer]:
+                      - /url: ../optimizer/
+                  - listitem [ref=e83]:
+                    - link "Papers-to-Table Agent Kit" [ref=e84] [cursor=pointer]:
+                      - /url: ./
+                    - navigation "Table of contents" [ref=e86]:
+                      - list [ref=e87]:
+                        - listitem [ref=e88]:
+                          - link "Why Use It" [ref=e89] [cursor=pointer]:
+                            - /url: "#why-use-it"
+                        - listitem [ref=e91]:
+                          - link "What Your Agent Will Do" [ref=e92] [cursor=pointer]:
+                            - /url: "#what-your-agent-will-do"
+                        - listitem [ref=e94]:
+                          - link "Browser Review" [ref=e95] [cursor=pointer]:
+                            - /url: "#browser-review"
+                        - listitem [ref=e97]:
+                          - link "Installation" [ref=e98] [cursor=pointer]:
+                            - /url: "#installation"
+                        - listitem [ref=e100]:
+                          - link "When To Choose The Local App Instead" [ref=e101] [cursor=pointer]:
+                            - /url: "#when-to-choose-the-local-app-instead"
+                        - listitem [ref=e103]:
+                          - link "Trust Boundary" [ref=e104] [cursor=pointer]:
+                            - /url: "#trust-boundary"
+                        - listitem [ref=e106]:
+                          - link "Benchmark Note" [ref=e107] [cursor=pointer]:
+                            - /url: "#benchmark-note"
+                  - listitem [ref=e109]:
+                    - link "Papers-to-Table Local App Skill" [ref=e110] [cursor=pointer]:
+                      - /url: ../papers-to-table-local-app/
+        - article [ref=e113]:
+          - heading [level=1] [ref=e114]:
+            - text: Papers-To-Table Agent Kit
+            - link "¶" [ref=e115] [cursor=pointer]:
+              - /url: "#papers-to-table-agent-kit"
+          - paragraph [ref=e116]:
+            - text: The
+            - strong [ref=e117]: Agent Kit
+            - text: "turns a capable general-purpose agent such as Codex or Claude into an evidence-first paper-to-table assistant. It is standalone: you do not need to install the papers-to-table app, run LM Studio, or configure a local model."
+          - paragraph [ref=e118]: Give the agent your PDFs, table, and field descriptions. It returns a filled CSV with source-linked evidence and can launch a browser workspace where you inspect each proposed value beside the relevant PDF passage before exporting reviewed results.
+          - paragraph [ref=e119]:
+            - img "Two agent skills, with the portable agent kit highlighted" [ref=e120]
+          - heading [level=2] [ref=e121]:
+            - text: Why Use It
+            - link "¶" [ref=e122] [cursor=pointer]:
+              - /url: "#why-use-it"
+          - list [ref=e123]:
+            - listitem [ref=e124]:
+              - strong [ref=e125]: Start with the agent you already use.
+              - text: The skill works through the agent's own document-reading and reasoning capabilities.
+            - listitem [ref=e126]:
+              - strong [ref=e127]: Get a table, not a chat summary.
+              - text: Results follow your rows and fields and are delivered as a reusable CSV.
+            - listitem [ref=e128]:
+              - strong [ref=e129]: Keep every value inspectable.
+              - text: Proposals carry page-level evidence and a concise extraction rationale.
+            - listitem [ref=e130]:
+              - strong [ref=e131]: Review visually when it matters.
+              - text: The optional browser interface keeps the proposed field, value, evidence, and source PDF together.
+            - listitem [ref=e132]:
+              - strong [ref=e133]: Stay portable.
+              - text: The output package can travel with the project and does not depend on a running papers-to-table backend.
+          - paragraph [ref=e134]: It is especially useful for one-off literature tables, benchmark datasets, collaborative evidence gathering, and projects where a strong hosted agent is available but the local app is not installed.
+          - heading [level=2] [ref=e135]:
+            - text: What Your Agent Will Do
+            - link "¶" [ref=e136] [cursor=pointer]:
+              - /url: "#what-your-agent-will-do"
+          - list [ref=e137]:
+            - listitem [ref=e138]: Read the table structure and field descriptions before extracting values.
+            - listitem [ref=e139]: Match each paper to the correct row and work field by field.
+            - listitem [ref=e140]: Record the narrowest useful quotation, table passage, caption, or page context for each proposed value.
+            - listitem [ref=e141]: Validate the filled CSV, evidence records, and rationales before handing them over.
+            - listitem [ref=e142]: Clearly label the first CSV as agent-extracted and not yet human-reviewed.
+            - listitem [ref=e143]: Ask whether you want to inspect the results in the browser interface.
+            - listitem [ref=e144]: If you opt in, launch the review workspace and export a separate reviewed CSV from accepted decisions.
+          - paragraph [ref=e145]: The procedural authoring, validation, and export rules live inside the skill. A human user does not need to prepare its internal JSON files or run its helper scripts manually.
+          - heading [level=2] [ref=e146]:
+            - text: Browser Review
+            - link "¶" [ref=e147] [cursor=pointer]:
+              - /url: "#browser-review"
+          - paragraph [ref=e148]: The review workspace lets you move through proposed cells, compare each value with its evidence, open the source PDF at the cited page, edit or reject a proposal, and export only accepted results. The initial filled CSV remains separate, so review never silently overwrites the source table.
+          - paragraph [ref=e149]:
+            - img "Agent Kit browser review workspace" [ref=e150]
+          - heading [level=2] [ref=e151]:
+            - text: Installation
+            - link "¶" [ref=e152] [cursor=pointer]:
+              - /url: "#installation"
+          - paragraph [ref=e153]: "Tell your agent:"
+          - generic [ref=e155]:
+            - navigation [ref=e156]:
+              - button "Copy to clipboard" [ref=e157] [cursor=pointer]
+            - code [ref=e158]: Install the papers-to-table Agent Kit from https://github.com/jjfroehlich/papers-to-table/tree/main/skills/papers-to-table-agent-kit/
+          - paragraph [ref=e159]:
+            - text: Alternatively, copy the complete
+            - code [ref=e160]: skills/papers-to-table-agent-kit/
+            - text: directory into your agent system's skill directory. Keep its
+            - code [ref=e161]: assets/
+            - text: ","
+            - code [ref=e162]: references/
+            - text: ","
+            - code [ref=e163]: scripts/
+            - text: ", and"
+            - code [ref=e164]: templates/
+            - text: directories together.
+          - paragraph [ref=e165]: "Then ask naturally, for example:"
+          - generic [ref=e167]:
+            - navigation [ref=e168]:
+              - button "Copy to clipboard" [ref=e169] [cursor=pointer]
+            - code [ref=e170]: Use the papers-to-table Agent Kit to fill this literature table from these PDFs. Preserve evidence for every proposed value.
+          - heading [level=2] [ref=e171]:
+            - text: When To Choose The Local App Instead
+            - link "¶" [ref=e172] [cursor=pointer]:
+              - /url: "#when-to-choose-the-local-app-instead"
+          - paragraph [ref=e173]:
+            - text: Choose the
+            - link "Local App skill" [ref=e174] [cursor=pointer]:
+              - /url: ../papers-to-table-local-app/
+            - text: when you want the agent to operate an installed papers-to-table pipeline, keep model inference local through LM Studio, process repeatable batches with one configuration, or produce the main app's full diagnostic run bundle.
+          - heading [level=2] [ref=e175]:
+            - text: Trust Boundary
+            - link "¶" [ref=e176] [cursor=pointer]:
+              - /url: "#trust-boundary"
+          - paragraph [ref=e177]: The kit makes extraction auditable; it does not make every extracted value correct or prove that a paper's claim is scientifically sound. Review important results, especially inferred values and fields without direct quotations. A reviewed CSV contains accepted decisions; an agent-extracted CSV does not imply human validation.
+          - heading [level=2] [ref=e178]:
+            - text: Benchmark Note
+            - link "¶" [ref=e179] [cursor=pointer]:
+              - /url: "#benchmark-note"
+          - paragraph [ref=e180]: In one project benchmark, Codex with GPT-5.5 xhigh produced similar content-correctness score distributions with its default workflow and with the Agent Kit. This is encouraging evidence that the structured provenance workflow did not reduce extraction quality in that benchmark, not a universal accuracy guarantee.
+          - paragraph [ref=e181]:
+            - img "Codex benchmark score distributions with and without the Agent Kit" [ref=e182]
+          - paragraph [ref=e183]:
+            - emphasis [ref=e184]:
+              - text: Three replicates across 15 papers and 31 target columns in optimizer run
+              - code [ref=e185]: 20260615_004637_compare_models
+              - text: ; see
+              - link "Benchmark Datasets" [ref=e186] [cursor=pointer]:
+                - /url: ../benchmark-datasets/
+              - text: for interpretation limits.
+      - button "Back to top"
+    - contentinfo [ref=e187]:
+      - generic [ref=e190]:
+        - text: Made with
+        - link "Material for MkDocs" [ref=e191] [cursor=pointer]:
+          - /url: https://squidfunk.github.io/mkdocs-material/

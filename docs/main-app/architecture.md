@@ -10,8 +10,8 @@ Browser and headless runs use the same backend executor.
 1. Resolve paths and verify input, parser, provider, and output readiness.
 2. Create `{output_dir}/{run_id}` and write initial metadata.
 3. Parse PDFs into normalized documents, page images, figures, and diagnostics.
-4. Match extracted paper metadata to table rows.
-5. Stage a new row for each unmatched PDF, using available title, author, year, and DOI metadata.
+4. Match extracted paper metadata to table rows. Explicit DOI fields and DOI-shaped Link/URL values are normalized first; exact and near-complete titles then use both token overlap and shorter-title containment, with ambiguity checks still applied. A DOI whose candidate row sharply contradicts the extracted title keeps weighted evidence but not the automatic identifier-match floor, so an unrelated front-matter DOI cannot override a near-exact title.
+5. Stage a new row for each unmatched PDF, using available title, author, year, and DOI metadata. Matching artifacts keep that case counted as unmatched and staged-new rather than relabeling it as an existing-row match; extraction is nevertheless unblocked against the staged row index.
 6. Build or load a prepared index for each paper.
 7. Retrieve relevant text, table, caption, and figure chunks for each eligible cell.
 8. Build one style profile per column when enabled. Filled cells guide a model-generated profile; otherwise the app uses heuristic or schema-only guidance.

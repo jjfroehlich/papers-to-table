@@ -97,3 +97,23 @@ Decision: External agents using `skills/papers-to-table-agent-kit/` author `RUN_
 Rationale: The kit's value is a rich human review handoff for agent-extracted values, not a second extraction app or a requirement that agents construct internal run artifacts correctly.
 
 Implications: Kit scripts derive normalized proposals/evidence, validation summaries, and the unreviewed root filled CSV. The handoff checker gates completion and the agent asks the exact browser-review question. Optional review scripts derive `human_review/`, decisions, audit logs, and a root reviewed CSV containing accepted values only. Main-app-compatible artifacts remain optional generated outputs, never required authored inputs.
+
+Addendum: The v1 authoring object may set `extraction_mode` to `fill_and_verify`; otherwise it defaults to `fill_blanks`. Verification proposals preserve their existing value in the unreviewed filled CSV and require acceptance before changing the reviewed CSV. Existing values are preserved data rather than extraction evidence or semantic exemplars. Portable scaffolding now requires explicit one-to-one PDF mappings by default, allows table-only rows, exposes an opt-in verified positional fallback, reports target occupancy, and normalizes JSON-array or pipe-delimited categorical values. These safeguards, derivation metadata, and schema-driven numeric/categorical validation are additive and do not create a new contract version.
+
+Addendum: Baseline authority is resolved before extraction rather than inferred from `table_template.csv` or directory naming. Compatible companion CSV/XLSX values trigger a fail-closed choice, explicit authoritative sources are merged into a hashed run-local baseline, and authored row values must preserve all populated source targets for review visibility. This provenance is additive to `papers_to_table.review_input.v1`.
+
+## D013 Run discovery is independent from run output
+
+Decision: The browser selects one persisted runs directory for discovering existing bundles, while the Create Run output directory remains an independent per-run destination.
+
+Rationale: Large user-owned run artifacts should remain reviewable in project-specific locations without copying them into the application repository or coupling browsing context to future extraction output.
+
+Implications: The default discovery root remains `app/runs/`; external roots are selected explicitly and validated. Directory-scoped listing and live events must not mix roots. Run-specific review and export requests use each bundle's recorded `output_dir`.
+
+## D014 Explicit bulk review selection is guarded and portable
+
+Decision: The main app and portable Agent Kit use the same Ctrl/Command toggle and Shift range/rectangle selection model. Accept, Reject, and Confirm no data require confirmation, affect pending proposals by default, and replace prior decisions only through an explicit reviewer control.
+
+Rationale: Large review sets need efficient, auditable batching without silently changing hidden or already-reviewed cells.
+
+Implications: Only proposal-backed visible cells participate. New records use `human_bulk_selection`; accepted-with-edit remains an individual action. Main-app history remains append-only, while portable writeback keeps the latest decision per proposal as before.

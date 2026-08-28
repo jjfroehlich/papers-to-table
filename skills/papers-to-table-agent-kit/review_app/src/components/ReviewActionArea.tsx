@@ -138,12 +138,12 @@ export function ReviewActionArea({
 
       {/* Main action buttons */}
       {!showEditInput && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2" data-testid="decision-controls">
           <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Decision</span>
           <button
             onClick={onPrev}
             disabled={loading}
-            title="Previous ([)"
+            title="Previous proposal (A or ←)"
             aria-label="Previous proposal"
             className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
@@ -152,7 +152,7 @@ export function ReviewActionArea({
           <button
             onClick={() => decide('rejected')}
             disabled={loading}
-            title="Reject (R)"
+            title="Reject (S or ↓)"
             className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             Reject
@@ -175,7 +175,7 @@ export function ReviewActionArea({
           <button
             onClick={() => decide('accepted')}
             disabled={loading}
-            title="Accept (A)"
+            title="Accept (W or ↑)"
             className="rounded-md border border-emerald-600 bg-emerald-600 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
           >
             Accept
@@ -183,7 +183,7 @@ export function ReviewActionArea({
           <button
             onClick={onNext}
             disabled={loading}
-            title="Next (])"
+            title="Next proposal (D or →)"
             aria-label="Next proposal"
             className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
@@ -194,7 +194,7 @@ export function ReviewActionArea({
 
       {/* Bulk accept */}
       {pendingCount > 0 && !showEditInput && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => setShowBulkConfirm(true)}
             disabled={loading}

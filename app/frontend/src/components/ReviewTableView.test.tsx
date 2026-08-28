@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { ReviewTableView } from './ReviewTableView'
 import type { ReviewTableData, ReviewTableProposal } from '../types'
@@ -107,9 +107,11 @@ describe('ReviewTableView', () => {
         runId="r1"
         outputDir="./runs"
         selectedProposalId={null}
+        selectedProposalIds={[]}
         filter="all"
         onFilterChange={vi.fn()}
         onSelect={vi.fn()}
+        onSelectionChange={vi.fn()}
       />
     )
 
@@ -136,13 +138,70 @@ describe('ReviewTableView', () => {
         runId="r1"
         outputDir="./runs"
         selectedProposalId={null}
+        selectedProposalIds={[]}
         filter="all"
         onFilterChange={vi.fn()}
         onSelect={vi.fn()}
+        onSelectionChange={vi.fn()}
       />
     )
 
     await screen.findByText('No rows match this filter.')
     expect(screen.queryByText('No value proposed')).not.toBeInTheDocument()
+  })
+
+  it('selects the proposal-containing rectangle with Shift-click', async () => {
+    const proposals = [
+      baseProposal,
+      { ...baseProposal, proposal_id: 'p2', cell_id: 'c2', column_name: 'second_field' },
+    ]
+    const onSelectionChange = vi.fn()
+    mockGetReviewTable.mockResolvedValueOnce(tableWith(proposals))
+
+    render(
+      <ReviewTableView
+        runId="r1"
+        outputDir="./runs"
+        selectedProposalId={null}
+        selectedProposalIds={['p1']}
+        filter="all"
+        onFilterChange={vi.fn()}
+        onSelect={vi.fn()}
+        onSelectionChange={onSelectionChange}
+      />
+    )
+
+    fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
+    fireEvent.click(screen.getByTestId('review-table-cell-p2'), { shiftKey: true })
+
+    await waitFor(() => expect(onSelectionChange).toHaveBeenCalledWith(['p1', 'p2'], 'p2'))
+  })
+
+  it('selects proposal cells inside a mouse-drag rectangle', async () => {
+    const proposals = [
+      baseProposal,
+      { ...baseProposal, proposal_id: 'p2', cell_id: 'c2', column_name: 'second_field' },
+    ]
+    const onSelectionChange = vi.fn()
+    mockGetReviewTable.mockResolvedValueOnce(tableWith(proposals))
+
+    render(
+      <ReviewTableView
+        runId="r1"
+        outputDir="./runs"
+        selectedProposalId={null}
+        selectedProposalIds={[]}
+        filter="all"
+        onFilterChange={vi.fn()}
+        onSelect={vi.fn()}
+        onSelectionChange={onSelectionChange}
+      />
+    )
+
+    fireEvent.mouseDown(await screen.findByTestId('review-table-cell-p1'), { button: 0, buttons: 1 })
+    fireEvent.mouseEnter(screen.getByTestId('review-table-cell-p2'), { buttons: 1 })
+    fireEvent.mouseUp(window)
+
+    await waitFor(() => expect(onSelectionChange).toHaveBeenCalledWith(['p1', 'p2'], 'p2'))
   })
 })

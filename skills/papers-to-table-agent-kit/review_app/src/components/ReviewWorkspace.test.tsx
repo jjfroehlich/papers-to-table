@@ -9,6 +9,7 @@ const mockGetProposalDetail = vi.fn()
 const mockGetReviewTable = vi.fn()
 const mockRecordDecision = vi.fn()
 const mockBulkAccept = vi.fn()
+const mockBulkDecision = vi.fn()
 const mockTriggerExport = vi.fn()
 const mockDownloadDecisions = vi.fn()
 let mockIsServed = true
@@ -23,6 +24,7 @@ vi.mock('../api/client', () => ({
     getReviewTable: (...args: Parameters<typeof mockGetReviewTable>) => mockGetReviewTable(...args),
     recordDecision: (...args: Parameters<typeof mockRecordDecision>) => mockRecordDecision(...args),
     bulkAccept: (...args: Parameters<typeof mockBulkAccept>) => mockBulkAccept(...args),
+    bulkDecision: (...args: Parameters<typeof mockBulkDecision>) => mockBulkDecision(...args),
     triggerExport: (...args: Parameters<typeof mockTriggerExport>) => mockTriggerExport(...args),
     openPdfInLocalViewer: vi.fn(),
     getPdfUrl: vi.fn().mockReturnValue('/pdf'),
@@ -210,6 +212,7 @@ describe('standalone ReviewWorkspace', () => {
     })
     mockGetReviewTable.mockResolvedValue(makeTable(proposals))
     mockBulkAccept.mockResolvedValue({ run_id: 'standalone_run', accepted_count: 2, decisions: [] })
+    mockBulkDecision.mockResolvedValue({ run_id: 'standalone_run', decision: 'confirmed_no_data', recorded_count: 2, skipped_count: 0, skipped_proposal_ids: [], decisions: [] })
     mockRecordDecision.mockResolvedValue({})
     mockTriggerExport.mockResolvedValue({
       run_id: 'standalone_run',
@@ -262,6 +265,52 @@ describe('standalone ReviewWorkspace', () => {
 
     await waitFor(() => expect(mockBulkAccept).toHaveBeenCalled())
     expect(mockBulkAccept.mock.calls[0][1]).toEqual(['p1', 'p2'])
+  })
+
+  it('keeps details and diagnostics open while navigating between proposals', async () => {
+    render(<ReviewWorkspace run={makeRun()} outputDir="" />)
+
+    fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
+    const detailsSummary = await screen.findByText('Details')
+    const diagnosticsSummary = screen.getAllByText('Diagnostics').find((element) => element.closest('details'))!
+    fireEvent.click(detailsSummary)
+    fireEvent.click(diagnosticsSummary)
+
+    expect(detailsSummary.closest('details')).toHaveAttribute('open')
+    expect(diagnosticsSummary.closest('details')).toHaveAttribute('open')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next proposal' }))
+    await waitFor(() => expect(mockGetProposalDetail).toHaveBeenCalledWith('standalone_run', 'p2', ''))
+    expect(screen.getByText('Details').closest('details')).toHaveAttribute('open')
+    expect(screen.getAllByText('Diagnostics').find((element) => element.closest('details'))?.closest('details')).toHaveAttribute('open')
+  })
+
+  it('applies a guarded action to an explicit Ctrl multi-cell selection', async () => {
+    render(<ReviewWorkspace run={makeRun()} outputDir="" />)
+
+    fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
+    fireEvent.click(screen.getByTestId('review-table-cell-p2'), { ctrlKey: true })
+
+    expect(await screen.findByText('2 cells selected')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'No data' }))
+    expect(screen.getByText(/decision_source=human_bulk_selection/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm selected cells' }))
+
+    await waitFor(() => {
+      expect(mockBulkDecision).toHaveBeenCalledWith('standalone_run', ['p1', 'p2'], 'confirmed_no_data', false, '')
+    })
+  })
+
+  it('selects table proposals with a mouse-drag rectangle', async () => {
+    render(<ReviewWorkspace run={makeRun()} outputDir="" />)
+
+    const first = await screen.findByTestId('review-table-cell-p1')
+    const second = screen.getByTestId('review-table-cell-p2')
+    fireEvent.mouseDown(first, { button: 0, buttons: 1 })
+    fireEvent.mouseEnter(second, { buttons: 1 })
+    fireEvent.mouseUp(window)
+
+    expect(await screen.findByText('2 cells selected')).toBeInTheDocument()
   })
 
   it('selects proposals across sparse paper rows without stale evidence or a blank page', async () => {

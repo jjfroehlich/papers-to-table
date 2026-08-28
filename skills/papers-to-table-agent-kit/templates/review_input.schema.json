@@ -10,12 +10,21 @@
     "run_id": {
       "type": "string"
     },
+    "extraction_mode": {
+      "type": "string",
+      "enum": ["fill_blanks", "fill_and_verify"],
+      "default": "fill_blanks"
+    },
     "output_table_name": {
       "type": "string"
     },
     "source_table_path": {
       "type": ["string", "null"]
     },
+    "original_template_path": {"type": ["string", "null"]},
+    "authoritative_source_table_path": {"type": ["string", "null"]},
+    "authoritative_source_sheet": {"type": ["string", "null"]},
+    "baseline_manifest_path": {"type": ["string", "null"]},
     "schema_path": {
       "type": ["string", "null"]
     },
@@ -79,6 +88,19 @@
           "proposal_status": {"type": "string"},
           "proposed_value": {},
           "rationale": {"type": ["string", "null"]},
+          "reason_codes": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "warning_flags": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "calculation": {"type": ["string", "null"]},
+          "numeric_value_form": {
+            "type": ["string", "null"],
+            "enum": ["exact", "range", "approximate", null]
+          },
           "evidence": {
             "type": "array",
             "items": {

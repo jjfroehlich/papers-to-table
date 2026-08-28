@@ -1,50 +1,62 @@
 # Papers-To-Table Local App Skill
 
-`skills/papers-to-table-local-app/` is the local-app skill for agents that can run this repo's installed app/headless workflow with a configured local LLM provider, usually LM Studio.
+The **Local App** skill lets an agent operate an installed papers-to-table pipeline for you. It combines the app's repeatable extraction workflow and diagnostics with a local LLM provider, normally LM Studio.
 
-![Comparison of the local-app and agent-kit skills](../diagrams/refined_svg/04_agent_skills_refined.svg)
+Choose it when privacy, reproducibility, batch processing, and standard run artifacts matter more than the convenience of letting a hosted agent perform the extraction itself.
 
-## Use Cases
+![Two agent skills, with the local app skill highlighted](../diagrams/refined_svg/04_agent_skills_local_app_refined.svg)
 
-Agents can use this skill when the task is to:
+## Why Use It
 
-- extract structured values from one or several scientific PDF files into a configured table/schema
-- run unattended or batch extraction through the app's headless command path
-- preserve evidence, decisions, diagnostics, and exported workbook artifacts for audit
+- **Keep inference local.** PDFs and prompts can stay on your machine when you use a local LM Studio model.
+- **Reuse a controlled pipeline.** The same configuration, schema, matching logic, and extraction stages can be applied across papers and reruns.
+- **Scale beyond an interactive chat.** The agent can launch long-running or batch jobs through the app's headless workflow.
+- **Get full diagnostics.** Standard run bundles preserve matching outcomes, proposals, evidence, warnings, decisions, and export records.
+- **Let the agent handle the mechanics.** It checks readiness, runs extraction, inspects problems, and reports the output rather than merely giving you commands.
+
+## Good Use Cases
+
+- Private or unpublished PDFs that should be processed with a local model.
+- Repeatable extraction from one spreadsheet, schema, and PDF collection.
+- Larger unattended jobs where a persistent run bundle and diagnostics matter.
+- Experiments comparing local models, prompts, or extraction settings.
 
 ## Installation
 
-Just tell your agent, for example `install the skill at https://github.com/jjfroehlich/papers-to-table/tree/main/skills/papers-to-table-local-app/`. Alternatively, copy `skills/papers-to-table-local-app/` into your agent system's skill directory. Keep the `references/` files with it.
+First install the [papers-to-table app](../getting-started/installation.md) and configure [LM Studio](../getting-started/lm-studio.md). Then tell your agent:
 
-## Preconditions
-
-- The papers-to-table app is installed and runnable.
-- A config JSON exists and points to valid table, schema, and PDF inputs.
-- The configured local LLM provider is ready, usually LM Studio for the default path.
-
-## Agent Will Do This
-
-1. Confirm the app and local LLM provider are installed and runnable.
-2. Run preflight for readiness and input resolution.
-3. Inspect schema descriptions and improve vague descriptions before extraction; these descriptions are prompt instructions.
-4. Run headless extraction.
-5. Use `--accept-all` only when unattended acceptance is appropriate.
-6. Inspect diagnostics and evidence artifacts before reporting results.
-7. Report output table path plus reliability caveats.
-
-## Command Pattern Agent will use
-
-```bash
-python scripts/papers_to_table.py headless \
-  --config app/config.json \
-  --accept-all \
-  --export
+```text
+Install the papers-to-table Local App skill from https://github.com/jjfroehlich/papers-to-table/tree/main/skills/papers-to-table-local-app/
 ```
+
+Alternatively, copy `skills/papers-to-table-local-app/` into the agent system's skill directory and keep its `references/` files with it.
+
+## What Your Agent Will Do
+
+1. Confirm that the app, inputs, configuration, and local model are ready.
+2. Inspect field descriptions because they become extraction instructions.
+3. Run preflight and stop on a real readiness problem instead of silently degrading.
+4. Launch the headless extraction workflow and monitor it to completion.
+5. Inspect matching outcomes, evidence quality, missing values, provider warnings, and export diagnostics.
+6. Report the exported table, run bundle, acceptance mode, important caveats, and recommended next step.
+
+The skill normally uses the app's headless command surface. You do not need to remember the command or inspect every artifact yourself.
+
+## What You Get
+
+- A new exported table rather than an overwritten source file.
+- A standard run bundle containing proposals, evidence, summaries, and diagnostics.
+- Clear reporting of unmatched papers, uncertain fields, degraded provider behavior, and whether values were automatically accepted.
+- Artifacts that can be reopened in the main browser app when human review is needed.
+
+## When To Choose The Agent Kit Instead
+
+Choose the standalone [Agent Kit](papers-to-table-agent-kit.md) when the local app or LM Studio is not installed, when you want Codex or Claude to use its own extraction capabilities, or when you want a lightweight evidence-backed CSV plus optional browser review without running the full backend pipeline.
 
 ## Important Boundaries
 
-- The skill depends on the installed local app and a configured LLM provider.
-- If the app is not installed, the agent must install it or request that scope explicitly.
+- This skill requires an installed papers-to-table app and a ready provider.
 - Auto-accepted values are not human-reviewed.
-- Provider readiness failures are blockers, not soft warnings.
-- Source input tables must not be silently overwritten; exports are written as new artifacts.
+- Provider-readiness failures are blockers, not harmless warnings.
+- Evidence makes results auditable but does not guarantee scientific correctness.
+- Papers-to-table is experimental; inspect important outputs before relying on them.

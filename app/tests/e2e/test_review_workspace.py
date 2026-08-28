@@ -14,7 +14,7 @@ def _open_review_workspace(page: Page, frontend_url: str, run_id: str) -> None:
     run_item = page.locator("[data-testid='run-item']", has_text=run_id)
     expect(run_item).to_be_visible()
     run_item.click()
-    review_tab = page.get_by_role("button", name="Review")
+    review_tab = page.get_by_role("button", name="Review", exact=True)
     expect(review_tab).to_be_enabled()
     review_tab.click()
     expect(page.locator("[data-testid='review-workspace']")).to_be_visible()
@@ -69,3 +69,24 @@ def test_review_workspace_exposes_warning_truth_and_unresolved_panel(
     page.get_by_role("button", name="Diagnostics").click()
 
     expect(page.get_by_text("No unmatched PDFs in this run.")).to_be_visible()
+
+
+def test_review_workspace_supports_guarded_multi_cell_selection(
+    page: Page,
+    frontend_url: str,
+    demo_run_ids: DemoRunIds,
+):
+    _open_review_workspace(page, frontend_url, demo_run_ids.review)
+
+    cells = page.locator("button[data-proposal-id]")
+    expect(cells).to_have_count(2)
+    cells.nth(0).hover()
+    page.mouse.down()
+    cells.nth(1).hover()
+    page.mouse.up()
+
+    selection_bar = page.get_by_test_id("bulk-selection-bar")
+    expect(selection_bar).to_contain_text("2 cells selected")
+    selection_bar.get_by_role("button", name="Reject").click()
+    expect(selection_bar).to_contain_text("decision_source=human_bulk_selection")
+    expect(selection_bar.get_by_role("button", name="Confirm selected cells")).to_be_visible()

@@ -10,6 +10,7 @@ from ...review import (
     ProposalFilter,
     build_review_table,
     bulk_accept_proposals,
+    bulk_decide_proposals,
     get_export_candidates,
     get_proposal_detail,
     get_latest_decision,
@@ -18,7 +19,7 @@ from ...review import (
 )
 from ...review_lookup import ensure_review_lookup, load_review_lookup
 from ...schemas import ReviewDecision, ReviewResolutionReason
-from ..models import BulkAcceptRequest, RecordDecisionRequest
+from ..models import BulkAcceptRequest, BulkDecisionRequest, RecordDecisionRequest
 
 router = APIRouter()
 
@@ -162,6 +163,34 @@ async def bulk_accept(run_id: str, request: BulkAcceptRequest, output_dir: str =
         raise HTTPException(status_code=404, detail=f'Run not found: {run_id}')
     recorded = bulk_accept_proposals(run_dir, run_id, request.proposal_ids)
     return {'run_id': run_id, 'accepted_count': len(recorded), 'decisions': [decision.model_dump() for decision in recorded]}
+
+
+@router.post('/api/runs/{run_id}/proposals/bulk-decision')
+async def bulk_decision(run_id: str, request: BulkDecisionRequest, output_dir: str = './runs'):
+    run_dir = get_run_dir(output_dir, run_id)
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail=f'Run not found: {run_id}')
+    try:
+        decision = ReviewDecision(request.decision)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f'Invalid bulk decision: {request.decision!r}')
+    if decision == ReviewDecision.accepted_with_edit:
+        raise HTTPException(status_code=422, detail='Bulk selection does not support accepted_with_edit.')
+    recorded, skipped = bulk_decide_proposals(
+        run_dir,
+        run_id,
+        request.proposal_ids,
+        decision,
+        replace_existing=request.replace_existing,
+    )
+    return {
+        'run_id': run_id,
+        'decision': decision.value,
+        'recorded_count': len(recorded),
+        'skipped_count': len(skipped),
+        'skipped_proposal_ids': skipped,
+        'decisions': [item.model_dump() for item in recorded],
+    }
 
 
 @router.get('/api/runs/{run_id}/export-candidates')

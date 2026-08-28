@@ -1,0 +1,499 @@
+- generic [ref=f2e3]:
+  - banner [ref=f2e4]:
+    - generic [ref=f2e5]:
+      - generic [ref=f2e6]:
+        - img "papers-to-table" [ref=f2e7]
+        - generic [ref=f2e8]:
+          - heading "papers-to-table" [level=1] [ref=f2e9]
+          - paragraph [ref=f2e10]: Evidence-backed extraction and review
+      - navigation [ref=f2e12]:
+        - button "Run" [ref=f2e13] [cursor=pointer]
+        - button "Review" [ref=f2e14] [cursor=pointer]
+  - main [ref=f2e15]:
+    - generic [ref=f2e179]:
+      - generic [ref=f2e181]:
+        - generic [ref=f2e182]:
+          - paragraph [ref=f2e183]: Review
+          - generic [ref=f2e184]:
+            - generic [ref=f2e185]:
+              - heading "run_20260822_043720_7rs60e" [level=2] [ref=f2e186]
+              - generic [ref=f2e187]: 0 / 36 reviewed
+              - generic [ref=f2e188]: 36 pending
+            - generic [ref=f2e189]: 0%
+        - generic [ref=f2e192]:
+          - button "Diagnostics" [ref=f2e193] [cursor=pointer]
+          - button "Export reviewed workbook" [ref=f2e194] [cursor=pointer]
+          - button "?" [ref=f2e195] [cursor=pointer]
+      - generic [ref=f2e196]:
+        - generic [ref=f2e198]:
+          - generic [ref=f2e199]:
+            - generic [ref=f2e200]:
+              - paragraph [ref=f2e201]: Review list
+              - paragraph [ref=f2e202]: Select a cell, verify evidence, decide.
+            - generic [ref=f2e203]:
+              - button "By Paper" [ref=f2e204] [cursor=pointer]
+              - button "By Column" [ref=f2e205] [cursor=pointer]
+              - button "As Table" [ref=f2e206] [cursor=pointer]
+          - generic [ref=f2e207]:
+            - combobox "Table filter" [ref=f2e209]:
+              - option "Pending" [selected]
+              - option "Attention"
+              - option "All"
+              - option "Reviewed - Accepted"
+              - option "Reviewed - Edited"
+              - option "Reviewed - No data"
+              - option "Reviewed - Rejected"
+            - table [ref=f2e211]:
+              - rowgroup [ref=f2e212]:
+                - row [ref=f2e213]:
+                  - columnheader "Authors" [ref=f2e214]
+                  - columnheader "Publication Year" [ref=f2e216]
+                  - columnheader "Title" [ref=f2e218]
+                  - columnheader "Abstract" [ref=f2e220]
+                  - columnheader "Journal" [ref=f2e222]
+                  - columnheader "Link" [ref=f2e224]
+                  - columnheader "Date Added" [ref=f2e226]
+                  - columnheader "MPRABase_datasets_id" [ref=f2e228]
+                  - columnheader "Focus" [ref=f2e230]
+                  - columnheader "Other notes" [ref=f2e232]
+                  - columnheader "Synthetic designs" [ref=f2e234]
+                  - columnheader "Cloning" [ref=f2e236]
+                  - columnheader "Bottlenecking" [ref=f2e238]
+                  - 'columnheader "mean # Barcodes per sequence" [ref=f2e240]'
+                  - columnheader "Type of variants" [ref=f2e242]
+                  - columnheader "Species" [ref=f2e244]
+                  - columnheader "Model system" [ref=f2e246]
+                  - columnheader "Episomal vs genomic" [ref=f2e248]
+                  - 'columnheader "If episomal: Ori in backbone?" [ref=f2e250]'
+                  - columnheader "Integration method" [ref=f2e252]
+                  - columnheader "Integration site" [ref=f2e254]
+                  - columnheader "Readout" [ref=f2e256]
+                  - columnheader "Promoter" [ref=f2e258]
+                  - columnheader "MPRABase_Total_Variants_Tested" [ref=f2e260]
+                  - columnheader "# Variants tested" [ref=f2e262]
+                  - columnheader "Scale" [ref=f2e264]
+                  - columnheader "length of sequences (bp)" [ref=f2e266]
+                  - columnheader "Where is the BC?" [ref=f2e268]
+                  - columnheader "BC length (bp)" [ref=f2e270]
+                  - columnheader "General library design category" [ref=f2e272]
+                  - columnheader "mean reads per sequence/variant" [ref=f2e274]
+                  - columnheader "library construction" [ref=f2e276]
+                  - columnheader "library composition" [ref=f2e278]
+                  - columnheader "CRE-BC lookup seq" [ref=f2e280]
+                  - columnheader "Delivery" [ref=f2e282]
+                  - columnheader "RNA library" [ref=f2e284]
+                  - columnheader "DNA library" [ref=f2e286]
+                  - columnheader "UMI?" [ref=f2e288]
+                  - columnheader "Approach" [ref=f2e290]
+                  - columnheader "what predicts activity? (e.g. accessible -> active in MPRA?)" [ref=f2e292]
+                  - columnheader "Number of Conditions" [ref=f2e294]
+                  - columnheader "Type of Condition" [ref=f2e296]
+              - rowgroup [ref=f2e298]:
+                - row [ref=f2e299]:
+                  - cell [ref=f2e300]:
+                    - button "Kwasnieski, Jamie C.; Mogno, Ilaria; Myers, Connie A.; Corbo, Joseph C.; Cohen, Barak A." [ref=f2e301] [cursor=pointer]
+                  - cell [ref=f2e303]:
+                    - button "2012" [ref=f2e304] [cursor=pointer]
+                  - cell [ref=f2e306]:
+                    - button "Complex effects of nucleotide variants in a mammalian cis-regulatory element" [ref=f2e307] [cursor=pointer]
+                  - cell [ref=f2e309]:
+                    - button [ref=f2e310] [cursor=pointer]
+                  - cell [ref=f2e312]:
+                    - button "Proceedings of the National Academy of Sciences" [ref=f2e313] [cursor=pointer]
+                  - cell [ref=f2e315]:
+                    - button "https://www.pnas.org/content/109/47/19498" [ref=f2e316] [cursor=pointer]
+                  - cell [ref=f2e318]:
+                    - button "2021-03-07 17:07:26" [ref=f2e319] [cursor=pointer]
+                  - cell [ref=f2e321]:
+                    - button "not in MPRABase" [ref=f2e322] [cursor=pointer]
+                  - cell [ref=f2e324]:
+                    - button "transcription" [ref=f2e325] [cursor=pointer]
+                  - cell [ref=f2e327]:
+                    - 'button "The study notes that the sharp difference in results compared to other studies (Melnikov et al. and Patwardhan et al.) may be due to functional differences between the CREs or differences in the technologies used. Review: pending Proposal: value proposed Evidence: inferred weak" [ref=f2e328] [cursor=pointer]':
+                      - generic [ref=f2e329]: The study notes that the sharp difference in results compared to other studies (Melnikov et al. and Patwardhan et al.) may be due to functional differences between the CREs or differences in the technologies used.
+                      - generic [ref=f2e330]:
+                        - 'generic "Review: pending" [ref=f2e331]'
+                        - 'generic "Proposal: value proposed" [ref=f2e333]'
+                        - 'generic "Evidence: inferred weak" [ref=f2e335]'
+                  - cell [ref=f2e337]:
+                    - button "+" [ref=f2e338] [cursor=pointer]
+                  - cell [ref=f2e340]:
+                    - button "restriction" [ref=f2e341] [cursor=pointer]
+                  - cell [ref=f2e343]:
+                    - 'button "max complexity Review: pending Proposal: value proposed Evidence: inferred weak" [ref=f2e344] [cursor=pointer]':
+                      - generic [ref=f2e345]: max complexity
+                      - generic [ref=f2e346]:
+                        - 'generic "Review: pending" [ref=f2e347]'
+                        - 'generic "Proposal: value proposed" [ref=f2e349]'
+                        - 'generic "Evidence: inferred weak" [ref=f2e351]'
+                  - cell [ref=f2e353]:
+                    - button "45787" [ref=f2e354] [cursor=pointer]
+                  - cell [ref=f2e356]:
+                    - button "point" [ref=f2e357] [cursor=pointer]
+                  - cell [ref=f2e359]:
+                    - button "mouse" [ref=f2e360] [cursor=pointer]
+                  - cell [ref=f2e362]:
+                    - button "mouse embryo retina" [ref=f2e363] [cursor=pointer]
+                  - cell [ref=f2e365]:
+                    - button "episomal" [ref=f2e366] [cursor=pointer]
+                  - cell [ref=f2e368]:
+                    - 'button "No value proposed Review: pending Proposal: unresolved Evidence: direct weak" [ref=f2e369] [cursor=pointer]':
+                      - generic [ref=f2e370]: No value proposed
+                      - generic [ref=f2e371]:
+                        - 'generic "Review: pending" [ref=f2e372]'
+                        - 'generic "Proposal: unresolved" [ref=f2e374]'
+                        - 'generic "Evidence: direct weak" [ref=f2e376]'
+                  - cell [ref=f2e378]:
+                    - 'button "none Review: pending Proposal: value proposed Evidence: inferred strong" [ref=f2e379] [cursor=pointer]':
+                      - generic [ref=f2e380]: none
+                      - generic [ref=f2e381]:
+                        - 'generic "Review: pending" [ref=f2e382]'
+                        - 'generic "Proposal: value proposed" [ref=f2e384]'
+                        - 'generic "Evidence: inferred strong" [ref=f2e386]'
+                  - cell [ref=f2e388]:
+                    - 'button "No value proposed Review: pending Proposal: unresolved Evidence: anchor fallback" [ref=f2e389] [cursor=pointer]':
+                      - generic [ref=f2e390]: No value proposed
+                      - generic [ref=f2e391]:
+                        - 'generic "Review: pending" [ref=f2e392]'
+                        - 'generic "Proposal: unresolved" [ref=f2e394]'
+                        - 'generic "Evidence: anchor fallback" [ref=f2e396]'
+                  - cell [ref=f2e398]:
+                    - button "RNA/DNAseq" [ref=f2e399] [cursor=pointer]
+                  - cell [ref=f2e401]:
+                    - button "minRho" [ref=f2e402] [cursor=pointer]
+                  - cell [ref=f2e404]:
+                    - button "-" [ref=f2e405] [cursor=pointer]
+                  - cell [ref=f2e407]:
+                    - button "1040" [ref=f2e408] [cursor=pointer]
+                  - cell [ref=f2e410]:
+                    - button "1 CRE" [ref=f2e411] [cursor=pointer]
+                  - cell [ref=f2e413]:
+                    - button "52" [ref=f2e414] [cursor=pointer]
+                  - cell [ref=f2e416]:
+                    - button "3'UTR" [ref=f2e417] [cursor=pointer]
+                  - cell [ref=f2e419]:
+                    - button "9" [ref=f2e420] [cursor=pointer]
+                  - cell [ref=f2e422]:
+                    - button "CRE-seq" [ref=f2e423] [cursor=pointer]
+                  - cell [ref=f2e425]:
+                    - button "10" [ref=f2e426] [cursor=pointer]
+                  - cell [ref=f2e428]:
+                    - button "Synthesized variants upstream of minimal Rho promoter/DsRed, with 3' UTR barcode." [ref=f2e429] [cursor=pointer]
+                  - cell [ref=f2e431]:
+                    - 'button "156 single substitutions (each with 10 barcodes), 819 double substitutions (each with 5 barcodes), and 65 wild-type RhoCRE3 sequences Review: pending Proposal: value proposed Evidence: direct strong" [ref=f2e432] [cursor=pointer]':
+                      - generic [ref=f2e433]: 156 single substitutions (each with 10 barcodes), 819 double substitutions (each with 5 barcodes), and 65 wild-type RhoCRE3 sequences
+                      - generic [ref=f2e434]:
+                        - 'generic "Review: pending" [ref=f2e435]'
+                        - 'generic "Proposal: value proposed" [ref=f2e437]'
+                        - 'generic "Evidence: direct strong" [ref=f2e439]'
+                  - cell [ref=f2e441]:
+                    - 'button "The paper does not specify the specific sequencing technology (e.g., Illumina platform or specific primers) used to verify the library prior to the functional assay; it only states that barcodes were sequenced from both RNA and DNA samples. Review: pending Proposal: value proposed Evidence: inferred strong" [ref=f2e442] [cursor=pointer]':
+                      - generic [ref=f2e443]: The paper does not specify the specific sequencing technology (e.g., Illumina platform or specific primers) used to verify the library prior to the functional assay; it only states that barcodes were sequenced from both RNA and DNA samples.
+                      - generic [ref=f2e444]:
+                        - 'generic "Review: pending" [ref=f2e445]'
+                        - 'generic "Proposal: value proposed" [ref=f2e447]'
+                        - 'generic "Evidence: inferred strong" [ref=f2e449]'
+                  - cell [ref=f2e451]:
+                    - 'button "The library was electroporated into newborn mouse retinas, which were then cultured as explants for 8 days. Review: pending Proposal: value proposed Evidence: direct strong" [ref=f2e452] [cursor=pointer]':
+                      - generic [ref=f2e453]: The library was electroporated into newborn mouse retinas, which were then cultured as explants for 8 days.
+                      - generic [ref=f2e454]:
+                        - 'generic "Review: pending" [ref=f2e455]'
+                        - 'generic "Proposal: value proposed" [ref=f2e457]'
+                        - 'generic "Evidence: direct strong" [ref=f2e459]'
+                  - cell [ref=f2e461]:
+                    - button "RNA extraction, RT, barcode PCR" [ref=f2e462] [cursor=pointer]
+                  - cell [ref=f2e464]:
+                    - button "DNA extraction, barcode PCR" [ref=f2e465] [cursor=pointer]
+                  - cell [ref=f2e467]:
+                    - button "no" [ref=f2e468] [cursor=pointer]
+                  - cell [ref=f2e470]:
+                    - button "Library of CRE variants linked to multiple 3' UTR barcodes, upstream of reporter; electroporated into retina explants; sequence barcodes from RNA/DNA; activity = cDNA/DNA ratio." [ref=f2e471] [cursor=pointer]
+                  - cell [ref=f2e473]:
+                    - 'button "The paper does not explicitly state specific biological features (such as accessibility or histone marks) that predict activity; however, it notes that 86% of single nucleotide substitutions in RhoCRE3 significantly altered expression. Review: pending Proposal: value proposed Evidence: inferred weak" [ref=f2e474] [cursor=pointer]':
+                      - generic [ref=f2e475]: The paper does not explicitly state specific biological features (such as accessibility or histone marks) that predict activity; however, it notes that 86% of single nucleotide substitutions in RhoCRE3 significantly altered expression.
+                      - generic [ref=f2e476]:
+                        - 'generic "Review: pending" [ref=f2e477]'
+                        - 'generic "Proposal: value proposed" [ref=f2e479]'
+                        - 'generic "Evidence: inferred weak" [ref=f2e481]'
+                  - cell [ref=f2e483]:
+                    - button "1" [ref=f2e484] [cursor=pointer]
+                  - cell [ref=f2e486]:
+                    - 'button "single nucleotide substitutions Review: pending Proposal: value proposed Evidence: inferred weak" [ref=f2e487] [cursor=pointer]':
+                      - generic [ref=f2e488]: single nucleotide substitutions
+                      - generic [ref=f2e489]:
+                        - 'generic "Review: pending" [ref=f2e490]'
+                        - 'generic "Proposal: value proposed" [ref=f2e492]'
+                        - 'generic "Evidence: inferred weak" [ref=f2e494]'
+                - row [ref=f2e496]:
+                  - cell [ref=f2e497]:
+                    - button "Grossman, Sharon R.; Zhang, Xiaolan; Wang, Li; Engreitz, Jesse; Melnikov, Alexandre; Rogov, Peter; Tewhey, Ryan; Isakova, Alina; Deplancke, Bart; Bernstein, Bradley E.; Mikkelsen, Tarjei S.; Lander, Eric S." [ref=f2e498] [cursor=pointer]
+                  - cell [ref=f2e500]:
+                    - button "2017" [ref=f2e501] [cursor=pointer]
+                  - cell [ref=f2e503]:
+                    - button "Systematic dissection of genomic features determining transcription factor binding and enhancer function" [ref=f2e504] [cursor=pointer]
+                  - cell [ref=f2e506]:
+                    - button [ref=f2e507] [cursor=pointer]
+                  - cell [ref=f2e509]:
+                    - button "Proceedings of the National Academy of Sciences of the United States of America" [ref=f2e510] [cursor=pointer]
+                  - cell [ref=f2e512]:
+                    - button "https://doi.org/10.1073/pnas.1621150114" [ref=f2e513] [cursor=pointer]
+                  - cell [ref=f2e515]:
+                    - button "2024-07-11 08:31:07" [ref=f2e516] [cursor=pointer]
+                  - cell [ref=f2e518]:
+                    - button "DS0010" [ref=f2e519] [cursor=pointer]
+                  - cell [ref=f2e521]:
+                    - button "transcription" [ref=f2e522] [cursor=pointer]
+                  - cell [ref=f2e524]:
+                    - 'button "No value proposed Review: pending Proposal: unresolved Evidence: direct strong" [ref=f2e525] [cursor=pointer]':
+                      - generic [ref=f2e526]: No value proposed
+                      - generic [ref=f2e527]:
+                        - 'generic "Review: pending" [ref=f2e528]'
+                        - 'generic "Proposal: unresolved" [ref=f2e530]'
+                        - 'generic "Evidence: direct strong" [ref=f2e532]'
+                  - cell [ref=f2e534]:
+                    - button "+/-" [ref=f2e535] [cursor=pointer]
+                  - cell [ref=f2e537]:
+                    - 'button "No value proposed Review: pending Proposal: unresolved Evidence: direct strong" [ref=f2e538] [cursor=pointer]':
+                      - generic [ref=f2e539]: No value proposed
+                      - generic [ref=f2e540]:
+                        - 'generic "Review: pending" [ref=f2e541]'
+                        - 'generic "Proposal: unresolved" [ref=f2e543]'
+                        - 'generic "Evidence: direct strong" [ref=f2e545]'
+                  - cell [ref=f2e547]:
+                    - 'button "No value proposed Review: pending Proposal: unresolved Evidence: direct strong" [ref=f2e548] [cursor=pointer]':
+                      - generic [ref=f2e549]: No value proposed
+                      - generic [ref=f2e550]:
+                        - 'generic "Review: pending" [ref=f2e551]'
+                        - 'generic "Proposal: unresolved" [ref=f2e553]'
+                        - 'generic "Evidence: direct strong" [ref=f2e555]'
+                  - cell [ref=f2e557]:
+                    - 'button "no BC Review: pending Proposal: value proposed Evidence: inferred strong" [ref=f2e558] [cursor=pointer]':
+                      - generic [ref=f2e559]: no BC
+                      - generic [ref=f2e560]:
+                        - 'generic "Review: pending" [ref=f2e561]'
+                        - 'generic "Proposal: value proposed" [ref=f2e563]'
+                        - 'generic "Evidence: inferred strong" [ref=f2e565]'
+                  - cell [ref=f2e567]:
+                    - 'button "bound genomic sites, unbound genomic sites, disrupted core motif Review: pending Proposal: value proposed Evidence: direct strong" [ref=f2e568] [cursor=pointer]':
+                      - generic [ref=f2e569]: bound genomic sites, unbound genomic sites, disrupted core motif
+                      - generic [ref=f2e570]:
+                        - 'generic "Review: pending" [ref=f2e571]'
+                        - 'generic "Proposal: value proposed" [ref=f2e573]'
+                        - 'generic "Evidence: direct strong" [ref=f2e575]'
+                  - cell [ref=f2e577]:
+                    - button "mouse" [ref=f2e578] [cursor=pointer]
+                  - cell [ref=f2e580]:
+                    - button "3T3" [ref=f2e581] [cursor=pointer]
+                  - cell [ref=f2e583]:
+                    - button "episomal" [ref=f2e584] [cursor=pointer]
+                  - cell [ref=f2e586]:
+                    - 'button "No value proposed Review: pending Proposal: unresolved Evidence: direct strong" [ref=f2e587] [cursor=pointer]':
+                      - generic [ref=f2e588]: No value proposed
+                      - generic [ref=f2e589]:
+                        - 'generic "Review: pending" [ref=f2e590]'
+                        - 'generic "Proposal: unresolved" [ref=f2e592]'
+                        - 'generic "Evidence: direct strong" [ref=f2e594]'
+                  - cell [ref=f2e596]:
+                    - 'button "none Review: pending Proposal: value proposed Evidence: inferred strong" [ref=f2e597] [cursor=pointer]':
+                      - generic [ref=f2e598]: none
+                      - generic [ref=f2e599]:
+                        - 'generic "Review: pending" [ref=f2e600]'
+                        - 'generic "Proposal: value proposed" [ref=f2e602]'
+                        - 'generic "Evidence: inferred strong" [ref=f2e604]'
+                  - cell [ref=f2e606]:
+                    - 'button "plasmids Review: pending Proposal: value proposed Evidence: direct strong" [ref=f2e607] [cursor=pointer]':
+                      - generic [ref=f2e608]: plasmids
+                      - generic [ref=f2e609]:
+                        - 'generic "Review: pending" [ref=f2e610]'
+                        - 'generic "Proposal: value proposed" [ref=f2e612]'
+                        - 'generic "Evidence: direct strong" [ref=f2e614]'
+                  - cell [ref=f2e616]:
+                    - 'button "RNA/DNAseq Review: pending Proposal: value proposed Evidence: inferred strong" [ref=f2e617] [cursor=pointer]':
+                      - generic [ref=f2e618]: RNA/DNAseq
+                      - generic [ref=f2e619]:
+                        - 'generic "Review: pending" [ref=f2e620]'
+                        - 'generic "Proposal: value proposed" [ref=f2e622]'
+                        - 'generic "Evidence: inferred strong" [ref=f2e624]'
+                  - cell [ref=f2e626]:
+                    - 'button "minimal promoter Review: pending Proposal: value proposed Evidence: direct strong" [ref=f2e627] [cursor=pointer]':
+                      - generic [ref=f2e628]: minimal promoter
+                      - generic [ref=f2e629]:
+                        - 'generic "Review: pending" [ref=f2e630]'
+                        - 'generic "Proposal: value proposed" [ref=f2e632]'
+                        - 'generic "Evidence: direct strong" [ref=f2e634]'
+                  - cell [ref=f2e636]:
+                    - button "10038" [ref=f2e637] [cursor=pointer]
+                  - cell [ref=f2e639]:
+                    - button "32115" [ref=f2e640] [cursor=pointer]
+                  - cell [ref=f2e642]:
+                    - 'button "750 bound genomic PPAR γ motif sites and 750 unbound genomic PPAR γ motif sites (totaling 1,500 sites in pool 1); a matrix of 625 enhancer constructs in pool 2. Review: pending Proposal: value proposed Evidence: inferred weak" [ref=f2e643] [cursor=pointer]':
+                      - generic [ref=f2e644]: 750 bound genomic PPAR γ motif sites and 750 unbound genomic PPAR γ motif sites (totaling 1,500 sites in pool 1); a matrix of 625 enhancer constructs in pool 2.
+                      - generic [ref=f2e645]:
+                        - 'generic "Review: pending" [ref=f2e646]'
+                        - 'generic "Proposal: value proposed" [ref=f2e648]'
+                        - 'generic "Evidence: inferred weak" [ref=f2e650]'
+                  - cell [ref=f2e652]:
+                    - 'button "145 bp Review: pending Proposal: value proposed Evidence: inferred weak" [ref=f2e653] [cursor=pointer]':
+                      - generic [ref=f2e654]: 145 bp
+                      - generic [ref=f2e655]:
+                        - 'generic "Review: pending" [ref=f2e656]'
+                        - 'generic "Proposal: value proposed" [ref=f2e658]'
+                        - 'generic "Evidence: inferred weak" [ref=f2e660]'
+                  - cell [ref=f2e662]:
+                    - 'button "luc2 ORF Review: pending Proposal: value proposed Evidence: inferred strong" [ref=f2e663] [cursor=pointer]':
+                      - generic [ref=f2e664]: luc2 ORF
+                      - generic [ref=f2e665]:
+                        - 'generic "Review: pending" [ref=f2e666]'
+                        - 'generic "Proposal: value proposed" [ref=f2e668]'
+                        - 'generic "Evidence: inferred strong" [ref=f2e670]'
+                  - cell [ref=f2e672]:
+                    - 'button "No value proposed Review: pending Proposal: unresolved Evidence: direct strong" [ref=f2e673] [cursor=pointer]':
+                      - generic [ref=f2e674]: No value proposed
+                      - generic [ref=f2e675]:
+                        - 'generic "Review: pending" [ref=f2e676]'
+                        - 'generic "Proposal: unresolved" [ref=f2e678]'
+                        - 'generic "Evidence: direct strong" [ref=f2e680]'
+                  - cell [ref=f2e682]:
+                    - button "plasmidMPRA" [ref=f2e683] [cursor=pointer]
+                  - cell [ref=f2e685]:
+                    - 'button "No value proposed Review: pending Proposal: unresolved Evidence: direct strong" [ref=f2e686] [cursor=pointer]':
+                      - generic [ref=f2e687]: No value proposed
+                      - generic [ref=f2e688]:
+                        - 'generic "Review: pending" [ref=f2e689]'
+                        - 'generic "Proposal: unresolved" [ref=f2e691]'
+                        - 'generic "Evidence: direct strong" [ref=f2e693]'
+                  - cell [ref=f2e695]:
+                    - 'button "The researchers synthesized an oligonucleotide pool containing 145 bp centered on various PPAR γ motifs (including bound, unbound, and mutated sites) and cloned these sequences into plasmids containing a minimal promoter and an ORF featuring a unique barcode to identify each specific upstream enhancer. Review: pending Proposal: value proposed Evidence: inferred weak" [ref=f2e696] [cursor=pointer]':
+                      - generic [ref=f2e697]: The researchers synthesized an oligonucleotide pool containing 145 bp centered on various PPAR γ motifs (including bound, unbound, and mutated sites) and cloned these sequences into plasmids containing a minimal promoter and an ORF featuring a unique barcode to identify each specific upstream enhancer.
+                      - generic [ref=f2e698]:
+                        - 'generic "Review: pending" [ref=f2e699]'
+                        - 'generic "Proposal: value proposed" [ref=f2e701]'
+                        - 'generic "Evidence: inferred weak" [ref=f2e703]'
+                  - cell [ref=f2e705]:
+                    - 'button "750 bound genomic sites, 750 unbound genomic sites, 1,500 control sequences (core motif disrupted) Review: pending Proposal: value proposed Evidence: direct strong" [ref=f2e706] [cursor=pointer]':
+                      - generic [ref=f2e707]: 750 bound genomic sites, 750 unbound genomic sites, 1,500 control sequences (core motif disrupted)
+                      - generic [ref=f2e708]:
+                        - 'generic "Review: pending" [ref=f2e709]'
+                        - 'generic "Proposal: value proposed" [ref=f2e711]'
+                        - 'generic "Evidence: direct strong" [ref=f2e713]'
+                  - cell [ref=f2e715]:
+                    - 'button "No value proposed Review: pending Proposal: unresolved Evidence: direct strong" [ref=f2e716] [cursor=pointer]':
+                      - generic [ref=f2e717]: No value proposed
+                      - generic [ref=f2e718]:
+                        - 'generic "Review: pending" [ref=f2e719]'
+                        - 'generic "Proposal: unresolved" [ref=f2e721]'
+                        - 'generic "Evidence: direct strong" [ref=f2e723]'
+                  - cell [ref=f2e725]:
+                    - 'button "Candidate sequences were cloned into plasmids upstream of a minimal promoter and barcoded luc2 ORF; these plasmid pools were then transfected into mouse 3T3-L1 adipocytes 7 d postdifferentiation. Review: pending Proposal: value proposed Evidence: direct weak" [ref=f2e726] [cursor=pointer]':
+                      - generic [ref=f2e727]: Candidate sequences were cloned into plasmids upstream of a minimal promoter and barcoded luc2 ORF; these plasmid pools were then transfected into mouse 3T3-L1 adipocytes 7 d postdifferentiation.
+                      - generic [ref=f2e728]:
+                        - 'generic "Review: pending" [ref=f2e729]'
+                        - 'generic "Proposal: value proposed" [ref=f2e731]'
+                        - 'generic "Evidence: direct weak" [ref=f2e733]'
+                  - cell [ref=f2e735]:
+                    - 'button "None reported Review: pending Proposal: unresolved Evidence: direct weak" [ref=f2e736] [cursor=pointer]':
+                      - generic [ref=f2e737]: None reported
+                      - generic [ref=f2e738]:
+                        - 'generic "Review: pending" [ref=f2e739]'
+                        - 'generic "Proposal: unresolved" [ref=f2e741]'
+                        - 'generic "Evidence: direct weak" [ref=f2e743]'
+                  - cell [ref=f2e745]:
+                    - 'button "Synthesized an oligonucleotide pool (pool 1) containing 145 bp centered on the PPAR γ motif from each of these 1,500 sites; cloned these 3,000 sequences into plasmids containing a minimal promoter and an ORF containing a unique barcode that identifies its specific upstream enhancer. Review: pending Proposal: value proposed Evidence: direct strong" [ref=f2e746] [cursor=pointer]':
+                      - generic [ref=f2e747]: Synthesized an oligonucleotide pool (pool 1) containing 145 bp centered on the PPAR γ motif from each of these 1,500 sites; cloned these 3,000 sequences into plasmids containing a minimal promoter and an ORF containing a unique barcode that identifies its specific upstream enhancer.
+                      - generic [ref=f2e748]:
+                        - 'generic "Review: pending" [ref=f2e749]'
+                        - 'generic "Proposal: value proposed" [ref=f2e751]'
+                        - 'generic "Evidence: direct strong" [ref=f2e753]'
+                  - cell [ref=f2e755]:
+                    - 'button "yes, barcode Review: pending Proposal: value proposed Evidence: inferred strong" [ref=f2e756] [cursor=pointer]':
+                      - generic [ref=f2e757]: yes, barcode
+                      - generic [ref=f2e758]:
+                        - 'generic "Review: pending" [ref=f2e759]'
+                        - 'generic "Proposal: value proposed" [ref=f2e761]'
+                        - 'generic "Evidence: inferred strong" [ref=f2e763]'
+                  - cell [ref=f2e765]:
+                    - 'button "The study utilized massively parallel reporter assays (MPRAs) to test large collections of short regulatory sequences (≤ 150 bp) in parallel by coupling each to a transcription unit containing a matched DNA barcode. The approach included using a pooled plasmid-based reporter system to explore PPAR γ binding in vivo at genomic motif sites outside their native chromatin context, and an in vitro microfluidic device to measure the binding affinity of fluorescently labeled DNA oligonucleotides with immobilized PPAR γ protein. Review: pending Proposal: value proposed Evidence: inferred weak" [ref=f2e766] [cursor=pointer]':
+                      - generic [ref=f2e767]: The study utilized massively parallel reporter assays (MPRAs) to test large collections of short regulatory sequences (≤ 150 bp) in parallel by coupling each to a transcription unit containing a matched DNA barcode. The approach included using a pooled plasmid-based reporter system to explore PPAR γ binding in vivo at genomic motif sites outside their native chromatin context, and an in vitro microfluidic device to measure the binding affinity of fluorescently labeled DNA oligonucleotides with immobilized PPAR γ protein.
+                      - generic [ref=f2e768]:
+                        - 'generic "Review: pending" [ref=f2e769]'
+                        - 'generic "Proposal: value proposed" [ref=f2e771]'
+                        - 'generic "Evidence: inferred weak" [ref=f2e773]'
+                  - cell [ref=f2e775]:
+                    - 'button "While PPAR γ binding is primarily governed by the affinity of the specific motif site and chromatin accessibility (specifically, quantified DNA accessibility and enrichment of marks like H3K27ac), the enhancer activity of PPAR γ binding sites depends on varying contributions from dozens of TFs in the immediate vicinity, including interactions between combinations of these TFs (including subadditive, additive, and superadditive interactions). Review: pending Proposal: value proposed Evidence: inferred weak" [ref=f2e776] [cursor=pointer]':
+                      - generic [ref=f2e777]: While PPAR γ binding is primarily governed by the affinity of the specific motif site and chromatin accessibility (specifically, quantified DNA accessibility and enrichment of marks like H3K27ac), the enhancer activity of PPAR γ binding sites depends on varying contributions from dozens of TFs in the immediate vicinity, including interactions between combinations of these TFs (including subadditive, additive, and superadditive interactions).
+                      - generic [ref=f2e778]:
+                        - 'generic "Review: pending" [ref=f2e779]'
+                        - 'generic "Proposal: value proposed" [ref=f2e781]'
+                        - 'generic "Evidence: inferred weak" [ref=f2e783]'
+                  - cell [ref=f2e785]:
+                    - 'button "No value proposed Review: pending Proposal: unresolved Evidence: direct strong" [ref=f2e786] [cursor=pointer]':
+                      - generic [ref=f2e787]: No value proposed
+                      - generic [ref=f2e788]:
+                        - 'generic "Review: pending" [ref=f2e789]'
+                        - 'generic "Proposal: unresolved" [ref=f2e791]'
+                        - 'generic "Evidence: direct strong" [ref=f2e793]'
+                  - cell [ref=f2e795]:
+                    - 'button "motif affinity, cooperative interactions, and chromatin accessibility Review: pending Proposal: value proposed Evidence: direct strong" [ref=f2e796] [cursor=pointer]':
+                      - generic [ref=f2e797]: motif affinity, cooperative interactions, and chromatin accessibility
+                      - generic [ref=f2e798]:
+                        - 'generic "Review: pending" [ref=f2e799]'
+                        - 'generic "Proposal: value proposed" [ref=f2e801]'
+                        - 'generic "Evidence: direct strong" [ref=f2e803]'
+        - separator "Resize proposal queue" [ref=f2e805]
+        - generic [ref=f2e806]:
+          - generic [ref=f2e810]:
+            - generic [ref=f2e811]:
+              - paragraph [ref=f2e812]: Field
+              - paragraph [ref=f2e813]: CRE-BC lookup seq
+            - generic [ref=f2e814]:
+              - paragraph [ref=f2e816]: Value
+              - paragraph [ref=f2e817]: The paper does not specify the specific sequencing technology (e.g., Illumina platform or specific primers) used to verify the library prior to the functional assay; it only states that barcodes were sequenced from both RNA and DNA samples.
+            - generic [ref=f2e818]:
+              - paragraph [ref=f2e819]: Rationale
+              - generic [ref=f2e820]: "- [. - \"The text mentions 'high-throughput sequencing' for measuring expression.\",. - \"There is no mention of specific pre-assay verification methods like PCR with specific primers or specific sequencer models.\",."
+            - generic [ref=f2e821]:
+              - generic [ref=f2e822]:
+                - paragraph [ref=f2e824]: Evidence
+                - generic [ref=f2e825]:
+                  - 'generic "Evidence quality: strong inferred support" [ref=f2e826]': Inferred evidence
+                  - generic [ref=f2e827]: 1 item
+              - 'button "Evidence: direct quote p.1 100% confidence “We measured the expression of all library members using highthroughput sequencing. After growing the electroporated retinal explants in culture, we extracted both RNA and DNA and sequenced the barcodes from both samples.”" [ref=f2e829] [cursor=pointer]':
+                - generic [ref=f2e830]:
+                  - 'generic "Evidence: direct quote" [ref=f2e831]'
+                  - generic [ref=f2e832]: p.1
+                  - generic [ref=f2e833]: 100% confidence
+                - paragraph [ref=f2e834]: “We measured the expression of all library members using highthroughput sequencing. After growing the electroporated retinal explants in culture, we extracted both RNA and DNA and sequenced the barcodes from both samples.”
+            - group [ref=f2e835]:
+              - generic "Details" [ref=f2e836] [cursor=pointer]:
+                - generic [ref=f2e837]:
+                  - generic [ref=f2e838]: ▸
+                  - generic [ref=f2e839]: Details
+            - group [ref=f2e840]:
+              - generic "Diagnostics" [ref=f2e841] [cursor=pointer]:
+                - generic [ref=f2e842]:
+                  - generic [ref=f2e843]: ▸
+                  - generic [ref=f2e844]: Diagnostics
+          - generic [ref=f2e845]:
+            - generic [ref=f2e846]:
+              - generic [ref=f2e847]: Decision
+              - button "Previous proposal" [ref=f2e848] [cursor=pointer]: ←
+              - button "Reject" [ref=f2e849] [cursor=pointer]
+              - button "Edit" [ref=f2e850] [cursor=pointer]
+              - button "No Data" [ref=f2e851] [cursor=pointer]
+              - button "Accept" [ref=f2e852] [cursor=pointer]
+              - button "Next proposal" [ref=f2e853] [cursor=pointer]: →
+            - button "Bulk accept 35 pending proposals…" [ref=f2e855] [cursor=pointer]
+        - separator "Resize evidence panel" [ref=f2e856]
+        - generic [ref=f2e859]:
+          - button "‹" [disabled] [ref=f2e860]
+          - generic [ref=f2e861]:
+            - spinbutton [ref=f2e862]: "1"
+            - generic [ref=f2e863]: / 6
+          - button "›" [ref=f2e864] [cursor=pointer]
+          - button "Prev" [disabled] [ref=f2e866]
+          - generic [ref=f2e867]: 1 / 1
+          - button "Next" [disabled] [ref=f2e868]
+          - button "−" [ref=f2e870] [cursor=pointer]
+          - generic [ref=f2e871]: 135%
+          - button "+" [ref=f2e872] [cursor=pointer]
+          - button "Open PDF" [ref=f2e873] [cursor=pointer]

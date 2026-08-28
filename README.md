@@ -38,6 +38,15 @@ Developed and benchmarked on
  - 32 GB RAM
  - NVIDIA GeForce RTX 3090, 24 GB VRAM.
 
+## Use with an AI agent
+
+Papers-to-table includes two installable agent skills:
+
+- **[Agent Kit](docs/tools/papers-to-table-agent-kit.md):** the portable option for Codex, Claude, and other capable agents. It does not require this app or LM Studio; the agent extracts an evidence-backed table and can give you a browser interface to inspect every proposed value against the source PDF.
+- **[Local App](docs/tools/papers-to-table-local-app.md):** lets an agent operate the installed papers-to-table pipeline with a local model, normally through LM Studio. Choose it for private, repeatable, app-backed batch extraction and standard run bundles.
+
+Tell your agent to install either skill directly from the corresponding folder under [`skills/`](skills/).
+
 ## Quickstart
 ### 1. Install
 From the repository root:
@@ -81,6 +90,8 @@ This is the primary workflow where the [browser interface](docs/main-app/browser
 python scripts/papers_to_table.py review
 ```
 
+Use `--runs-dir PATH` to choose the initial directory shown in the run list. This review directory remains independent from the output directory used to create a new run.
+
 ### Command-line interface
 Use [headless mode](docs/main-app/headless.md) when a terminal workflow or agent needs to run the app without human review. 
 
@@ -110,13 +121,6 @@ python scripts/papers_to_table.py eval \
   --schema /absolute/path/to/schema.json \
   --out /absolute/path/to/eval_out
 ```
-
-### Agent skills
-- [Standalone skill](docs/tools/papers-to-table-agent-kit.md) for regular agent systems (Codex, Claude, Hermes, etc.), which instructs an agent for systematic extraction. This also provides a browser interface for human review. 
-- [Local-first skill](docs/tools/papers-to-table-local-app.md) for agents to run the locally installed app with a local LLM provider LM Studio.
-
-Install by telling your agent, for example `install the skills at https://github.com/jjfroehlich/papers-to-table/tree/main/skills/`. Alternatively, copy the relevant skill folder into your agent system's skill directory.
-
 
 ## Documentation
 Read the [manual](https://papers-to-table.readthedocs.io/en/latest/) or browse its [source files](docs/).

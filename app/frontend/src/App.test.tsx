@@ -1,9 +1,10 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 
 const mockListRuns = vi.fn()
 const mockCreateRunEventsSource = vi.fn()
+const mockResolveRunsDirectory = vi.fn()
 
 class MockEventSource {
   listeners = new Map<string, EventListener[]>()
@@ -32,20 +33,38 @@ vi.mock('./api/client', () => ({
   api: {
     listRuns: (...args: Parameters<typeof mockListRuns>) => mockListRuns(...args),
     abortRun: vi.fn(),
+    resolveRunsDirectory: (...args: Parameters<typeof mockResolveRunsDirectory>) => mockResolveRunsDirectory(...args),
     createRunEventsSource: (...args: Parameters<typeof mockCreateRunEventsSource>) => mockCreateRunEventsSource(...args),
   },
 }))
 
 vi.mock('./components/RunLaunchSurface', () => ({
-  RunLaunchSurface: () => <div>Create run form</div>,
+  RunLaunchSurface: () => (
+    <div>
+      Create run form
+      <label htmlFor="new-run-output">Output directory</label>
+      <input id="new-run-output" defaultValue="./runs" />
+    </div>
+  ),
 }))
 
 vi.mock('./components/RunDetail', () => ({
-  RunDetail: () => <div>Run detail</div>,
+  RunDetail: ({ run, onStartReview }: { run: { run_id: string }; onStartReview?: (run: { run_id: string }) => void }) => (
+    <div>
+      Run detail
+      <button onClick={() => onStartReview?.(run)}>Start human review</button>
+    </div>
+  ),
 }))
 
 vi.mock('./components/RunList', () => ({
-  RunList: ({ runs }: { runs: Array<{ run_id: string }> }) => <div>{runs.map((run) => run.run_id).join(',')}</div>,
+  RunList: ({ runs, onSelect }: { runs: Array<{ run_id: string }>; onSelect: (run: { run_id: string }) => void }) => (
+    <div>
+      {runs.map((run) => (
+        <button key={run.run_id} onClick={() => onSelect(run)}>{run.run_id}</button>
+      ))}
+    </div>
+  ),
 }))
 
 vi.mock('./components/ReviewWorkspace', () => ({
@@ -59,11 +78,14 @@ describe('App', () => {
     vi.unstubAllGlobals()
     mockListRuns.mockReset()
     mockCreateRunEventsSource.mockReset()
+    mockResolveRunsDirectory.mockReset()
     mockListRuns.mockResolvedValue({ runs: [] })
+    mockResolveRunsDirectory.mockImplementation(async (path: string) => ({ status: 'selected', path }))
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
   })
 
   it('renders the main app shell by default', async () => {
@@ -71,6 +93,65 @@ describe('App', () => {
 
     await screen.findByText('Create run form')
     expect(screen.getByText('Review ready')).toBeInTheDocument()
+    expect(mockListRuns).toHaveBeenCalledWith('./runs')
+  })
+
+  it('opens human review from the selected-run action', async () => {
+    mockListRuns.mockResolvedValue({
+      runs: [{
+        run_id: 'run_completed',
+        status: 'completed',
+        output_dir: 'D:\\external-runs',
+      }],
+    })
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'run_completed' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start human review' }))
+
+    expect(await screen.findByText('Review workspace')).toBeInTheDocument()
+  })
+
+  it('restores the last successfully selected runs directory', async () => {
+    window.localStorage.setItem('papers-to-table.runs-directory', 'C:\\saved-runs')
+
+    render(<App />)
+
+    await waitFor(() => expect(mockListRuns).toHaveBeenCalledWith('C:\\saved-runs'))
+    expect(screen.getByLabelText('Runs directory')).toHaveValue('C:\\saved-runs')
+  })
+
+  it('gives the startup runs directory precedence over saved browser state', async () => {
+    vi.stubEnv('VITE_DEFAULT_RUNS_DIR', 'D:\\startup-runs')
+    window.localStorage.setItem('papers-to-table.runs-directory', 'C:\\saved-runs')
+
+    render(<App />)
+
+    await waitFor(() => expect(mockListRuns).toHaveBeenCalledWith('D:\\startup-runs'))
+    expect(screen.getByLabelText('Runs directory')).toHaveValue('D:\\startup-runs')
+  })
+
+  it('switches and persists the review directory without changing new-run output', async () => {
+    mockResolveRunsDirectory.mockResolvedValue({ status: 'selected', path: 'C:\\external-runs' })
+    render(<App />)
+
+    fireEvent.change(screen.getByLabelText('Runs directory'), { target: { value: 'C:\\external-runs' } })
+    fireEvent.keyDown(screen.getByLabelText('Runs directory'), { key: 'Enter' })
+
+    await waitFor(() => expect(mockListRuns).toHaveBeenCalledWith('C:\\external-runs'))
+    expect(window.localStorage.getItem('papers-to-table.runs-directory')).toBe('C:\\external-runs')
+    expect(screen.getByLabelText('Output directory')).toHaveValue('./runs')
+  })
+
+  it('resets review discovery to the default without changing new-run output', async () => {
+    window.localStorage.setItem('papers-to-table.runs-directory', 'C:\\saved-runs')
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to default' }))
+
+    await waitFor(() => expect(mockListRuns).toHaveBeenCalledWith('./runs'))
+    expect(window.localStorage.getItem('papers-to-table.runs-directory')).toBeNull()
+    expect(screen.getByLabelText('Output directory')).toHaveValue('./runs')
   })
 
   it('refreshes runs quietly when the event stream reports an error', async () => {
@@ -115,6 +196,7 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByText(/run_active/i)).toBeInTheDocument()
     })
+    expect(mockCreateRunEventsSource).toHaveBeenCalledWith('./runs')
 
     act(() => {
       source.onerror?.()

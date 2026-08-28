@@ -36,6 +36,7 @@ from backend.app.artifacts import (
 from backend.app.review import (
     ProposalFilter,
     bulk_accept_proposals,
+    bulk_decide_proposals,
     compute_reviewer_summary,
     get_decision_history,
     get_export_candidates,
@@ -607,6 +608,41 @@ class TestBulkAccept:
         p = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose")
         recorded = bulk_accept_proposals(run_dir, run_id, [p.proposal_id])
         assert recorded[0].decision_source.value == "human_bulk_accept"
+
+
+class TestBulkSelectionDecision:
+    def test_pending_only_then_explicitly_replaces_existing_decision(self, tmp_path):
+        run_dir, run_id = _make_run(tmp_path)
+        pdf_id = generate_pdf_id("paper1.pdf")
+        row_id = generate_row_id(0, "Title A")
+        p1 = _make_proposal(run_dir, run_id, pdf_id, row_id, "Dose")
+        p2 = _make_proposal(run_dir, run_id, pdf_id, row_id, "Outcome")
+        record_review_decision(
+            run_dir, p2.proposal_id, p2.cell_id, run_id,
+            decision=ReviewDecision.accepted,
+        )
+
+        recorded, skipped = bulk_decide_proposals(
+            run_dir,
+            run_id,
+            [p1.proposal_id, p2.proposal_id],
+            ReviewDecision.rejected,
+        )
+        assert [item.proposal_id for item in recorded] == [p1.proposal_id]
+        assert skipped == [p2.proposal_id]
+        assert recorded[0].decision_source.value == "human_bulk_selection"
+        assert get_latest_decision(run_dir, p2.proposal_id).decision == ReviewDecision.accepted
+
+        replaced, skipped = bulk_decide_proposals(
+            run_dir,
+            run_id,
+            [p2.proposal_id],
+            ReviewDecision.confirmed_no_data,
+            replace_existing=True,
+        )
+        assert skipped == []
+        assert replaced[0].decision_source.value == "human_bulk_selection"
+        assert get_latest_decision(run_dir, p2.proposal_id).decision == ReviewDecision.confirmed_no_data
 
 
 # ---------------------------------------------------------------------------

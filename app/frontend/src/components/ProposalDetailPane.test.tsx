@@ -184,6 +184,27 @@ describe('ProposalDetailPane', () => {
     expect(screen.queryByText('Value or conclusion')).not.toBeInTheDocument()
   })
 
+  it('shows the clear field name before the value and keeps supporting details collapsed', async () => {
+    renderDetail(mockDetail)
+
+    const fieldHeading = await screen.findByText('Field')
+    const valueHeading = screen.getByText('Value')
+    expect(fieldHeading.compareDocumentPosition(valueHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(fieldHeading.closest('section')).toHaveClass('text-center', 'bg-slate-200')
+    expect(screen.getAllByText('sample_size')[0]).toBeVisible()
+    expect(screen.getByText('Field and description')).not.toBeVisible()
+    expect(screen.getByText('Paper')).not.toBeVisible()
+    expect(screen.getByText('Diagnostics')).toBeVisible()
+
+    fireEvent.click(screen.getByText('Details'))
+    expect(screen.getByText('Field and description')).toBeVisible()
+    expect(screen.getByText('Total number of participants')).toBeVisible()
+    expect(screen.getByText('Paper')).toBeVisible()
+    expect(screen.getByText('Review:')).not.toBeVisible()
+    fireEvent.click(screen.getByText('Diagnostics'))
+    expect(screen.getByText('Review:')).toBeVisible()
+  })
+
   it('shows simplified evidence heading', async () => {
     render(
       <ProposalDetailPane
@@ -197,6 +218,7 @@ describe('ProposalDetailPane', () => {
     )
     await screen.findByText('Evidence')
     expect(screen.queryByText('Evidence stack')).not.toBeInTheDocument()
+    expect(screen.queryByText(/^[12] items?$/)).not.toBeInTheDocument()
   })
 
   it('shows evidence list with source type labels', async () => {
@@ -346,7 +368,7 @@ describe('ProposalDetailPane', () => {
     expect(screen.queryByText('No usable evidence found for this target cell.')).not.toBeInTheDocument()
   })
 
-  it('shows rationale by default and retrieval diagnostics only in collapsed advanced diagnostics', async () => {
+  it('shows rationale by default and retrieval diagnostics directly in collapsed details', async () => {
     mockGetProposalDetail.mockResolvedValueOnce({
       ...mockDetail,
       proposal: {
@@ -361,6 +383,7 @@ describe('ProposalDetailPane', () => {
         ordered_supporting_evidence_ids: [],
         primary_evidence_id: null,
         retrieval_diagnostics: {
+          classification: 'reasoning_gap',
           retrieved_chunk_count: 5,
           chunks_considered: 5,
         },
@@ -381,11 +404,12 @@ describe('ProposalDetailPane', () => {
     await screen.findByText('Rationale')
     expect(screen.getByText('- The retrieved passages were relevant but not decisive.')).toBeInTheDocument()
     expect(screen.getByText('No formal evidence items were persisted for this proposal.')).toBeInTheDocument()
-    expect(screen.getByText('Advanced diagnostics')).toBeInTheDocument()
-    expect(screen.getByText('Retrieval diagnostics')).not.toBeVisible()
-    fireEvent.click(screen.getByText('Advanced diagnostics'))
-    expect(screen.getByText('Retrieval diagnostics')).toBeVisible()
-    expect(screen.getByText('retrieved chunk count')).toBeVisible()
+    expect(screen.getByText('Retrieval')).not.toBeVisible()
+    fireEvent.click(screen.getByText('Diagnostics'))
+    expect(screen.getByText('Retrieval')).toBeVisible()
+    expect(screen.getByText('Relevant evidence was found, but it did not support a decisive conclusion.')).toBeVisible()
+    expect(screen.getByText('5 passages')).toBeVisible()
+    expect(screen.queryByText('retrieved chunk count')).not.toBeInTheDocument()
   })
 
   it('renders readable reason labels with explanatory titles', async () => {
@@ -421,7 +445,7 @@ describe('ProposalDetailPane', () => {
     expect(screen.getByText('Retrieval empty')).toBeInTheDocument()
   })
 
-  it('places reason-code chips in the top status tag row', async () => {
+  it('places reason-code chips in the collapsed diagnostics details', async () => {
     renderDetail(
       detailFor({
         proposal_status: 'unresolved',
@@ -433,11 +457,14 @@ describe('ProposalDetailPane', () => {
     )
 
     await screen.findByText('Insufficient evidence')
-    const statusSection = screen.getByText('Value').closest('section')!
-    expect(statusSection).toContainElement(screen.getByText('Insufficient evidence'))
+    const diagnostics = screen.getByText('Diagnostics').closest('details')!
+    expect(diagnostics).toContainElement(screen.getByText('Insufficient evidence'))
+    expect(screen.getByText('Insufficient evidence')).not.toBeVisible()
+    fireEvent.click(screen.getByText('Diagnostics'))
+    expect(screen.getByText('Insufficient evidence')).toBeVisible()
   })
 
-  it('shows metadata conflict candidate values in collapsed advanced diagnostics', async () => {
+  it('shows metadata conflict candidates directly in collapsed details', async () => {
     mockGetProposalDetail.mockResolvedValueOnce({
       ...mockDetail,
       proposal: {
@@ -482,14 +509,17 @@ describe('ProposalDetailPane', () => {
       />
     )
 
-    await screen.findByText('Advanced diagnostics')
-    expect(screen.getByText('Candidate values')).not.toBeVisible()
-    fireEvent.click(screen.getByText('Advanced diagnostics'))
-    expect(screen.getByText('Candidate values')).toBeVisible()
+    await screen.findByText('Candidates to check')
+    expect(screen.getByText('Candidates to check')).not.toBeVisible()
+    fireEvent.click(screen.getByText('Diagnostics'))
+    expect(screen.getByText('Candidates to check')).toBeVisible()
     expect(screen.getByText('Candidate journal title')).toBeVisible()
     expect(screen.getByText('Competing journal-like text')).toBeVisible()
-    expect(screen.getByText('Metadata diagnostics')).toBeVisible()
-    expect(screen.getByText('candidate count')).toBeVisible()
+    expect(screen.getByText('Metadata')).toBeVisible()
+    expect(screen.getByText('2 metadata candidates require comparison')).toBeVisible()
+    expect(screen.getByText('Front matter · p.1')).toBeVisible()
+    expect(screen.getByText('Front matter · p.2')).toBeVisible()
+    expect(screen.queryByText('candidate count')).not.toBeInTheDocument()
   })
 
   it('renders no-data direct evidence as an absence conclusion', async () => {
@@ -543,6 +573,10 @@ describe('ProposalDetailPane', () => {
 
     await screen.findByText('MPRA')
     expect(screen.getByTitle('Evidence: inferred strong')).toBeInTheDocument()
+    expect(screen.getByTitle('Evidence: inferred strong')).not.toBeVisible()
+    fireEvent.click(screen.getByText('Diagnostics'))
+    expect(screen.getByTitle('Evidence: inferred strong')).toBeVisible()
+    expect(screen.queryByText('Needs attention')).not.toBeInTheDocument()
   })
 
   it('renders weak direct value proposals with readable reason labels', async () => {
@@ -558,7 +592,11 @@ describe('ProposalDetailPane', () => {
 
     await screen.findByText('HEK293T')
     expect(screen.getByTitle('Evidence: direct weak')).toBeInTheDocument()
-    expect(screen.getByText('Insufficient evidence')).toBeInTheDocument()
+    expect(screen.getByTitle('Evidence: direct weak')).not.toBeVisible()
+    expect(screen.getByText('Insufficient evidence')).not.toBeVisible()
+    fireEvent.click(screen.getByText('Diagnostics'))
+    expect(screen.getByTitle('Evidence: direct weak')).toBeVisible()
+    expect(screen.getByText('Insufficient evidence')).toBeVisible()
   })
 
   it('renders not-applicable as a conclusion, not a missing proposal', async () => {
@@ -575,7 +613,7 @@ describe('ProposalDetailPane', () => {
       )
     )
 
-    await screen.findByText('Not applicable')
+    await screen.findAllByText('Not applicable')
     expect(screen.queryByText('No value proposed')).not.toBeInTheDocument()
     expect(screen.getByText('Not applicable by schema')).toBeInTheDocument()
   })
@@ -670,14 +708,18 @@ describe('ProposalDetailPane', () => {
       })
     )
 
-    await screen.findAllByText('120')
-    expect(screen.getByText('Candidate values')).not.toBeVisible()
-    expect(screen.getAllByText('The sample size of 120 participants was stated in the Methods section.')[0]).toBeVisible()
-    fireEvent.click(screen.getByText('Advanced diagnostics'))
-    expect(screen.getByText('Candidate values')).toBeVisible()
+    expect(await screen.findAllByText('120')).toHaveLength(1)
+    expect(screen.queryByText('Candidates to check')).not.toBeInTheDocument()
+    expect(screen.getAllByText('The sample size of 120 participants was stated in the Methods section.')).toHaveLength(1)
+    fireEvent.click(screen.getByText('Diagnostics'))
+    expect(screen.queryByText('Candidates to check')).not.toBeInTheDocument()
+    expect(screen.queryByText('found · first_pass_text')).not.toBeInTheDocument()
+    expect(screen.getAllByText('120')).toHaveLength(1)
+    expect(screen.getAllByText('The sample size of 120 participants was stated in the Methods section.')).toHaveLength(1)
+    expect(screen.getByText('Diagnostics').closest('details')?.querySelectorAll('details')).toHaveLength(0)
   })
 
-  it('shows not-needed selection diagnostics without failure wording', async () => {
+  it('hides routine not-needed selection diagnostics', async () => {
     renderDetail(
       detailFor({
         selection_diagnostics: {
@@ -689,10 +731,58 @@ describe('ProposalDetailPane', () => {
       })
     )
 
-    await screen.findByText('Advanced diagnostics')
-    fireEvent.click(screen.getByText('Advanced diagnostics'))
-    expect(screen.getByText('Selection step not run because it was not needed')).toBeVisible()
+    await screen.findByText('Diagnostics')
+    fireEvent.click(screen.getByText('Diagnostics'))
+    expect(screen.queryByText('Selection')).not.toBeInTheDocument()
+    expect(screen.queryByText('Selection step not run because it was not needed')).not.toBeInTheDocument()
     expect(screen.queryByText('succeeded')).not.toBeInTheDocument()
     expect(screen.queryByText('false')).not.toBeInTheDocument()
+  })
+
+  it('summarizes competing candidate selection with reviewer-facing source labels', async () => {
+    renderDetail(
+      detailFor({
+        proposed_value: '120',
+        candidate_answers: [
+          { candidate_id: 'cand_1', value: '120', candidate_status: 'found', source: 'first_pass_text' },
+          { candidate_id: 'cand_2', value: '118', candidate_status: 'inferred', source: 'rescued_text' },
+        ],
+        selection_diagnostics: {
+          attempted: true,
+          succeeded: true,
+          selected_candidate_id: 'cand_1',
+          rejected_candidate_ids: ['cand_2'],
+          value_changed: false,
+        },
+      })
+    )
+
+    await screen.findByText('Diagnostics')
+    fireEvent.click(screen.getByText('Diagnostics'))
+    expect(screen.getByText('Candidates to check')).toBeVisible()
+    expect(screen.getByText('Found · Initial text extraction')).toBeVisible()
+    expect(screen.getByText('Inferred · Targeted text search')).toBeVisible()
+    expect(screen.getByText('Selected from 2 competing candidates')).toBeVisible()
+  })
+
+  it('keeps development-only provider and figure telemetry out of reviewer diagnostics', async () => {
+    renderDetail(
+      detailFor({
+        provider_diagnostics: { request_id: 'provider-request-123', elapsed_ms: 8421 },
+        figure_review_diagnostics: { raw_model_response: 'figure-review-debug-payload' },
+        figure_planner_diagnostics: { planner_query: 'internal-figure-query' },
+        retrieval_diagnostics: { classification: 'retrieval_miss', retrieved_chunk_count: 3 },
+      })
+    )
+
+    await screen.findByText('Diagnostics')
+    fireEvent.click(screen.getByText('Diagnostics'))
+    expect(screen.getByText('Retrieval')).toBeVisible()
+    expect(screen.getByText('No relevant passage was found for this field.')).toBeVisible()
+    expect(screen.getByText('3 passages')).toBeVisible()
+    expect(screen.queryByText('retrieved chunk count')).not.toBeInTheDocument()
+    expect(screen.queryByText('provider-request-123')).not.toBeInTheDocument()
+    expect(screen.queryByText('figure-review-debug-payload')).not.toBeInTheDocument()
+    expect(screen.queryByText('internal-figure-query')).not.toBeInTheDocument()
   })
 })

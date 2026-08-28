@@ -193,6 +193,7 @@ def _materialize_unmatched_pdf_rows(
                     "matched_row_title": row.get("Title") or result.pdf_id,
                     "blocked": False,
                     "blocked_reason": None,
+                    "staged_new_row": True,
                     "reasoning": (
                         result.reasoning
                         + " A new table row was created from extracted paper metadata for proposal generation."

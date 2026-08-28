@@ -348,7 +348,7 @@ export function EvidenceViewer({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const highlightRef = useRef<HTMLDivElement>(null)
-  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
+  const [loadedPdf, setLoadedPdf] = useState<{ pdfId: string; doc: pdfjsLib.PDFDocumentProxy } | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
   const [zoom, setZoom] = useState(DEFAULT_PDF_ZOOM)
@@ -366,6 +366,7 @@ export function EvidenceViewer({
   const autoFocusKeyRef = useRef<string | null>(null)
   const renderSequenceRef = useRef(0)
   const evidencePage = useMemo(() => inferEvidencePage(evidence), [evidence])
+  const pdfDoc = loadedPdf?.pdfId === pdfId ? loadedPdf.doc : null
 
   useEffect(() => {
     let cancelled = false
@@ -373,7 +374,7 @@ export function EvidenceViewer({
 
     async function loadPdf() {
       if (!pdfId) {
-        setPdfDoc(null)
+        setLoadedPdf(null)
         setTotalPages(0)
         setCurrentPage(1)
         setPageInput('1')
@@ -388,7 +389,7 @@ export function EvidenceViewer({
         loadingTask = pdfjsLib.getDocument(url)
         const doc = await loadingTask.promise
         if (!cancelled) {
-          setPdfDoc(doc)
+          setLoadedPdf({ pdfId, doc })
           setTotalPages(doc.numPages)
           setCurrentPage(1)
           setPageInput('1')
@@ -396,7 +397,7 @@ export function EvidenceViewer({
       } catch (error) {
         if (!cancelled) {
           setLoadError(error instanceof Error ? error.message : String(error))
-          setPdfDoc(null)
+          setLoadedPdf(null)
         }
       }
     }
@@ -442,8 +443,11 @@ export function EvidenceViewer({
       return
     }
 
-    pdfDoc.getPage(safePage).then((page) => {
-      if (cancelled || renderSequenceRef.current !== sequence) return
+    Promise.resolve().then(() => {
+      if (cancelled || renderSequenceRef.current !== sequence) return null
+      return pdfDoc.getPage(safePage)
+    }).then((page) => {
+      if (!page || cancelled || renderSequenceRef.current !== sequence) return
       const unscaledViewport = page.getViewport({ scale: 1.0 })
       setPdfPageSize({ width: unscaledViewport.width, height: unscaledViewport.height })
       const [xMin, yMin, xMax, yMax] = page.view
@@ -610,6 +614,7 @@ export function EvidenceViewer({
                 onSelectEvidence(evidenceList[previousIndex].evidence_id)
               }}
               disabled={!canCycleEvidence}
+              title="Previous evidence (Ctrl/⌘ + ←)"
                 className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
              >
                Prev
@@ -622,6 +627,7 @@ export function EvidenceViewer({
                 onSelectEvidence(evidenceList[nextIndex].evidence_id)
               }}
               disabled={!canCycleEvidence}
+              title="Next evidence (Ctrl/⌘ + →)"
                 className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
              >
                Next
@@ -713,6 +719,7 @@ export function EvidenceViewer({
             onSelectEvidence(evidenceList[previousIndex].evidence_id)
           }}
           disabled={!canCycleEvidence}
+          title="Previous evidence (Ctrl/⌘ + ←)"
           className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
           Prev
@@ -728,6 +735,7 @@ export function EvidenceViewer({
             onSelectEvidence(evidenceList[nextIndex].evidence_id)
           }}
           disabled={!canCycleEvidence}
+          title="Next evidence (Ctrl/⌘ + →)"
           className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40"
         >
           Next

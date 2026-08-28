@@ -336,6 +336,75 @@ describe('EvidenceViewer', () => {
     expect(onSelectEvidence).toHaveBeenCalledWith('ev2')
   })
 
+  it('does not render a destroyed PDF document while switching papers', async () => {
+    const page = {
+      view: [0, 0, 600, 800],
+      getViewport: ({ scale }: { scale: number }) => ({
+        width: 600 * scale,
+        height: 800 * scale,
+        scale,
+        transform: [scale, 0, 0, scale, 0, 0],
+      }),
+      render: vi.fn().mockReturnValue({ promise: Promise.resolve(), cancel: vi.fn() }),
+      getTextContent: vi.fn().mockResolvedValue({ items: [] }),
+    }
+    let firstDestroyed = false
+    let callsAfterDestroy = 0
+    const firstDoc = {
+      numPages: 5,
+      getPage: vi.fn(() => {
+        if (firstDestroyed) {
+          callsAfterDestroy += 1
+          throw new TypeError("Cannot read properties of null (reading 'sendWithPromise')")
+        }
+        return Promise.resolve(page)
+      }),
+    }
+    const secondDoc = { numPages: 5, getPage: vi.fn().mockResolvedValue(page) }
+    const getDocument = pdfjsLib.getDocument as unknown as ReturnType<typeof vi.fn>
+    getDocument
+      .mockReturnValueOnce({
+        promise: Promise.resolve(firstDoc),
+        destroy: vi.fn(() => {
+          firstDestroyed = true
+          return Promise.resolve()
+        }),
+      })
+      .mockReturnValueOnce({ promise: Promise.resolve(secondDoc), destroy: vi.fn().mockResolvedValue(undefined) })
+
+    const { rerender } = render(
+      <EvidenceViewer
+        runId="r1"
+        pdfId="paper-a"
+        evidence={quoteEvidence}
+        evidenceList={[quoteEvidence]}
+        selectedEvidenceId="ev1"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
+        outputDir="./runs"
+      />
+    )
+    await waitFor(() => expect(firstDoc.getPage).toHaveBeenCalled())
+
+    const secondEvidence = { ...approxEvidence, pdf_id: 'paper-b' }
+    rerender(
+      <EvidenceViewer
+        runId="r1"
+        pdfId="paper-b"
+        evidence={secondEvidence}
+        evidenceList={[secondEvidence]}
+        selectedEvidenceId="ev2"
+        activeEvidenceIndex={0}
+        onSelectEvidence={onSelectEvidence}
+        outputDir="./runs"
+      />
+    )
+
+    await waitFor(() => expect(secondDoc.getPage).toHaveBeenCalled())
+    expect(callsAfterDestroy).toBe(0)
+    expect(screen.getByTestId('evidence-toolbar')).toBeInTheDocument()
+  })
+
   it('renders quote-anchored overlay rectangles from resolved PDF text content', async () => {
     mockResolvedPdf({
       numPages: 5,

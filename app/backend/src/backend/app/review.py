@@ -590,6 +590,55 @@ def bulk_accept_proposals(
     return recorded
 
 
+def bulk_decide_proposals(
+    run_dir: pathlib.Path,
+    run_id: str,
+    proposal_ids: list[str],
+    decision: ReviewDecision,
+    *,
+    replace_existing: bool = False,
+) -> tuple[list[ReviewDecisionRecord], list[str]]:
+    """Apply one reviewer decision to an explicit proposal selection.
+
+    Selection batches are pending-only by default. Previously reviewed proposals
+    are skipped unless the caller explicitly confirms replacement. The append-only
+    main-app decision history preserves both the superseded and replacement records.
+    """
+    if decision == ReviewDecision.accepted_with_edit:
+        raise ValueError("Bulk selection cannot apply accepted_with_edit without one value per cell.")
+    proposals = load_proposals(run_dir)
+    proposal_map = {proposal.proposal_id: proposal for proposal in proposals}
+    resolution_reason = {
+        ReviewDecision.accepted: ReviewResolutionReason.accepted_as_proposed,
+        ReviewDecision.rejected: ReviewResolutionReason.rejected_incorrect,
+        ReviewDecision.confirmed_no_data: ReviewResolutionReason.confirmed_no_data_in_paper,
+    }.get(decision)
+    recorded: list[ReviewDecisionRecord] = []
+    skipped: list[str] = []
+    for proposal_id in dict.fromkeys(proposal_ids):
+        proposal = proposal_map.get(proposal_id)
+        if proposal is None:
+            skipped.append(proposal_id)
+            continue
+        existing = get_latest_decision(run_dir, proposal_id)
+        if existing is not None and not replace_existing:
+            skipped.append(proposal_id)
+            continue
+        recorded.append(
+            record_review_decision(
+                run_dir=run_dir,
+                proposal_id=proposal_id,
+                cell_id=proposal.cell_id,
+                run_id=run_id,
+                decision=decision,
+                decision_source=DecisionSource.human_bulk_selection,
+                resolution_reason=resolution_reason,
+                reviewer_note="Applied to an explicit multi-cell selection in the review UI.",
+            )
+        )
+    return recorded, skipped
+
+
 # ---------------------------------------------------------------------------
 # T075/T075a — Progress counters
 # ---------------------------------------------------------------------------

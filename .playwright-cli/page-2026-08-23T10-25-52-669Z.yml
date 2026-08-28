@@ -1,0 +1,85 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img "papers-to-table" [ref=e7]
+        - generic [ref=e8]:
+          - heading "papers-to-table" [level=1] [ref=e9]
+          - paragraph [ref=e10]: Evidence-backed extraction and review
+      - generic [ref=e11]: Agent skill review
+  - main [ref=e13]:
+    - generic [ref=e15]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - paragraph [ref=e19]: Review
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - heading "agent_kit_documentation" [level=2] [ref=e22]
+              - generic [ref=e23]: 0 / 3 reviewed
+              - generic [ref=e24]: 3 pending
+            - generic [ref=e25]: 0%
+        - generic [ref=e28]:
+          - button "Diagnostics" [ref=e29] [cursor=pointer]
+          - button "Export reviewed table" [ref=e30] [cursor=pointer]
+          - button "?" [ref=e31] [cursor=pointer]
+      - generic [ref=e32]:
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - generic [ref=e36]:
+              - paragraph [ref=e37]: Review list
+              - paragraph [ref=e38]: Select a cell, verify evidence, decide.
+            - generic [ref=e39]:
+              - button "By Paper" [ref=e40] [cursor=pointer]
+              - button "By Column" [ref=e41] [cursor=pointer]
+              - button "As Table" [ref=e42] [cursor=pointer]
+          - generic [ref=e43]:
+            - combobox "Table filter" [ref=e45]:
+              - option "Pending" [selected]
+              - option "Attention"
+              - option "All"
+              - option "Reviewed - Accepted"
+              - option "Reviewed - Edited"
+              - option "Reviewed - No data"
+              - option "Reviewed - Rejected"
+            - table [ref=e47]:
+              - rowgroup [ref=e48]:
+                - row [ref=e49]:
+                  - columnheader "Assay design" [ref=e50]
+                  - columnheader "Cell type" [ref=e52]
+                  - columnheader "Key result" [ref=e54]
+              - rowgroup [ref=e56]:
+                - row [ref=e57]:
+                  - cell [ref=e58]:
+                    - 'button "STARR-seq-based ultracomplex MPRA libraries Review: pending Proposal: value proposed Evidence: direct strong" [ref=e59] [cursor=pointer]':
+                      - generic [ref=e60]: STARR-seq-based ultracomplex MPRA libraries
+                      - generic [ref=e61]:
+                        - 'generic "Review: pending" [ref=e62]'
+                        - 'generic "Proposal: value proposed" [ref=e64]'
+                        - 'generic "Evidence: direct strong" [ref=e66]'
+                  - cell [ref=e68]:
+                    - 'button "GP5d colon carcinoma cells Review: pending Proposal: value proposed Evidence: direct strong" [ref=e69] [cursor=pointer]':
+                      - generic [ref=e70]: GP5d colon carcinoma cells
+                      - generic [ref=e71]:
+                        - 'generic "Review: pending" [ref=e72]'
+                        - 'generic "Proposal: value proposed" [ref=e74]'
+                        - 'generic "Evidence: direct strong" [ref=e76]'
+                  - cell [ref=e78]:
+                    - 'button "The p53-family consensus sequence showed the strongest enhancer activity in the assay. Review: pending Proposal: value proposed Evidence: direct strong" [ref=e79] [cursor=pointer]':
+                      - generic [ref=e80]: The p53-family consensus sequence showed the strongest enhancer activity in the assay.
+                      - generic [ref=e81]:
+                        - 'generic "Review: pending" [ref=e82]'
+                        - 'generic "Proposal: value proposed" [ref=e84]'
+                        - 'generic "Evidence: direct strong" [ref=e86]'
+        - separator "Resize proposal queue" [ref=e88]
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - generic [ref=e93]: Decision
+            - button "Previous proposal" [ref=e94] [cursor=pointer]: ←
+            - button "Reject" [ref=e95] [cursor=pointer]
+            - button "Edit" [ref=e96] [cursor=pointer]
+            - button "No Data" [ref=e97] [cursor=pointer]
+            - button "Accept" [ref=e98] [cursor=pointer]
+            - button "Next proposal" [ref=e99] [cursor=pointer]: →
+          - button "Bulk accept 2 pending proposals…" [ref=e101] [cursor=pointer]
+        - separator "Resize evidence panel" [ref=e102]
+        - generic [ref=e103]: No PDF selected

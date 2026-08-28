@@ -34,7 +34,93 @@ class TestHealthEndpoint:
         assert resp.json() == {"status": "ok"}
 
 
+class TestRunsDirectory:
+    @pytest.mark.asyncio
+    async def test_validates_existing_directory(self, tmp_path):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/runs-directory", json={"path": str(tmp_path)})
+
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "selected", "path": str(tmp_path.resolve())}
+
+    @pytest.mark.asyncio
+    async def test_native_picker_returns_selected_directory(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "backend.app.api.routers.setup.pick_local_directory",
+            lambda _initial=None: str(tmp_path),
+        )
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/api/runs-directory",
+                json={"path": "./runs", "browse": True},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "selected", "path": str(tmp_path.resolve())}
+
+    @pytest.mark.asyncio
+    async def test_native_picker_cancellation_keeps_selection_unchanged(self, monkeypatch):
+        monkeypatch.setattr("backend.app.api.routers.setup.pick_local_directory", lambda _initial=None: None)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/runs-directory", json={"browse": True})
+
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "cancelled", "path": None}
+
+    @pytest.mark.asyncio
+    async def test_native_picker_failure_recommends_manual_entry(self, monkeypatch):
+        def fail(_initial=None):
+            raise RuntimeError("Chooser unavailable. Enter the directory path manually instead.")
+
+        monkeypatch.setattr("backend.app.api.routers.setup.pick_local_directory", fail)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/runs-directory", json={"browse": True})
+
+        assert resp.status_code == 501
+        assert "Enter the directory path manually" in resp.json()["detail"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("kind", ["missing", "file"])
+    async def test_rejects_invalid_directory(self, tmp_path, kind):
+        candidate = tmp_path / kind
+        if kind == "file":
+            candidate.write_text("not a directory", encoding="utf-8")
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/runs-directory", json={"path": str(candidate)})
+
+        assert resp.status_code == 422
+        assert "directory" in resp.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_rejects_non_local_caller(self, tmp_path):
+        transport = ASGITransport(app=app, client=("10.0.0.9", 1234))
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/runs-directory", json={"path": str(tmp_path)})
+
+        assert resp.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_respects_allowed_output_roots(self, tmp_path, monkeypatch):
+        allowed = tmp_path / "allowed"
+        outside = tmp_path / "outside"
+        allowed.mkdir()
+        outside.mkdir()
+        monkeypatch.setenv("P2T_ENFORCE_OUTPUT_ROOT_POLICY", "true")
+        monkeypatch.setenv("P2T_ALLOWED_OUTPUT_ROOTS", str(allowed))
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post("/api/runs-directory", json={"path": str(outside)})
+
+        assert resp.status_code == 403
+
+
 class TestListRuns:
+    def test_event_stream_route_precedes_dynamic_run_route(self):
+        route_paths = [route.path for route in app.routes]
+
+        assert route_paths.index("/api/runs/events") < route_paths.index("/api/runs/{run_id}")
+
     @pytest.mark.asyncio
     async def test_empty_output_dir(self, tmp_path):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

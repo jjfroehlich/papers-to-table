@@ -1,0 +1,66 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img "papers-to-table" [ref=e7]
+        - generic [ref=e8]:
+          - heading "papers-to-table" [level=1] [ref=e9]
+          - paragraph [ref=e10]: Evidence-backed extraction and review
+      - navigation [ref=e12]:
+        - button "Run" [ref=e13] [cursor=pointer]
+        - button "Review" [disabled] [ref=e14]
+  - main [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - paragraph [ref=e19]: Runs
+          - paragraph [ref=e20]: "0"
+        - generic [ref=e21]:
+          - paragraph [ref=e22]: Review ready
+          - paragraph [ref=e23]: "0"
+        - generic [ref=e24]:
+          - paragraph [ref=e25]: Active
+          - paragraph [ref=e26]: "0"
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - generic [ref=e29]:
+            - generic [ref=e30]:
+              - heading "Create run" [level=2] [ref=e31]
+              - generic [ref=e32]: Inputs
+            - generic [ref=e34]:
+              - generic [ref=e35]:
+                - generic [ref=e36]: Table
+                - generic [ref=e37]:
+                  - textbox "Select a table file or enter a backend-readable path" [ref=e38]
+                  - button "Browse..." [ref=e39] [cursor=pointer]
+              - generic [ref=e40]:
+                - generic [ref=e41]: Schema
+                - generic [ref=e42]:
+                  - textbox "Select a schema CSV or enter a backend-readable path" [ref=e43]
+                  - button "Browse..." [ref=e44] [cursor=pointer]
+              - generic [ref=e45]:
+                - generic [ref=e46]: PDFs
+                - generic [ref=e47]:
+                  - textbox "Select PDFs or enter a backend-readable PDF folder" [ref=e48]
+                  - button "Browse..." [ref=e49] [cursor=pointer]
+              - generic [ref=e50]:
+                - generic [ref=e51]:
+                  - generic [ref=e52]: Output directory
+                  - textbox "./runs" [ref=e53]
+                - generic [ref=e54]:
+                  - generic [ref=e55]: Config file
+                  - textbox "config.json" [ref=e56]
+              - button "Start run" [ref=e58] [cursor=pointer]
+          - generic [ref=e59]:
+            - heading "Runs" [level=2] [ref=e61]
+            - generic [ref=e62]:
+              - generic [ref=e63]:
+                - generic [ref=e64]: Runs directory
+                - button "Reset to default" [ref=e65] [cursor=pointer]
+              - generic [ref=e66]:
+                - textbox "Runs directory" [ref=e67]: C:\Users\jonat\Desktop\MPRA literature table\runs
+                - button "Browse..." [ref=e68] [cursor=pointer]
+            - generic [ref=e69]: Loading runs...
+        - generic [ref=e71]:
+          - heading "No run selected yet" [level=2] [ref=e72]
+          - paragraph [ref=e73]: Launch a new run or select an existing run summary on the left.

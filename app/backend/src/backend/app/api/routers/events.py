@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import pathlib
 from typing import AsyncIterator
 
 from fastapi import APIRouter, Request
@@ -9,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from ...artifacts import get_run_json_path, list_run_ids, read_json
 from ...run_events import encode_sse, subscribe_to_run_events
 from ...settings import load_app_settings
+from ..common import validate_output_dir_access
 
 router = APIRouter()
 
@@ -30,6 +32,7 @@ def _bootstrap_payload(output_dir: str, run_id: str | None = None) -> dict:
 
 @router.get('/api/runs/events')
 async def stream_run_events(request: Request, output_dir: str = './runs', run_id: str | None = None):
+    validate_output_dir_access(output_dir)
     settings = getattr(request.app.state, 'app_settings', load_app_settings())
 
     async def event_stream() -> AsyncIterator[str]:
@@ -40,6 +43,11 @@ async def stream_run_events(request: Request, output_dir: str = './runs', run_id
                     break
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=settings.sse_ping_seconds)
+                    event_run = event.get('run') or {}
+                    event_output_dir = event_run.get('output_dir')
+                    if run_id is None and event_output_dir:
+                        if pathlib.Path(event_output_dir).resolve() != pathlib.Path(output_dir).resolve():
+                            continue
                     yield encode_sse(event.get('event', 'message'), event)
                 except asyncio.TimeoutError:
                     yield ': keepalive\n\n'

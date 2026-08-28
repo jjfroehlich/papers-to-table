@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { RunDetail } from './RunDetail'
 import type { RunData } from '../types'
 
@@ -83,6 +83,22 @@ describe('RunDetail', () => {
     render(<RunDetail run={runWithWarnings} />)
     expect(screen.queryByText('Run warnings')).toBeNull()
     expect(screen.queryByText('1 warning')).toBeNull()
+  })
+
+  it('starts human review for a completed selected run', () => {
+    const onStartReview = vi.fn()
+    render(<RunDetail run={baseRun} onStartReview={onStartReview} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start human review' }))
+
+    expect(onStartReview).toHaveBeenCalledWith(baseRun)
+  })
+
+  it('does not offer human review before the run completes', () => {
+    const runningRun = { ...baseRun, status: 'running' as const }
+    render(<RunDetail run={runningRun} onStartReview={vi.fn()} />)
+
+    expect(screen.queryByRole('button', { name: 'Start human review' })).toBeNull()
   })
 
   it('shows verify mode status', () => {

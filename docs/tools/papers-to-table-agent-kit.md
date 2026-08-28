@@ -1,192 +1,72 @@
 # Papers-To-Table Agent Kit
 
-`skills/papers-to-table-agent-kit/` is a standalone workflow for agents that extract structured information from scientific PDFs and technical documents. It produces an evidence-backed filled CSV and can add a local browser review interface when requested.
+The **Agent Kit** turns a capable general-purpose agent such as Codex or Claude into an evidence-first paper-to-table assistant. It is standalone: you do not need to install the papers-to-table app, run LM Studio, or configure a local model.
 
-The kit does not run the main app, LM Studio, or its extraction pipeline. The agent performs extraction. The kit validates provenance, normalizes artifacts, and handles review and export. Evidence shows where a value came from; it does not prove that a publication's claim is scientifically correct.
+Give the agent your PDFs, table, and field descriptions. It returns a filled CSV with source-linked evidence and can launch a browser workspace where you inspect each proposed value beside the relevant PDF passage before exporting reviewed results.
 
-![Comparison of the local-app and agent-kit skills](../diagrams/refined_svg/04_agent_skills_refined.svg)
+![Two agent skills, with the portable agent kit highlighted](../diagrams/refined_svg/04_agent_skills_agent_kit_refined.svg)
 
-## Default Workflow
+## Why Use It
 
-1. Create one output workspace and one run directory.
-2. Author `RUN_DIR/extraction/review_input.json` with rows, fields, proposals, rationales, and evidence.
-3. Validate and build the extraction artifacts.
-4. Run the handoff checker and fix all reported errors or provenance warnings.
-5. Deliver the root `_filled.csv` as agent-extracted and not human-reviewed.
-6. Ask whether the user wants browser review.
-7. Build and serve `human_review/` only if the user opts in.
+- **Start with the agent you already use.** The skill works through the agent's own document-reading and reasoning capabilities.
+- **Get a table, not a chat summary.** Results follow your rows and fields and are delivered as a reusable CSV.
+- **Keep every value inspectable.** Proposals carry page-level evidence and a concise extraction rationale.
+- **Review visually when it matters.** The optional browser interface keeps the proposed field, value, evidence, and source PDF together.
+- **Stay portable.** The output package can travel with the project and does not depend on a running papers-to-table backend.
+- **Preserve approved baselines.** Before extraction, the scaffold checks compatible companion CSV/XLSX tables for populated target values missing from the chosen template. Ambiguity fails closed; an approved source can be selected explicitly and is recorded with hashes in `baseline_manifest.json`.
 
-The required review question is:
+It is especially useful for one-off literature tables, benchmark datasets, collaborative evidence gathering, and projects where a strong hosted agent is available but the local app is not installed.
 
-```text
-Do you want to review the results in the browser interface?
-```
+## What Your Agent Will Do
 
-## Workspace Layout
+1. Read the table structure and field descriptions before extracting values.
+2. Match each paper to exactly one row using DOI, normalized title, authors, and year; ambiguous or duplicate matches stop rather than falling back silently to filename or row order.
+3. Record the narrowest useful quotation, table passage, caption, or page context for each proposed value.
+4. Validate the filled CSV, evidence records, and rationales before handing them over.
+5. Clearly label the first CSV as agent-extracted and not yet human-reviewed.
+6. Ask whether you want to inspect the results in the browser interface.
+7. If you opt in, launch the review workspace and export a separate reviewed CSV from accepted decisions.
 
-Agents reference source inputs by path. They do not copy PDFs, source tables, or schemas into the run directory.
+By default the kit fills blank cells only. It preserves existing values exactly and does not treat them as evidence or examples to copy. A full source table may contain rows without a supplied PDF; the matched subset is made explicit with `pdf_id`, while every supplied PDF must resolve to one row. When you explicitly ask it to verify existing values, populated cells become independently evidenced review proposals: the original value remains in the unreviewed filled CSV, the review interface shows the existing and proposed values, and only an accepted decision changes the reviewed CSV.
 
-```text
-OUTPUT_DIR/
-  <requested_or_dataset>_filled.csv
-  runs/
-    RUN_ID/
-      extraction/
-        review_input.json
-        proposals.jsonl
-        evidence.jsonl
-        validation_report.json
-        extraction_summary.json
-  scratch_delete_after_success/
-    RUN_ID/
-  logs/
-```
+The authoring contract distinguishes direct extraction, calculations, figure estimates, protocol inference, and audited absence inference. Numeric and categorical fields are validated against the supplied schema. Calculated operands must describe compatible assay stages and units; figure estimates stay approximate and cite a rendered panel/caption; inferred absence is flagged for reviewer attention. The extraction workflow also checks that evidence belongs to the present study and reconciles design, delivery/integration, readout, barcode/UMI roles, scale, and construct count before handoff.
 
-Keep temporary text, page images, crops, and helper files under `scratch_delete_after_success/RUN_ID`. Clean that directory only after a successful build and validation.
+The procedural authoring, validation, and export rules live inside the skill. A human user does not need to prepare its internal JSON files or run its helper scripts manually.
 
-## Authoring Contract
+## Browser Review
 
-`extraction/review_input.json` uses schema version `papers_to_table.review_input.v1`.
+The review workspace lets you move through proposed cells, compare each value with its evidence, open the source PDF at the cited page, edit or reject a proposal, and export only accepted results. Ctrl/Command-click toggles individual proposal cells, Shift-click selects a queue range or table rectangle, and primary-button dragging selects a rectangle in table mode; a guarded selection bar applies Accept, Reject, or No data to pending proposals, with a separate checkbox required to replace reviewed decisions. The initial filled CSV remains separate, so review never silently overwrites the source table.
 
-```json
-{
-  "schema_version": "papers_to_table.review_input.v1",
-  "run_id": "agent_review_001",
-  "output_table_name": "results_filled.csv",
-  "output_table_path": "C:/path/to/output/results_filled.csv",
-  "source_table_path": "C:/path/to/source_table.csv",
-  "schema_path": "C:/path/to/schema.csv",
-  "pdfs": [
-    {"pdf_id": "paper_a", "path": "C:/path/to/paper_a.pdf", "label": "Paper A"}
-  ],
-  "columns": [
-    {"column_name": "Finding", "description": "Main reported finding", "field_type": "text"}
-  ],
-  "rows": [
-    {"row_id": "row_1", "pdf_id": "paper_a", "values": {"Title": "Paper A"}}
-  ],
-  "proposals": [
-    {
-      "row_id": "row_1",
-      "column_name": "Finding",
-      "proposed_value": "Example value",
-      "rationale": "The Results sentence reports Example value as the main finding.",
-      "evidence": [
-        {
-          "pdf_id": "paper_a",
-          "source_type": "direct_quote",
-          "page_number": 3,
-          "quote_text": "The main finding was Example value."
-        }
-      ]
-    }
-  ]
-}
-```
-
-`proposal_id`, `evidence_id`, `cell_id`, `calculation`, and `created_at` are optional. The builder generates stable IDs when needed and validates supplied identities.
-
-## Evidence And Rationales
-
-Every non-empty proposed value needs structured evidence and a concise rationale.
-
-- Use the narrowest passage, table cell, caption, figure reference, or page context that supports the specific field.
-- Keep evidence tied to the correct PDF, row, and column.
-- Reuse evidence only when the same source passage directly supports each affected value.
-- Explain the source fact, extracted value, and any schema normalization in the rationale.
-- Do not use generic rationale templates or private step-by-step reasoning.
-
-Evidence strength:
-
-| Tier | Required support | Review label |
-| --- | --- | --- |
-| A | PDF, page, and quote/table/caption/evidence text | `direct_strong` |
-| B | PDF, page, and exact or approximate highlight region | `direct_strong` or `direct_weak` |
-| C | PDF, page, and source location or reasoning | `inferred_weak` |
-| D | No structured evidence | Invalid for non-empty values |
-
-Highlight coordinates must be finite, have nonzero area, and reference a positive page. Normalized coordinates must remain within `[0, 1]`.
-
-Generated evidence uses `evidence_schema_version="main_evidence"` and normalized source types. Kit-specific authored kinds remain available in `authored_evidence_kind`.
-
-## Build The Extraction Output
-
-For a benchmark or table-completion task, prepare and scaffold the workspace:
-
-```bash
-python skills/papers-to-table-agent-kit/scripts/prepare_output_workspace.py --output-dir OUTPUT_DIR --run-id RUN_ID --json
-python skills/papers-to-table-agent-kit/scripts/scaffold_benchmark_run.py --dataset-dir DATASET_DIR --output-root OUTPUT_DIR --json
-```
-
-After adding evidence-backed proposals, validate and build:
-
-```bash
-python skills/papers-to-table-agent-kit/scripts/validate_review_package.py --run RUN_DIR --mode authoring --json
-python skills/papers-to-table-agent-kit/scripts/build_review_package.py --run RUN_DIR --json
-python skills/papers-to-table-agent-kit/scripts/cleanup_scratch.py --output-dir OUTPUT_DIR --json
-python skills/papers-to-table-agent-kit/scripts/finalize_extraction_handoff.py --output-dir OUTPUT_DIR --run RUN_DIR --json
-```
-
-Treat generic-rationale and reused-evidence warnings as extraction defects. Fix them before handoff unless shared evidence genuinely supports each value and each rationale explains that support.
-
-For multiple datasets, pass one `--run RUN_DIR` argument per run to `finalize_extraction_handoff.py`.
-
-## Optional Browser Review
-
-Build and launch review only after the user opts in:
-
-```bash
-python skills/papers-to-table-agent-kit/scripts/launch_review_servers.py --run RUN_DIR --build --start-port 8761 --quiet --json
-```
-
-For several runs, repeat `--run`. The launcher starts detached localhost servers, verifies each URL, and prints links ending in `/human_review/index.html`.
-
-Always give the user the exact URL. Localhost mode supports source-PDF rendering, quote highlighting, decision writeback, and accepted-only export. Static `human_review/index.html` can show proposal and evidence text but cannot reliably load referenced PDFs.
-
-Review artifacts live under:
-
-```text
-RUN_DIR/
-  human_review/
-    index.html
-    assets/
-    review_package.json
-    decisions.jsonl
-    reviewer_summary.json
-    audit_log_*.json
-    diagnostics_*.json
-```
-
-## Apply Review Decisions
-
-Apply downloaded decisions, server-written decisions, or an explicit trusted auto-accept:
-
-```bash
-python skills/papers-to-table-agent-kit/scripts/apply_review_decisions.py --run RUN_DIR --decisions RUN_DIR/human_review/downloaded_decisions.json
-python skills/papers-to-table-agent-kit/scripts/apply_review_decisions.py --run RUN_DIR --use-existing-decisions
-python skills/papers-to-table-agent-kit/scripts/apply_review_decisions.py --run RUN_DIR --accept-all
-```
-
-The reviewed CSV is written beside the filled CSV with `_reviewed.csv` replacing `_filled.csv`. Only accepted and accepted-with-edit values populate it. Rejected, confirmed-no-data, pending, and undecided proposals remain in the audit artifacts.
-
-Auto-accepted decisions use `decision_source="automation_accept_all"`.
-
-## Benchmark Result
-
-In one benchmark, Codex with GPT-5.5 xhigh produced similar score distributions with its default workflow and with the Agent Kit. This result is specific to that benchmark and configuration.
-
-![Codex benchmark score distributions with its default workflow and with the papers-to-table agent-kit skill](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_agent_kit.jpg)
-
-*Content-correctness [Eval scores](eval.md) from three replicates across 15 papers and 31 target columns in optimizer run `20260615_004637_compare_models`. Labels above the boxes show mean scores to one decimal percentage point.*
+![Agent Kit browser review workspace](../screenshots/agent-kit-review-workspace.png)
 
 ## Installation
 
-Tell the agent to install the skill from:
+Tell your agent:
 
 ```text
-https://github.com/jjfroehlich/papers-to-table/tree/main/skills/papers-to-table-agent-kit/
+Install the papers-to-table Agent Kit from https://github.com/jjfroehlich/papers-to-table/tree/main/skills/papers-to-table-agent-kit/
 ```
 
-Alternatively, copy the complete `skills/papers-to-table-agent-kit/` directory into the agent system's skill directory. Keep its `assets/`, `references/`, `scripts/`, and `templates/` directories together.
+Alternatively, copy the complete `skills/papers-to-table-agent-kit/` directory into your agent system's skill directory. Keep its `assets/`, `references/`, `scripts/`, and `templates/` directories together.
 
-Use `templates/extraction_to_review_prompt.md` when an external agent should perform extraction and produce the evidence-backed handoff in one pass.
+Then ask naturally, for example:
+
+```text
+Use the papers-to-table Agent Kit to fill this literature table from these PDFs. Preserve evidence for every proposed value.
+```
+
+## When To Choose The Local App Instead
+
+Choose the [Local App skill](papers-to-table-local-app.md) when you want the agent to operate an installed papers-to-table pipeline, keep model inference local through LM Studio, process repeatable batches with one configuration, or produce the main app's full diagnostic run bundle.
+
+## Trust Boundary
+
+The kit makes extraction auditable; it does not make every extracted value correct or prove that a paper's claim is scientifically sound. Review important results, especially inferred values and fields without direct quotations. A reviewed CSV contains accepted decisions; an agent-extracted CSV does not imply human validation.
+
+## Benchmark Note
+
+Codex with GPT-5.5 xhigh produced similar content-correctness score distributions with its default workflow and with the Agent Kit. So the enforced structured workflow of the skill does not seem to reduce extraction quality compared to the native agent.
+
+![Codex benchmark score distributions with and without the Agent Kit](../plots/20260615_004637_compare_models_plots_v2/20260615_004637_compare_models_plots_v2_agent_kit.jpg)
+
+*Three replicates across 15 papers and 31 target columns in optimizer run `20260615_004637_compare_models`; see [Benchmark Datasets](benchmark-datasets.md) for interpretation limits.*

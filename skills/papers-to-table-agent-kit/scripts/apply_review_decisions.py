@@ -147,8 +147,10 @@ def _base_rows_and_fields(run_dir: Path, package: dict[str, Any]) -> tuple[list[
 
 def _export_value(proposal: dict[str, Any], decision: dict[str, Any]) -> Any:
     if decision.get("decision") == "accepted_with_edit":
-        return decision.get("edited_value") or ""
-    return proposal.get("proposed_value") or ""
+        value = decision.get("edited_value")
+        return "" if value is None else value
+    value = proposal.get("proposed_value")
+    return "" if value is None else value
 
 
 def export_reviewed_table(run_dir: Path, proposals: list[dict[str, Any]], decisions: list[dict[str, Any]], package: dict[str, Any]) -> Path:

@@ -11,7 +11,7 @@ def test_run_tab_gates_review_until_a_reviewable_run_is_selected(page: Page, fro
     page.goto(frontend_url)
 
     expect(page.locator("[data-testid='run-launch-surface']")).to_be_visible()
-    expect(page.get_by_role("button", name="Review")).to_be_disabled()
+    expect(page.get_by_role("button", name="Review", exact=True)).to_be_disabled()
     expect(page.get_by_role("heading", name="Create Run")).to_be_visible()
 
 
@@ -68,17 +68,19 @@ def test_picker_staging_shows_handle_for_table_override(page: Page, frontend_url
     expect(launch_surface.get_by_text("staged handle:")).to_be_visible()
 
 
-def test_selecting_completed_run_enables_review_workspace(page: Page, frontend_url: str):
+def test_selected_completed_run_starts_human_review(page: Page, frontend_url: str):
     page.goto(frontend_url)
 
     run_item = page.locator("[data-testid='run-item']").first
     expect(run_item).to_be_visible()
     run_item.click()
 
-    review_tab = page.get_by_role("button", name="Review")
+    review_tab = page.get_by_role("button", name="Review", exact=True)
     expect(review_tab).to_be_enabled()
-    review_tab.click()
+    start_review = page.get_by_role("button", name="Start human review", exact=True)
+    expect(start_review).to_be_visible()
+    start_review.click()
 
     expect(page.locator("[data-testid='review-workspace']")).to_be_visible()
-    expect(page.locator("[data-testid='review-toolbar']")).to_contain_text("Actionable review")
+    expect(page.locator("[data-testid='review-toolbar']")).to_contain_text("reviewed")
     expect(page.get_by_role("button", name="Export reviewed workbook")).to_be_visible()

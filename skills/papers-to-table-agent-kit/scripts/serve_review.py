@@ -470,6 +470,60 @@ def make_handler(run_dir: Path):
                     return
                 self._send_json(200, {"ok": True, "accepted_count": len(rows), "decision_count": len(decisions), "decisions": rows})
                 return
+            if parsed.path == "/api/proposals/bulk-decision":
+                try:
+                    payload = json.loads(body.decode("utf-8"))
+                    proposal_ids = payload.get("proposal_ids", []) if isinstance(payload, dict) else []
+                    decision = str(payload.get("decision") or "") if isinstance(payload, dict) else ""
+                    replace_existing = bool(payload.get("replace_existing")) if isinstance(payload, dict) else False
+                    if not isinstance(proposal_ids, list):
+                        raise ValueError("Expected proposal_ids to be a list.")
+                    if decision not in {"accepted", "rejected", "confirmed_no_data"}:
+                        raise ValueError(f"Unsupported bulk decision: {decision!r}")
+                    proposals = read_jsonl(proposals_path(run_dir))
+                    proposal_map = {str(proposal.get("proposal_id")): proposal for proposal in proposals if proposal.get("proposal_id")}
+                    existing_latest = latest_decisions(read_jsonl(decisions_path(run_dir)))
+                    run_id = str(proposals[0].get("run_id") or run_dir.name) if proposals else run_dir.name
+                    decided_at = utc_now()
+                    rows = []
+                    skipped = []
+                    for raw_id in dict.fromkeys(proposal_ids):
+                        proposal_id = str(raw_id or "").strip()
+                        proposal = proposal_map.get(proposal_id)
+                        if proposal is None or (proposal_id in existing_latest and not replace_existing):
+                            skipped.append(proposal_id)
+                            continue
+                        rows.append(
+                            {
+                                "review_decision_id": stable_id("rev", proposal_id, decision, decided_at),
+                                "run_id": run_id,
+                                "proposal_id": proposal_id,
+                                "cell_id": proposal.get("cell_id"),
+                                "decision": decision,
+                                "decision_source": "human_bulk_selection",
+                                "edited_value": None,
+                                "reviewer_note": "Applied to an explicit multi-cell selection in the review UI.",
+                                "decided_at": decided_at,
+                            }
+                        )
+                    decisions = write_latest_decisions(run_dir, rows)
+                except Exception as exc:
+                    self._send_json(422, {"ok": False, "error": str(exc)})
+                    return
+                self._send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "run_id": run_id,
+                        "decision": decision,
+                        "recorded_count": len(rows),
+                        "skipped_count": len(skipped),
+                        "skipped_proposal_ids": skipped,
+                        "decision_count": len(decisions),
+                        "decisions": rows,
+                    },
+                )
+                return
             if parsed.path == "/api/export":
                 try:
                     result = apply_decisions(run_dir, use_existing_decisions=True, export=True)

@@ -4,6 +4,7 @@ import type { RunData } from '../types'
 interface Props {
   run: RunData
   onAbort?: (run: RunData) => void
+  onStartReview?: (run: RunData) => void
   aborting?: boolean
 }
 
@@ -56,8 +57,9 @@ function InputRow({
   )
 }
 
-export function RunDetail({ run, onAbort, aborting }: Props) {
+export function RunDetail({ run, onAbort, onStartReview, aborting }: Props) {
   const isAbortable = !!onAbort && (run.status === 'created' || run.status === 'validating' || run.status === 'running')
+  const isReviewable = !!onStartReview && (run.status === 'completed' || run.status === 'completed_with_warnings')
   const resolvedTable = run.resolved_inputs?.table_path
   const resolvedSchema = run.resolved_inputs?.schema_path
   const resolvedPdfDir = run.resolved_inputs?.pdf_dir
@@ -70,11 +72,22 @@ export function RunDetail({ run, onAbort, aborting }: Props) {
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Selected run</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{run.run_id}</h2>
         </div>
-        {isAbortable && (
-          <button onClick={() => onAbort?.(run)} disabled={aborting} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60">
-            {aborting ? 'Aborting…' : 'Abort run'}
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {isReviewable && (
+            <button
+              type="button"
+              onClick={() => onStartReview?.(run)}
+              className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 active:translate-y-px"
+            >
+              Start human review
+            </button>
+          )}
+          {isAbortable && (
+            <button onClick={() => onAbort?.(run)} disabled={aborting} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-60">
+              {aborting ? 'Aborting…' : 'Abort run'}
+            </button>
+          )}
+        </div>
       </div>
 
       <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">

@@ -56,6 +56,15 @@ def run_cmd(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run([sys.executable, *args], check=True, text=True, capture_output=True)
 
 
+def run_validation(run_dir: Path) -> tuple[subprocess.CompletedProcess[str], dict]:
+    completed = subprocess.run(
+        [sys.executable, str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json"],
+        text=True,
+        capture_output=True,
+    )
+    return completed, json.loads(completed.stdout)
+
+
 def write_dummy_pdf(path: Path, text: str = "dummy") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(
@@ -167,6 +176,16 @@ def build_package(run_dir: Path, *, with_review: bool = False) -> dict:
 
 def read_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def read_review_input(run_dir: Path) -> dict:
+    return json.loads((run_dir / "extraction" / "review_input.json").read_text(encoding="utf-8"))
+
+
+def write_review_input(run_dir: Path, payload: dict) -> None:
+    (run_dir / "extraction" / "review_input.json").write_text(
+        json.dumps(payload, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def assert_no_old_layout(run_dir: Path) -> None:
@@ -669,10 +688,10 @@ def test_scaffold_benchmark_run_creates_reference_only_review_input_skeleton() -
         write_csv(
             dataset_dir / "table_template.csv",
             [
-                {"row_id": "row_1", "row_index": "0", "Title": "Paper A", "Finding": ""},
-                {"row_id": "row_2", "row_index": "1", "Title": "Paper B", "Finding": ""},
+                {"row_id": "row_1", "row_index": "0", "pdf_id": "paper_a", "Title": "Paper A", "Finding": ""},
+                {"row_id": "row_2", "row_index": "1", "pdf_id": "paper_b", "Title": "Paper B", "Finding": ""},
             ],
-            ["row_id", "row_index", "Title", "Finding"],
+            ["row_id", "row_index", "pdf_id", "Title", "Finding"],
         )
         write_csv(
             dataset_dir / "schema.csv",
@@ -685,7 +704,13 @@ def test_scaffold_benchmark_run_creates_reference_only_review_input_skeleton() -
         payload = json.loads((run_dir / "extraction" / "review_input.json").read_text(encoding="utf-8"))
 
         assert result["status"] == "scaffolded_incomplete_until_proposals_are_added"
+        assert result["mapping_mode"] == "explicit"
+        assert result["mapped_rows"] == 2
+        assert result["unmapped_rows"] == 0
+        assert result["extraction_mode"] == "fill_blanks"
+        assert result["eligible_target_cells"] == 2
         assert result["filled_table"].endswith("dataset_filled.csv")
+        assert payload["extraction_mode"] == "fill_blanks"
         assert payload["output_table_name"] == "dataset_filled.csv"
         assert Path(payload["pdfs"][0]["path"]).is_absolute()
         assert Path(payload["source_table_path"]).is_absolute()
@@ -699,6 +724,180 @@ def test_scaffold_benchmark_run_creates_reference_only_review_input_skeleton() -
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+def test_scaffold_fails_closed_when_companion_table_contains_missing_approved_values() -> None:
+    tmp_path = make_workspace("scaffold_baseline_guard")
+    try:
+        dataset_dir = tmp_path / "dataset"
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_a.pdf", "Paper A")
+        write_csv(
+            dataset_dir / "table_template.csv",
+            [{"row_id": "row_1", "pdf_id": "paper_a", "Title": "Paper A", "Finding": ""}],
+            ["row_id", "pdf_id", "Title", "Finding"],
+        )
+        write_csv(
+            dataset_dir / "schema.csv",
+            [{"column_name": "Finding", "field_type": "text"}],
+            ["column_name", "field_type"],
+        )
+        write_csv(
+            dataset_dir / "archived_complete_table" / "human_reviewed.csv",
+            [{"row_id": "row_1", "pdf_id": "paper_a", "Title": "Paper A", "Finding": "approved value"}],
+            ["row_id", "pdf_id", "Title", "Finding"],
+        )
+        run_dir = tmp_path / "review_run"
+
+        completed = subprocess.run(
+            [sys.executable, str(SCAFFOLD_SCRIPT), "--dataset-dir", str(dataset_dir), "--run", str(run_dir)],
+            text=True,
+            capture_output=True,
+        )
+
+        assert completed.returncode == 1
+        assert "Potential pre-existing human-reviewed target values" in completed.stderr
+        assert "human_reviewed.csv" in completed.stderr
+        assert not run_dir.exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_scaffold_detects_missing_approved_values_in_xlsx_companion() -> None:
+    from openpyxl import Workbook
+
+    tmp_path = make_workspace("scaffold_xlsx_baseline_guard")
+    try:
+        dataset_dir = tmp_path / "dataset"
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_a.pdf", "Paper A")
+        write_csv(
+            dataset_dir / "table_template.csv",
+            [{"row_id": "row_1", "pdf_id": "paper_a", "Title": "Paper A", "Finding": ""}],
+            ["row_id", "pdf_id", "Title", "Finding"],
+        )
+        write_csv(
+            dataset_dir / "schema.csv",
+            [{"column_name": "Finding", "field_type": "text"}],
+            ["column_name", "field_type"],
+        )
+        workbook_path = dataset_dir / "supplemental_data" / "approved_values.xlsx"
+        workbook_path.parent.mkdir(parents=True, exist_ok=True)
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "literature_MPRAs"
+        sheet.append(["row_id", "pdf_id", "Title", "Finding"])
+        sheet.append(["row_1", "paper_a", "Paper A", "approved from workbook"])
+        workbook.save(workbook_path)
+        run_dir = tmp_path / "review_run"
+
+        completed = subprocess.run(
+            [sys.executable, str(SCAFFOLD_SCRIPT), "--dataset-dir", str(dataset_dir), "--run", str(run_dir)],
+            text=True,
+            capture_output=True,
+        )
+
+        assert completed.returncode == 1
+        assert "approved_values.xlsx [literature_MPRAs]" in completed.stderr
+        assert not run_dir.exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_authoritative_baseline_is_preserved_visible_validated_and_reported() -> None:
+    tmp_path = make_workspace("scaffold_authoritative_baseline")
+    try:
+        dataset_dir = tmp_path / "dataset"
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_a.pdf", "Paper A")
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_b.pdf", "Paper B")
+        write_csv(
+            dataset_dir / "table_template.csv",
+            [
+                {"row_id": "row_1", "pdf_id": "paper_a", "Title": "Paper A", "Finding": ""},
+                {"row_id": "row_2", "pdf_id": "paper_b", "Title": "Paper B", "Finding": ""},
+            ],
+            ["row_id", "pdf_id", "Title", "Finding"],
+        )
+        write_csv(
+            dataset_dir / "schema.csv",
+            [{"column_name": "Finding", "field_type": "text"}],
+            ["column_name", "field_type"],
+        )
+        authoritative = dataset_dir / "reviewed" / "approved.csv"
+        write_csv(
+            authoritative,
+            [
+                {"row_id": "row_1", "pdf_id": "paper_a", "Title": "Paper A", "Finding": "approved value"},
+                {"row_id": "row_2", "pdf_id": "paper_b", "Title": "Paper B", "Finding": ""},
+            ],
+            ["row_id", "pdf_id", "Title", "Finding"],
+        )
+        run_dir = tmp_path / "review_run"
+
+        result = json.loads(
+            run_cmd(
+                str(SCAFFOLD_SCRIPT),
+                "--dataset-dir", str(dataset_dir),
+                "--run", str(run_dir),
+                "--authoritative-table", str(authoritative),
+                "--json",
+            ).stdout
+        )
+        payload_path = run_dir / "extraction" / "review_input.json"
+        payload = json.loads(payload_path.read_text(encoding="utf-8"))
+        manifest = json.loads((run_dir / "extraction" / "baseline_manifest.json").read_text(encoding="utf-8"))
+        baseline_rows = read_csv(Path(payload["source_table_path"]))
+
+        assert result["baseline_status"] == "authoritative_baseline_applied"
+        assert result["authoritative_restored_cells"] == 1
+        assert manifest["restored_cells"] == 1
+        assert baseline_rows[0]["Finding"] == "approved value"
+        assert payload["rows"][0]["values"]["Finding"] == "approved value"
+
+        payload["proposals"] = [{
+            "row_id": "row_1",
+            "column_name": "Finding",
+            "proposed_value": "replacement",
+            "rationale": "The quote supports a replacement.",
+            "evidence": [{"pdf_id": "paper_a", "page_number": 1, "quote_text": "replacement"}],
+        }]
+        payload_path.write_text(json.dumps(payload), encoding="utf-8")
+        completed, report = run_validation(run_dir)
+        assert completed.returncode == 1
+        assert any("targets populated cell" in error for error in report["errors"])
+
+        payload["proposals"] = [{
+            "row_id": "row_2",
+            "column_name": "Finding",
+            "proposed_value": "new extraction",
+            "rationale": "The page-one sentence states the new extraction for Finding.",
+            "evidence": [{"pdf_id": "paper_b", "source_type": "direct_quote", "page_number": 1, "quote_text": "new extraction"}],
+        }]
+        payload_path.write_text(json.dumps(payload), encoding="utf-8")
+        build_package(run_dir)
+        summary = json.loads((run_dir / "extraction" / "extraction_summary.json").read_text(encoding="utf-8"))
+        assert summary["value_provenance"] == "mixed_preexisting_human_reviewed_and_agent_extracted"
+        assert summary["preexisting_human_reviewed_cell_count"] == 1
+        assert "preserves pre-existing human-reviewed values" in summary["notes"]
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_authoring_validation_rejects_hidden_preexisting_target_values() -> None:
+    tmp_path = make_workspace("hidden_baseline_value")
+    try:
+        run_dir = make_run(tmp_path)
+        payload_path = run_dir / "extraction" / "review_input.json"
+        payload = json.loads(payload_path.read_text(encoding="utf-8"))
+        source_path = Path(payload["source_table_path"])
+        rows = read_csv(source_path)
+        rows[0]["Finding"] = "approved value"
+        write_csv(source_path, rows, list(rows[0]))
+
+        completed, report = run_validation(run_dir)
+
+        assert completed.returncode == 1
+        assert any("does not preserve source target value byte-for-byte" in error for error in report["errors"])
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
 def test_scaffold_benchmark_run_output_root_places_runs_and_final_csv_in_workspace() -> None:
     tmp_path = make_workspace("scaffold_output_root")
     try:
@@ -706,8 +905,8 @@ def test_scaffold_benchmark_run_output_root_places_runs_and_final_csv_in_workspa
         write_dummy_pdf(dataset_dir / "pdfs" / "paper_a.pdf", "Paper A")
         write_csv(
             dataset_dir / "table_template.csv",
-            [{"row_id": "row_1", "row_index": "0", "Title": "Paper A", "Finding": ""}],
-            ["row_id", "row_index", "Title", "Finding"],
+            [{"row_id": "row_1", "row_index": "0", "pdf_id": "paper_a", "Title": "Paper A", "Finding": ""}],
+            ["row_id", "row_index", "pdf_id", "Title", "Finding"],
         )
         write_csv(
             dataset_dir / "schema.csv",
@@ -753,6 +952,164 @@ def test_scaffold_benchmark_run_output_root_places_runs_and_final_csv_in_workspa
         assert build_result["filled_table_path"] == str(output_root.resolve() / "dataset_filled.csv")
         assert (output_root / "dataset_filled.csv").exists()
         assert not (run_dir / "dataset_filled.csv").exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_scaffold_requires_explicit_pdf_mapping_and_fails_before_creating_run() -> None:
+    tmp_path = make_workspace("scaffold_mapping_required")
+    try:
+        dataset_dir = tmp_path / "dataset"
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_a.pdf", "Paper A")
+        write_csv(
+            dataset_dir / "table_template.csv",
+            [{"row_id": "row_1", "Title": "Paper A", "Finding": ""}],
+            ["row_id", "Title", "Finding"],
+        )
+        run_dir = tmp_path / "review_run"
+
+        completed = subprocess.run(
+            [sys.executable, str(SCAFFOLD_SCRIPT), "--dataset-dir", str(dataset_dir), "--run", str(run_dir)],
+            text=True,
+            capture_output=True,
+        )
+
+        assert completed.returncode == 1
+        assert "not explicitly mapped" in completed.stderr
+        assert not run_dir.exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_scaffold_positional_mapping_is_an_explicit_equal_count_fallback() -> None:
+    tmp_path = make_workspace("scaffold_positional")
+    try:
+        dataset_dir = tmp_path / "dataset"
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_a.pdf", "Paper A")
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_b.pdf", "Paper B")
+        write_csv(
+            dataset_dir / "table_template.csv",
+            [
+                {"row_id": "row_1", "Title": "Paper A", "Finding": ""},
+                {"row_id": "row_2", "Title": "Paper B", "Finding": ""},
+            ],
+            ["row_id", "Title", "Finding"],
+        )
+        run_dir = tmp_path / "review_run"
+
+        result = json.loads(
+            run_cmd(
+                str(SCAFFOLD_SCRIPT),
+                "--dataset-dir",
+                str(dataset_dir),
+                "--run",
+                str(run_dir),
+                "--allow-positional-pdf-fallback",
+                "--json",
+            ).stdout
+        )
+        payload = json.loads((run_dir / "extraction" / "review_input.json").read_text(encoding="utf-8"))
+
+        assert result["mapping_mode"] == "positional_explicit_opt_in"
+        assert [row["pdf_id"] for row in payload["rows"]] == ["paper_a", "paper_b"]
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_scaffold_allows_table_only_rows_but_rejects_duplicate_pdf_assignment() -> None:
+    tmp_path = make_workspace("scaffold_partial_dataset")
+    try:
+        dataset_dir = tmp_path / "dataset"
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_a.pdf", "Paper A")
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_b.pdf", "Paper B")
+        table_path = dataset_dir / "table_template.csv"
+        write_csv(
+            table_path,
+            [
+                {"row_id": "row_1", "pdf_id": "paper_a", "Title": "Paper A", "Finding": "known"},
+                {"row_id": "row_2", "pdf_id": "paper_b", "Title": "Paper B", "Finding": ""},
+                {"row_id": "row_3", "pdf_id": "", "Title": "Table-only paper", "Finding": ""},
+            ],
+            ["row_id", "pdf_id", "Title", "Finding"],
+        )
+        write_csv(
+            dataset_dir / "schema.csv",
+            [{"column_name": "Finding", "field_type": "text"}],
+            ["column_name", "field_type"],
+        )
+        run_dir = tmp_path / "review_run"
+
+        result = json.loads(
+            run_cmd(
+                str(SCAFFOLD_SCRIPT),
+                "--dataset-dir",
+                str(dataset_dir),
+                "--run",
+                str(run_dir),
+                "--extraction-mode",
+                "fill_and_verify",
+                "--json",
+            ).stdout
+        )
+        payload = json.loads((run_dir / "extraction" / "review_input.json").read_text(encoding="utf-8"))
+
+        assert result["mapped_rows"] == 2
+        assert result["unmapped_rows"] == 1
+        assert result["populated_target_cells"] == 1
+        assert result["blank_target_cells"] == 1
+        assert result["eligible_target_cells"] == 2
+        assert result["source_table_target_cells"] == 3
+        assert result["table_only_target_cells"] == 1
+        assert result["rows_with_populated_targets"] == 1
+        assert payload["extraction_mode"] == "fill_and_verify"
+        assert payload["rows"][2]["pdf_id"] is None
+
+        write_csv(
+            table_path,
+            [
+                {"row_id": "row_1", "pdf_id": "paper_a", "Title": "Paper A", "Finding": ""},
+                {"row_id": "row_2", "pdf_id": "paper_a", "Title": "Duplicate", "Finding": ""},
+            ],
+            ["row_id", "pdf_id", "Title", "Finding"],
+        )
+        duplicate_run = tmp_path / "duplicate_run"
+        completed = subprocess.run(
+            [sys.executable, str(SCAFFOLD_SCRIPT), "--dataset-dir", str(dataset_dir), "--run", str(duplicate_run)],
+            text=True,
+            capture_output=True,
+        )
+        assert completed.returncode == 1
+        assert "duplicate assignments" in completed.stderr
+        assert not duplicate_run.exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_scaffold_normalizes_json_and_pipe_delimited_allowed_values() -> None:
+    tmp_path = make_workspace("scaffold_allowed_values")
+    try:
+        dataset_dir = tmp_path / "dataset"
+        write_dummy_pdf(dataset_dir / "pdfs" / "paper_a.pdf", "Paper A")
+        write_csv(
+            dataset_dir / "table_template.csv",
+            [{"row_id": "row_1", "pdf_id": "paper_a", "Design": "", "Readout": ""}],
+            ["row_id", "pdf_id", "Design", "Readout"],
+        )
+        write_csv(
+            dataset_dir / "schema.csv",
+            [
+                {"column_name": "Design", "field_type": "categorical", "allowed_values": '["A", "B"]'},
+                {"column_name": "Readout", "field_type": "categorical", "allowed_values": "C|D"},
+            ],
+            ["column_name", "field_type", "allowed_values"],
+        )
+        run_dir = tmp_path / "review_run"
+
+        run_cmd(str(SCAFFOLD_SCRIPT), "--dataset-dir", str(dataset_dir), "--run", str(run_dir))
+        payload = json.loads((run_dir / "extraction" / "review_input.json").read_text(encoding="utf-8"))
+
+        assert payload["columns"][0]["allowed_values"] == ["A", "B"]
+        assert payload["columns"][1]["allowed_values"] == ["C", "D"]
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
@@ -937,6 +1294,64 @@ def test_serve_review_bulk_accepts_only_provided_pending_ids() -> None:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+def test_serve_review_bulk_selection_is_pending_only_unless_replacement_is_confirmed() -> None:
+    tmp_path = make_workspace("bulk_selection_endpoint")
+    try:
+        run_dir = make_run(tmp_path)
+        build_package(run_dir, with_review=True)
+        proposals = read_jsonl(run_dir / "extraction" / "proposals.jsonl")
+        server, url = serve(run_dir, open_browser=False, quiet=True)
+        try:
+            base_url = url.rsplit("/human_review/", 1)[0]
+
+            def post(path: str, payload: dict) -> dict:
+                request = urllib.request.Request(
+                    base_url + path,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(request, timeout=5) as response:
+                    return json.loads(response.read().decode("utf-8"))
+
+            post(
+                "/api/decisions",
+                {"decisions": [{
+                    "proposal_id": proposals[0]["proposal_id"],
+                    "cell_id": proposals[0]["cell_id"],
+                    "decision": "accepted",
+                }]},
+            )
+            first = post(
+                "/api/proposals/bulk-decision",
+                {
+                    "proposal_ids": [proposals[0]["proposal_id"], proposals[1]["proposal_id"]],
+                    "decision": "rejected",
+                    "replace_existing": False,
+                },
+            )
+            assert first["recorded_count"] == 1
+            assert first["skipped_proposal_ids"] == [proposals[0]["proposal_id"]]
+
+            replaced = post(
+                "/api/proposals/bulk-decision",
+                {
+                    "proposal_ids": [proposals[0]["proposal_id"]],
+                    "decision": "confirmed_no_data",
+                    "replace_existing": True,
+                },
+            )
+            assert replaced["recorded_count"] == 1
+            decisions = read_jsonl(run_dir / "human_review" / "decisions.jsonl")
+            by_proposal = {decision["proposal_id"]: decision for decision in decisions}
+            assert by_proposal[proposals[0]["proposal_id"]]["decision"] == "confirmed_no_data"
+            assert by_proposal[proposals[0]["proposal_id"]]["decision_source"] == "human_bulk_selection"
+        finally:
+            server.shutdown()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
 def test_serve_review_react_adapter_endpoints_and_pdf_reference_serving() -> None:
     tmp_path = make_workspace("react_adapter")
     try:
@@ -1071,5 +1486,194 @@ def test_serve_review_writes_decisions_and_exports_reviewed_table() -> None:
             assert_no_old_layout(run_dir)
         finally:
             server.shutdown()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_authoring_validation_enforces_number_and_categorical_fields() -> None:
+    tmp_path = make_workspace("typed_values")
+    try:
+        run_dir = make_run(tmp_path)
+        payload = read_review_input(run_dir)
+        payload["columns"] = [
+            {"column_name": "Count", "field_type": "number"},
+            {
+                "column_name": "Readout",
+                "field_type": "categorical",
+                "allowed_values": ["RNA/DNAseq", "RNAseq"],
+            },
+        ]
+        evidence = [{"pdf_id": "paper_a", "page_number": 1, "quote_text": "The assay tested 100 constructs."}]
+        payload["proposals"] = [
+            {"row_id": "row_1", "column_name": "Count", "proposed_value": "100", "evidence": evidence},
+            {"row_id": "row_1", "column_name": "Readout", "proposed_value": "sequencing-based", "evidence": evidence},
+        ]
+        write_review_input(run_dir, payload)
+
+        completed, report = run_validation(run_dir)
+
+        assert completed.returncode == 1
+        assert report["ok"] is False
+        assert any("finite JSON number" in error for error in report["errors"])
+        assert any("is not an allowed value" in error for error in report["errors"])
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_authoring_validation_checks_derivation_requirements() -> None:
+    tmp_path = make_workspace("derivation_validation")
+    try:
+        run_dir = make_run(tmp_path)
+        payload = read_review_input(run_dir)
+        payload["columns"] = [{"column_name": "Estimate", "field_type": "number"}]
+        payload["proposals"] = [
+            {
+                "row_id": "row_1",
+                "column_name": "Estimate",
+                "proposed_value": 12,
+                "reason_codes": ["calculation"],
+                "evidence": [{"pdf_id": "paper_a", "page_number": 1, "quote_text": "Six groups of two."}],
+            },
+            {
+                "row_id": "row_2",
+                "column_name": "Estimate",
+                "proposed_value": 20,
+                "reason_codes": ["figure_estimate"],
+                "numeric_value_form": "exact",
+                "evidence": [{"pdf_id": "paper_b", "page_number": 1, "quote_text": "See Figure 2."}],
+            },
+            {
+                "row_id": "row_2",
+                "column_name": "Estimate",
+                "proposed_value": 0,
+                "reason_codes": ["absence_inference"],
+                "evidence": [],
+            },
+        ]
+        write_review_input(run_dir, payload)
+
+        completed, report = run_validation(run_dir)
+
+        assert completed.returncode == 1
+        assert report["ok"] is False
+        assert any("has no calculation" in error for error in report["errors"])
+        assert any("lacks page-specific figure_ref" in error for error in report["errors"])
+        assert any("must use numeric_value_form='approximate'" in error for error in report["errors"])
+        assert any("absence inference requires" in error for error in report["errors"])
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_default_fill_blanks_rejects_proposal_for_populated_cell() -> None:
+    tmp_path = make_workspace("populated_default")
+    try:
+        run_dir = make_run(tmp_path)
+        source_path = Path(read_review_input(run_dir)["source_table_path"])
+        rows = read_csv(source_path)
+        rows[0]["Finding"] = "existing value"
+        write_csv(source_path, rows, list(rows[0]))
+
+        completed, report = run_validation(run_dir)
+
+        assert completed.returncode == 1
+        assert report["ok"] is False
+        assert any("targets populated cell" in error for error in report["errors"])
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_fill_and_verify_preserves_unreviewed_value_and_applies_accepted_correction() -> None:
+    tmp_path = make_workspace("verify_mode")
+    try:
+        run_dir = make_run(tmp_path)
+        payload = read_review_input(run_dir)
+        source_path = Path(payload["source_table_path"])
+        rows = read_csv(source_path)
+        rows[0]["Finding"] = "existing value"
+        write_csv(source_path, rows, list(rows[0]))
+        payload["extraction_mode"] = "fill_and_verify"
+        payload["rows"][0]["values"]["Finding"] = "existing value"
+        payload["proposals"] = [
+            {
+                "row_id": "row_1",
+                "column_name": "Finding",
+                "proposed_value": "corrected value",
+                "rationale": "The Results sentence reports corrected value for the current study.",
+                "reason_codes": ["direct"],
+                "evidence": [
+                    {
+                        "pdf_id": "paper_a",
+                        "source_type": "direct_quote",
+                        "page_number": 1,
+                        "quote_text": "The current study reports corrected value.",
+                    }
+                ],
+            }
+        ]
+        write_review_input(run_dir, payload)
+
+        validation = json.loads(run_cmd(str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json").stdout)
+        assert validation["ok"] is True
+        build_package(run_dir, with_review=True)
+
+        proposal = read_jsonl(run_dir / "extraction" / "proposals.jsonl")[0]
+        assert proposal["is_verify_mode"] is True
+        assert proposal["existing_value"] == "existing value"
+        assert read_csv(run_dir / "agent_review_filled.csv")[0]["Finding"] == "existing value"
+
+        run_cmd(str(APPLY_SCRIPT), "--run", str(run_dir), "--accept-all", "--json")
+        assert read_csv(run_dir / "agent_review_reviewed.csv")[0]["Finding"] == "corrected value"
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_mixed_derivation_fixture_builds_and_routes_inferences_to_attention() -> None:
+    tmp_path = make_workspace("mixed_derivations")
+    try:
+        run_dir = make_run(tmp_path)
+        payload = read_review_input(run_dir)
+        payload["columns"] = [
+            {"column_name": "Direct", "field_type": "text"},
+            {"column_name": "Calculated", "field_type": "number"},
+            {"column_name": "Figure estimate", "field_type": "number"},
+            {"column_name": "UMI?", "field_type": "text"},
+        ]
+        payload["proposals"] = [
+            {
+                "row_id": "row_1", "column_name": "Direct", "proposed_value": "yes", "reason_codes": ["direct"],
+                "rationale": "The Methods explicitly state yes for the current assay.",
+                "evidence": [{"pdf_id": "paper_a", "page_number": 1, "quote_text": "The current assay used this method."}],
+            },
+            {
+                "row_id": "row_1", "column_name": "Calculated", "proposed_value": 12, "reason_codes": ["calculation"],
+                "numeric_value_form": "exact", "calculation": "6 construct groups x 2 constructs/group = 12 constructs",
+                "rationale": "Two compatible Methods operands yield 12 constructs for the same post-QC library.",
+                "evidence": [{"pdf_id": "paper_a", "page_number": 1, "quote_text": "Six groups contained two constructs each."}],
+            },
+            {
+                "row_id": "row_2", "column_name": "Figure estimate", "proposed_value": 18, "reason_codes": ["figure_estimate"],
+                "numeric_value_form": "approximate", "rationale": "Rendered Figure 2B shows approximately 18 items.",
+                "evidence": [{"pdf_id": "paper_b", "page_number": 1, "figure_ref": "Figure 2B", "caption_text": "Counts per sequence.", "approximate_highlight_regions": [{"page": 1, "x0": 0.1, "y0": 0.1, "x1": 0.4, "y1": 0.4}]}],
+            },
+            {
+                "row_id": "row_2", "column_name": "UMI?", "proposed_value": "no (inferred)", "reason_codes": ["absence_inference"],
+                "rationale": "Methods, primer sequences, and protocol annotations were audited without a UMI or random-N molecular identifier; reporter barcodes were not treated as UMIs.",
+                "evidence": [{"pdf_id": "paper_b", "page_number": 1, "source_location": "Methods and primer audit", "reasoning": "The documented primer and library-preparation scope contains reporter barcodes but no UMI."}],
+            },
+        ]
+        write_review_input(run_dir, payload)
+
+        validation = json.loads(run_cmd(str(VALIDATE_SCRIPT), "--run", str(run_dir), "--mode", "authoring", "--json").stdout)
+        assert validation["ok"] is True
+        build_package(run_dir)
+        proposals = read_jsonl(run_dir / "extraction" / "proposals.jsonl")
+        absence = next(item for item in proposals if "absence_inference" in item["reason_codes"])
+        figure = next(item for item in proposals if "figure_estimate" in item["reason_codes"])
+        calculation = next(item for item in proposals if "calculation" in item["reason_codes"])
+        assert absence["review_bucket"] == "attention"
+        assert "absence_inference" in absence["warning_flags"]
+        assert figure["review_bucket"] == "attention"
+        assert figure["numeric_value_form"] == "approximate"
+        assert calculation["evidence_status"] == "inferred_strong"
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)

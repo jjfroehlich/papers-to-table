@@ -118,6 +118,26 @@ The runtimes below were measured on the development workstation:
 | NVIDIA driver | 591.86 |
 | Repository and benchmark-data storage | `D:` on a TOSHIBA HDWD220 2 TB SATA HDD, NTFS |
 
+### Model Quantization
+
+The 11 local candidates in `20260615_004637_compare_models` used the GGUF files below. Quantization is part of the benchmark condition: changing it can change quality, memory use, and runtime.
+
+| Configured model | Main GGUF weights | Quantization |
+| --- | --- | --- |
+| `google/gemma-4-e4b` | `gemma-4-E4B-it-Q4_K_M.gguf` | `Q4_K_M` |
+| `google/gemma-4-12b` | `gemma-4-12B-it-Q4_K_M.gguf` | `Q4_K_M` |
+| `google/gemma-4-26b-a4b` | `gemma-4-26B-A4B-it-Q4_K_M.gguf` | `Q4_K_M` |
+| `openai/gpt-oss-20b` | `gpt-oss-20b-MXFP4.gguf` | `MXFP4` |
+| `nvidia/nemotron-3-nano-omni` | `Nemotron-3-Nano-Omni-30B-A3B-Reasoning-Q4_K_M.gguf` | `Q4_K_M` |
+| `nuextract3` | `NuExtract3-Q4_K_M.gguf` | `Q4_K_M` |
+| `mistralai/ministral-3-14b-reasoning` | `Ministral-3-14B-Reasoning-2512-Q4_K_M.gguf` | `Q4_K_M` |
+| `zai-org/glm-4.6v-flash` | `GLM-4.6V-Flash-Q4_K_M.gguf` | `Q4_K_M` |
+| `qwen/qwen3.6-27b` | `Qwen3.6-27B-Q4_K_M.gguf` | `Q4_K_M` |
+| `google/gemma-4-12b-qat` | `gemma-4-12B-it-QAT-Q4_0.gguf` | `Q4_0` |
+| `qwen3.6-27b-mtp` | `Qwen3.6-27B-Q4_K_S.gguf` | `Q4_K_S` |
+
+`QAT` in the Gemma model name describes quantization-aware training; the loaded benchmark file was the `Q4_0` GGUF shown above. Multimodal projector files are separate from the main-weight quantization. All candidates used the same configured model for text and vision except `openai/gpt-oss-20b`, which used `google/gemma-4-e4b` (`Q4_K_M`) for vision.
+
 The checked-in routine full-benchmark:
 
 | Stage | Routine Candidates | Notes |

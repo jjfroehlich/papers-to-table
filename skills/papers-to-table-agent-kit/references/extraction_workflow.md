@@ -68,10 +68,24 @@ After the user opts in, the review setup is not complete until the user has a us
 
 For benchmark folders, literature-review matrices, or table-completion tasks:
 
+First resolve the authoritative table. Recursively inspect compatible CSV/XLSX files in the dataset, even under archive/complete/original-like folders, and compare schema target columns plus overlapping row identities. A file named `table_template.csv` is not automatically authoritative, blanks are not automatically intentional, and protected benchmark `table_gold.csv` must never be used as an extraction baseline. Then count blank and populated schema-target cells, distinguish metadata from target columns, inventory the PDFs, and choose `fill_blanks` unless the user explicitly requested verification of existing values. Match each PDF to a row using DOI first, then normalized title, authors, and year from the PDF front matter. Resolve preprint/publication title variants and abbreviated filenames explicitly. Write the matched PDF stem to that row's `pdf_id` field.
+
+Every supplied PDF must map to exactly one row. It is valid for a larger table to retain rows without a supplied PDF and a blank `pdf_id`. It is not valid to infer identity merely from filename resemblance or sorted row order. Stop on ambiguous, unknown, duplicate, or unused PDF matches. The positional fallback is only for a dataset with no explicit mappings, equal row/PDF counts, and independently verified one-to-one order.
+
 ```bash
 python skills/papers-to-table-agent-kit/scripts/prepare_output_workspace.py --output-dir OUTPUT_DIR --run-id RUN_ID --json
-python skills/papers-to-table-agent-kit/scripts/scaffold_benchmark_run.py --dataset-dir DATASET_DIR --output-root OUTPUT_DIR --json
+python skills/papers-to-table-agent-kit/scripts/scaffold_benchmark_run.py --dataset-dir DATASET_DIR --output-root OUTPUT_DIR --extraction-mode fill_blanks --json
 ```
+
+If a companion table contains values missing from the template, the scaffold fails before creating the run. Select the approved source explicitly:
+
+```bash
+python skills/papers-to-table-agent-kit/scripts/scaffold_benchmark_run.py --dataset-dir DATASET_DIR --output-root OUTPUT_DIR --authoritative-table PATH_TO_APPROVED.csv --json
+```
+
+For XLSX, add `--authoritative-sheet SHEET_NAME` when needed. `--allow-template-only` is a deliberate override for cases where the user has confirmed that companion values must be disregarded. The scaffold writes `extraction/baseline_manifest.json`; retain it with the run and verify its hashes during validation.
+
+If—and only if—the positional conditions above are satisfied, add `--allow-positional-pdf-fallback`. The default scaffold fails closed if any supplied PDF lacks an explicit row mapping. It also rejects unknown and duplicate mappings before creating run artifacts.
 
 The scaffold writes `extraction/review_input.json` with:
 
@@ -83,7 +97,11 @@ The scaffold writes `extraction/review_input.json` with:
 - rows and columns inferred from the template/schema
 - empty `proposals`
 
-After scaffold, append evidence-backed proposals. Do not copy input PDFs, source tables, or schemas into the run directory.
+Its command result also reports the mapping mode, mapped and table-only row counts, and total, blank, populated, and eligible target-cell counts for PDF-mapped rows. Separate source-table and table-only target-cell totals make a larger preserved table explicit without treating its unmatched rows as extraction work. CSV schemas accept `allowed_values` as either JSON arrays (for example `["yes", "no"]`) or pipe-delimited text (`yes|no`); both become arrays in `review_input.json`.
+
+After scaffold, append evidence-backed proposals. Keep every non-empty effective-baseline target value in `rows[].values` so the review table shows it. Do not copy input PDFs or schemas into the run directory; an explicit authoritative source is merged into the run-local `extraction/authoritative_baseline.csv` with its original path and hash recorded in the manifest.
+
+The optional top-level `extraction_mode` defaults to `fill_blanks`. In this mode, populated cells are preserved exactly and are ineligible for proposals. Existing table values are neither source evidence nor semantic examples to copy into blank cells. Set the mode to `fill_and_verify` only after an explicit request to audit already-populated cells, and verify each existing value independently from the matched paper and schema. Verify-mode proposals are review candidates, not edits to the unreviewed filled CSV; an accepted review decision is required before the reviewed CSV changes. Metadata and manually curated columns remain context unless the schema explicitly includes them as extraction targets.
 
 ## Evidence Authoring
 
@@ -96,10 +114,15 @@ Write value-specific rationale summaries. Avoid template text like `Extracted fr
 Author each proposal in a cell-by-cell loop:
 
 1. Verify the proposal's `row_id`, `column_name`, and `pdf_id`.
-2. Identify the claim the cell needs to make, then find the narrowest source support for that claim.
-3. Add evidence objects that support that claim only. Use separate evidence for separate claims unless one table row/caption directly contains all of them.
-4. Write the rationale in this shape: `The source [quote/table/caption/page context] supports [proposed value] for [column] because [specific reason or normalization].`
-5. If the value is unavailable, leave the CSV cell blank unless the paper explicitly supports a `no_data` proposal; cite that absence or scope and explain it in the rationale.
+2. Verify that the passage describes the present study rather than background, prior work, a comparison assay, or a future option.
+3. Identify the claim the cell needs to make, then find the narrowest source support for that claim.
+4. Add evidence objects that support that claim only. Use separate evidence for separate claims unless one table row/caption directly contains all of them.
+5. Write the rationale in this shape: `The source [quote/table/caption/page context] supports [proposed value] for [column] because [specific reason or normalization].`
+6. If the value is unavailable, leave the CSV cell blank unless the paper explicitly supports a `no_data` proposal; cite that absence or scope and explain it in the rationale.
+
+Choose and record a derivation path in `reason_codes`: `direct`, `calculation`, `figure_estimate`, `protocol_inference`, or `absence_inference`. Calculations require a `calculation` string and evidence for compatible operands. Figure estimates require page-specific `figure_ref` plus caption or rendered-panel region evidence and `numeric_value_form="approximate"`. Absence inference requires a documented field-specific search scope and reviewer-facing rationale; it is normalized to an attention item with an `absence_inference` diagnostic. Use `numeric_value_form` (`exact`, `range`, or `approximate`) when numeric provenance matters.
+
+Apply field definitions as contracts: JSON numbers for `number` fields and exact allowed labels for categorical fields. Before finishing a paper, reconcile design, delivery/integration, readout, barcode role, UMI role, scale, and construct-count claims so related cells describe the same current-study assay, population, stage, and QC unit.
 
 Preferred direct evidence:
 

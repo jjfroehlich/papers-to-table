@@ -382,6 +382,57 @@ export const api = {
     return { run_id: packageData().run_id, accepted_count: decisions.length, decisions }
   },
 
+  bulkDecision: async (
+    _runId: string,
+    proposalIds: string[],
+    decision: 'accepted' | 'rejected' | 'confirmed_no_data',
+    replaceExisting: boolean,
+    _outputDir?: string,
+  ): Promise<{
+    run_id: string
+    decision: string
+    recorded_count: number
+    skipped_count: number
+    skipped_proposal_ids: string[]
+    decisions: DecisionRecord[]
+  }> => {
+    if (served) {
+      return request('/api/proposals/bulk-decision', {
+        method: 'POST',
+        body: JSON.stringify({ proposal_ids: proposalIds, decision, replace_existing: replaceExisting }),
+      })
+    }
+    const existing = readLocalDecisions()
+    const latest = latestDecisions(existing)
+    const proposalMap = new Map(localProposals().map((proposal) => [proposal.proposal_id, proposal]))
+    const skipped: string[] = []
+    const decisions = Array.from(new Set(proposalIds)).flatMap((proposalId) => {
+      const proposal = proposalMap.get(proposalId)
+      if (!proposal || (latest.has(proposalId) && !replaceExisting)) {
+        skipped.push(proposalId)
+        return []
+      }
+      return [makeDecision(
+        proposal,
+        {
+          decision,
+          decision_source: 'human_bulk_selection',
+          reviewer_note: 'Applied to an explicit multi-cell selection in the review UI.',
+        },
+        'human_bulk_selection',
+      )]
+    })
+    writeLocalDecisions([...existing, ...decisions])
+    return {
+      run_id: packageData().run_id,
+      decision,
+      recorded_count: decisions.length,
+      skipped_count: skipped.length,
+      skipped_proposal_ids: skipped,
+      decisions,
+    }
+  },
+
   triggerExport: async (): Promise<ExportResult> => {
     if (!served) {
       throw new Error('Export reviewed table requires localhost serving. Download decisions and apply them with apply_review_decisions.py.')

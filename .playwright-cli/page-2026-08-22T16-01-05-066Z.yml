@@ -1,0 +1,165 @@
+- generic [ref=f2e3]:
+  - banner [ref=f2e4]:
+    - generic [ref=f2e5]:
+      - generic [ref=f2e6]:
+        - img "papers-to-table" [ref=f2e7]
+        - generic [ref=f2e8]:
+          - heading "papers-to-table" [level=1] [ref=f2e9]
+          - paragraph [ref=f2e10]: Evidence-backed extraction and review
+      - navigation [ref=f2e12]:
+        - button "Run" [ref=f2e13] [cursor=pointer]
+        - button "Review" [ref=f2e14] [cursor=pointer]
+  - main [ref=f2e15]:
+    - generic [ref=f2e16]:
+      - generic [ref=f2e17]:
+        - generic [ref=f2e18]:
+          - paragraph [ref=f2e19]: Runs
+          - paragraph [ref=f2e20]: "10"
+        - generic [ref=f2e21]:
+          - paragraph [ref=f2e22]: Review ready
+          - paragraph [ref=f2e23]: "4"
+        - generic [ref=f2e24]:
+          - paragraph [ref=f2e25]: Active
+          - paragraph [ref=f2e26]: "0"
+      - generic [ref=f2e27]:
+        - generic [ref=f2e28]:
+          - generic [ref=f2e29]:
+            - generic [ref=f2e30]:
+              - heading "Create run" [level=2] [ref=f2e31]
+              - generic [ref=f2e32]: Inputs
+            - generic [ref=f2e34]:
+              - generic [ref=f2e35]:
+                - generic [ref=f2e36]: Table
+                - generic [ref=f2e37]:
+                  - textbox "Select a table file or enter a backend-readable path" [ref=f2e38]
+                  - button "Browse..." [ref=f2e39] [cursor=pointer]
+              - generic [ref=f2e40]:
+                - generic [ref=f2e41]: Schema
+                - generic [ref=f2e42]:
+                  - textbox "Select a schema CSV or enter a backend-readable path" [ref=f2e43]
+                  - button "Browse..." [ref=f2e44] [cursor=pointer]
+              - generic [ref=f2e45]:
+                - generic [ref=f2e46]: PDFs
+                - generic [ref=f2e47]:
+                  - textbox "Select PDFs or enter a backend-readable PDF folder" [ref=f2e48]
+                  - button "Browse..." [ref=f2e49] [cursor=pointer]
+              - generic [ref=f2e50]:
+                - generic [ref=f2e51]:
+                  - generic [ref=f2e52]: Output directory
+                  - textbox "./runs" [ref=f2e53]
+                - generic [ref=f2e54]:
+                  - generic [ref=f2e55]: Config file
+                  - textbox "config.json" [ref=f2e56]
+              - button "Start run" [ref=f2e58] [cursor=pointer]
+          - generic [ref=f2e59]:
+            - heading "Runs" [level=2] [ref=f2e61]
+            - generic [ref=f2e62]:
+              - generic [ref=f2e63]:
+                - generic [ref=f2e64]: Runs directory
+                - button "Reset to default" [ref=f2e65] [cursor=pointer]
+              - generic [ref=f2e66]:
+                - textbox "Runs directory" [ref=f2e67]: C:\Users\jonat\Desktop\MPRA literature table\runs
+                - button "Browse..." [ref=f2e68] [cursor=pointer]
+            - list [ref=f2e74]:
+              - listitem [ref=f2e75] [cursor=pointer]:
+                - generic [ref=f2e76]:
+                  - generic [ref=f2e77]: run_20260822_043720_7rs60e
+                  - generic [ref=f2e78]: Completed
+                - generic [ref=f2e79]: 8/22/2026, 6:37:20 AM
+              - listitem [ref=f2e80] [cursor=pointer]:
+                - generic [ref=f2e81]:
+                  - generic [ref=f2e82]: run_20260822_002359_pos8sm
+                  - generic [ref=f2e83]: Completed
+                - generic [ref=f2e84]: 8/22/2026, 2:23:59 AM
+              - listitem [ref=f2e85] [cursor=pointer]:
+                - generic [ref=f2e86]:
+                  - generic [ref=f2e87]: run_20260821_225153_go3cul
+                  - generic [ref=f2e88]: Completed
+                - generic [ref=f2e89]: 8/22/2026, 12:51:53 AM
+              - listitem [ref=f2e90] [cursor=pointer]:
+                - generic [ref=f2e91]:
+                  - generic [ref=f2e92]: run_20260821_224538_jdvscr
+                  - generic [ref=f2e93]: Completed
+                - generic [ref=f2e94]: 8/22/2026, 12:45:38 AM
+              - listitem [ref=f2e95] [cursor=pointer]:
+                - generic [ref=f2e96]:
+                  - generic [ref=f2e97]: run_20260821_223059_7cedtr
+                  - generic [ref=f2e98]: Interrupted
+                - generic [ref=f2e99]: 8/22/2026, 12:30:59 AM
+              - listitem [ref=f2e100] [cursor=pointer]:
+                - generic [ref=f2e101]:
+                  - generic [ref=f2e102]: run_20260821_222230_b188rn
+                  - generic [ref=f2e103]: Interrupted
+                - generic [ref=f2e104]: 8/22/2026, 12:22:30 AM
+              - listitem [ref=f2e105] [cursor=pointer]:
+                - generic [ref=f2e106]:
+                  - generic [ref=f2e107]: run_20260821_221450_lfr8e7
+                  - generic [ref=f2e108]: Interrupted
+                - generic [ref=f2e109]: 8/22/2026, 12:14:50 AM
+              - listitem [ref=f2e110] [cursor=pointer]:
+                - generic [ref=f2e111]:
+                  - generic [ref=f2e112]: run_20260821_220613_sohnfv
+                  - generic [ref=f2e113]: Interrupted
+                - generic [ref=f2e114]: 8/22/2026, 12:06:13 AM
+              - listitem [ref=f2e115] [cursor=pointer]:
+                - generic [ref=f2e116]:
+                  - generic [ref=f2e117]: run_20260821_214505_nf2zsc
+                  - generic [ref=f2e118]: Interrupted
+                - generic [ref=f2e119]: 8/21/2026, 11:45:05 PM
+              - listitem [ref=f2e120] [cursor=pointer]:
+                - generic [ref=f2e121]:
+                  - generic [ref=f2e122]: run_20260821_214100_21az27
+                  - generic [ref=f2e123]: Interrupted
+                - generic [ref=f2e124]: 8/21/2026, 11:41:00 PM
+        - generic [ref=f2e125]:
+          - generic [ref=f2e126]:
+            - generic [ref=f2e127]:
+              - paragraph [ref=f2e128]: Selected run
+              - heading "run_20260822_043720_7rs60e" [level=2] [ref=f2e129]
+            - button "Start human review" [ref=f2e131] [cursor=pointer]
+          - generic [ref=f2e132]:
+            - paragraph [ref=f2e133]: Runtime details
+            - generic [ref=f2e134]:
+              - generic [ref=f2e135]:
+                - generic [ref=f2e136]: Table
+                - generic "C:\\Users\\jonat\\Desktop\\MPRA literature table\\outputs\\mpra_papers_to_table_20260821\\MPRA_team_papers_to_table.xlsx" [ref=f2e137]: MPRA_team_papers_to_table.xlsx
+                - generic "C:\\Users\\jonat\\Desktop\\MPRA literature table\\outputs\\mpra_papers_to_table_20260821\\MPRA_team_papers_to_table.xlsx" [ref=f2e138]: MPRA_team_papers_to_table.xlsx
+              - generic [ref=f2e139]:
+                - generic [ref=f2e140]: Schema
+                - generic "C:\\Users\\jonat\\Desktop\\MPRA literature table\\outputs\\mpra_papers_to_table_20260821\\MPRA_team_schema.csv" [ref=f2e141]: MPRA_team_schema.csv
+                - generic "C:\\Users\\jonat\\Desktop\\MPRA literature table\\outputs\\mpra_papers_to_table_20260821\\MPRA_team_schema.csv" [ref=f2e142]: MPRA_team_schema.csv
+              - generic [ref=f2e143]:
+                - generic [ref=f2e144]: PDFs
+                - generic "C:\\Users\\jonat\\Desktop\\MPRA literature table\\pdf_batches\\recovery_2" [ref=f2e145]: recovery_2
+                - generic "C:\\Users\\jonat\\Desktop\\MPRA literature table\\pdf_batches\\recovery_2" [ref=f2e146]: recovery_2
+              - generic [ref=f2e147]:
+                - generic [ref=f2e148]: Output directory
+                - generic "C:\\Users\\jonat\\Desktop\\MPRA literature table\\runs" [ref=f2e149]: runs
+                - generic [ref=f2e150]: —
+              - generic [ref=f2e151]:
+                - generic [ref=f2e152]: Provider
+                - generic [ref=f2e153]: LM Studio
+              - generic [ref=f2e154]:
+                - generic [ref=f2e155]: Run mode
+                - generic [ref=f2e156]: normal
+              - generic [ref=f2e157]:
+                - generic [ref=f2e158]: Provider mode
+                - generic [ref=f2e159]: live local
+              - generic [ref=f2e160]:
+                - generic [ref=f2e161]: Text model
+                - generic [ref=f2e162]: google/gemma-4-12b
+              - generic [ref=f2e163]:
+                - generic [ref=f2e164]: Vision model
+                - generic [ref=f2e165]: google/gemma-4-12b
+              - generic [ref=f2e166]:
+                - generic [ref=f2e167]: Structured output
+                - generic [ref=f2e168]: json schema
+              - generic [ref=f2e169]:
+                - generic [ref=f2e170]: Parser
+                - generic [ref=f2e171]: docling
+              - generic [ref=f2e172]:
+                - generic [ref=f2e173]: Started
+                - generic [ref=f2e174]: 8/22/2026, 6:37:20 AM
+              - generic [ref=f2e175]:
+                - generic [ref=f2e176]: Completed
+                - generic [ref=f2e177]: 8/22/2026, 6:47:27 AM

@@ -23,10 +23,11 @@ def create_app() -> FastAPI:
     app.state.app_settings = settings
     app.include_router(health.router)
     app.include_router(setup.router)
+    # Register the static event-stream route before /api/runs/{run_id}.
+    app.include_router(events.router)
     app.include_router(runs.router)
     app.include_router(matching.router)
     app.include_router(review.router)
     app.include_router(assets.router)
     app.include_router(exports.router)
-    app.include_router(events.router)
     return app

@@ -55,7 +55,7 @@ The backend owns:
 8. review decisions
 9. accepted-only export artifacts
 
-The backend writes run bundles under `{output_dir}/{run_id}/`, with `app/runs/` as the default output location when config does not override it.
+The backend writes run bundles under `{output_dir}/{run_id}/`, with `app/runs/` as the default output location when config does not override it. The browser may discover and review bundles from one other existing runs root at a time without copying them into the repository. The active discovery root scopes run-list and server-sent-event reads, while run-specific APIs continue to use the `output_dir` recorded in each run bundle.
 
 ## Integration Flow
 

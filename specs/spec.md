@@ -61,12 +61,15 @@ Outputs:
 The default workflow:
 
 1. operator starts the local app
-2. operator chooses or confirms table, schema, PDF, and output paths
-3. preflight resolves inputs and checks readiness
-4. extraction starts only if readiness passes
-5. operator reviews proposals in the browser
-6. operator accepts, edits, rejects, or confirms no data
-7. export writes a new workbook and audit artifacts
+2. operator selects the runs directory whose existing bundles should be listed, or keeps the default `app/runs/`
+3. operator chooses or confirms table, schema, PDF, and new-run output paths
+4. preflight resolves inputs and checks readiness
+5. extraction starts only if readiness passes
+6. operator reviews proposals in the browser
+7. operator accepts, edits, rejects, or confirms no data
+8. export writes a new workbook and audit artifacts
+
+Run discovery and new-run output are separate controls. The Runs panel keeps one active directory, persists the last successfully activated directory in browser storage, and scopes list refreshes and live events to that root. The Create Run output path remains an independent per-run destination. `review --runs-dir PATH` provides a launch-specific initial review root and takes precedence over saved browser state without changing run-bundle contracts.
 
 ### 4.2 Verify Mode
 
@@ -115,9 +118,9 @@ The optimizer must not start eval until the candidate extraction run has complet
 
 Each PDF is matched to at most one row.
 
-Matching is a distinct stage before proposal generation. It uses extracted metadata and front-matter diagnostics, preserves candidate-score breakdowns, and surfaces unmatched, ambiguous, and duplicate-row cases explicitly.
+Matching is a distinct stage before proposal generation. It uses extracted metadata and front-matter diagnostics, preserves candidate-score breakdowns, and surfaces unmatched, ambiguous, and duplicate-row cases explicitly. DOI matching reads explicit DOI columns first and then DOI-shaped identifiers in common Link/URL columns; normalization removes URL prefixes, trailing parser punctuation, and bioRxiv version suffixes before equality comparison. An exact DOI keeps its weighted score but does not receive the automatic `0.95` identifier floor when an available extracted title sharply contradicts that row (`Jaccard < 0.40` and shorter-title containment `< 0.60`), allowing a strong title candidate to win without hiding the identifier conflict in diagnostics. Title scoring records both symmetric token Jaccard similarity and shorter-title containment. In addition to exact titles, a clear candidate receives the high-confidence title floor when both titles contain at least six distinct normalized tokens and either Jaccard similarity is at least `0.85` or shorter-title containment is at least `0.90`. This bounded lane covers parser truncation and minor preprint-to-publication title changes without bypassing runner-up ambiguity checks.
 
-If a PDF does not match an existing row, the normal browser workflow stages a new row from extracted paper metadata when available and generates proposals for schema-defined target cells. Ambiguous and duplicate-row conflicts remain blocked or diagnostic rather than silently coerced.
+If a PDF does not match an existing row, the normal browser workflow stages a new row from extracted paper metadata when available and generates proposals for schema-defined target cells. The materialized result carries `staged_new_row=true`; matching summaries count it under both `unmatched` and `staged_new_rows`, exclude it from the existing-row `matched` count, and retain it in `matching/unmatched.json` with its staged row index and unblocked extraction state. Ambiguous and duplicate-row conflicts remain blocked or diagnostic rather than silently coerced.
 
 Metadata extraction has its own lane. Parser-first metadata truth, ambiguity, source, and failure attribution must remain visible in matching artifacts and downstream summaries.
 
@@ -196,11 +199,20 @@ Decision sources for new artifacts:
 
 - `human_individual`
 - `human_bulk_accept`
+- `human_bulk_selection`
 - `automation_accept_all`
 
 Legacy `human_reviewer` remains readable for backward compatibility.
 
-The default browser review viewport is a compact review bar plus three-panel workspace: proposal queue, proposal detail/decision controls, and evidence/PDF inspection. Diagnostics are secondary and opened intentionally.
+The default browser review viewport is a compact review bar plus three-panel workspace: proposal queue, proposal detail/decision controls, and evidence/PDF inspection. The center pane leads with a centered, visually distinct pale-grey Field context card that reads as non-interactive, followed by Value and Evidence. Separate collapsed Details and Diagnostics disclosures sit below Evidence; their compact uppercase headers match the other center-pane section labels and place a clear state triangle immediately beside the label. Details contains field description and paper metadata. Diagnostics retains muted review, proposal, evidence, and reason-code flags, then shows only reviewer-relevant exceptions: competing or unclear candidates with readable source names, Selection ambiguity or failure, exceptional Retrieval outcomes or nonstandard evidence routes, and Metadata conflicts or failure. Redundant evidence-item counts, routine single-candidate selection, normal zero counts, raw diagnostic tokens, provider timings, raw model responses, internal queries, and figure-planning details are excluded from the primary surface. Both disclosures retain their open or closed state while navigating between proposals, and neither repeats the proposed value or rationale. Decision controls are horizontally centered at the bottom of the center pane. Run-level diagnostics remain secondary and opened intentionally.
+
+In queue and table modes, a plain click selects one proposal, Ctrl/Command-click toggles proposals, and Shift-click selects the contiguous list range or proposal-containing table rectangle from the last anchor. Table mode also supports primary-button drag selection across a rectangle, selecting only proposal-backed cells inside it. An explicit selection bar applies Accept, Reject, or Confirm no data only after confirmation. Reviewed proposals are skipped by default and are replaced only after the reviewer checks the replacement control.
+
+Review shortcuts use spatially related controls: `A` or left arrow and `D` or right arrow move between proposals; `W` or up arrow accepts and `S` or down arrow rejects; Ctrl/Command plus left or right arrow switches evidence; and `E` focuses the edit control. Shift is reserved for range/rectangle selection. Shortcuts never fire while the operator is typing in a form control.
+
+The Run tab exposes a Runs-directory selector above the run list. Manual paths and the local native folder chooser must resolve to an existing allowed directory before activation. The chooser uses Tk on Windows and other supported graphical systems and the Finder chooser through `osascript` on macOS; when a chooser is unavailable, the inline error directs the operator to manual path entry. Cancellation or validation failure preserves the current root. Switching roots clears the selected run and reconnects run listing and live updates; review, decisions, evidence, abort, and export remain bound to each run's recorded `output_dir`.
+
+The selected-run detail exposes **Start human review** only for `completed` and `completed_with_warnings` runs. It enters the same gated review workspace as the top-level Review tab and does not create or mutate a run bundle.
 
 Export writes a new workbook and audit artifacts. Export includes only accepted and accepted-with-edit changes. The source workbook is never mutated in place.
 
@@ -259,7 +271,17 @@ The filled CSV is agent-extracted and not human-reviewed. Before handoff, `final
 
 When requested, `launch_review_servers.py` builds `RUN_DIR/human_review/`, starts and probes detached localhost servers, and returns exact URLs ending in `/human_review/index.html`. Applied decisions write `OUTPUT_DIR/<stem>_reviewed.csv`; only accepted and accepted-with-edit values populate that file.
 
-`review_input.json` uses `papers_to_table.review_input.v1`. `proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional authoring fields. When absent, `build_review_package.py` generates stable deterministic IDs; when present, validation checks uniqueness and references.
+Where the portable package exposes equivalent proposal, evidence, row, and column data, its review UI follows the main review interaction, including explicit Ctrl/Command and Shift multi-selection, guarded bulk decisions, Field-before-Value hierarchy, persistent Details and exception-oriented Diagnostics disclosures, centered controls, and the same spatial proposal/evidence keyboard shortcuts. Portable-only static-download and localhost-writeback behavior remains intact. A loaded PDF document is paired with its `pdf_id`, and page rendering is deferred and cancelled during paper switches so a destroyed PDF.js document cannot be reused.
+
+`review_input.json` uses `papers_to_table.review_input.v1`. The additive `extraction_mode` defaults to `fill_blanks`; explicitly requested existing-value audits use `fill_and_verify`. `proposal_id`, `evidence_id`, `cell_id`, and `created_at` are optional authoring fields. When absent, `build_review_package.py` generates stable deterministic IDs; when present, validation checks uniqueness and references.
+
+Default blank filling rejects proposals against populated cells. Verify-mode proposals expose the recorded existing value in review and cannot change the unreviewed filled CSV; only an accepted decision updates the reviewed CSV. Validation enforces schema number/category contracts and derivation requirements for calculations, figure estimates, and absence inference while retaining the v1 contract identifier.
+
+Before portable extraction, agents audit target-cell occupancy and explicitly match PDFs to rows from publication identity using DOI, normalized title, authors, and year. The scaffold requires every supplied PDF to resolve exactly once through `pdf_id`, permits table-only rows with no PDF, and fails before writing run artifacts for unused, unknown, or duplicate PDF mappings. Positional mapping is an explicit fallback only for datasets with no explicit mappings, equal row/PDF counts, and independently verified ordering. Scaffold output reports mapping mode and mapped/table-only rows together with total, blank, populated, and extraction-mode-eligible target-cell counts over PDF-mapped rows; source-table and table-only target-cell totals describe preserved rows outside extraction scope.
+
+Before counting blanks, the portable scaffold recursively assesses compatible companion CSV/XLSX tables for target values absent from or conflicting with the selected template. Such candidates fail before run creation unless the operator selects an authoritative table explicitly or confirms a template-only override. Protected benchmark gold is excluded. An explicit authoritative source is merged into a run-local baseline without changing row order or metadata, and `baseline_manifest.json` records source paths, hashes, candidate assessments, and preservation counts. Validation rejects a changed baseline hash or any non-empty source target value omitted or altered in `rows[].values`, ensuring pre-existing values remain visible in review. Mixed outputs distinguish preserved pre-existing human-reviewed cells from unreviewed agent proposals.
+
+Existing values in partially populated tables are preserved data rather than evidence or semantic exemplars. Metadata/context columns remain outside extraction unless the schema declares them as targets. Portable CSV schemas normalize both JSON-array and pipe-delimited `allowed_values` encodings.
 
 Every non-empty proposed value must carry at least one structured Tier A/B/C evidence record and a concise value-specific rationale. Strong direct evidence requires `pdf_id`, `page_number`, and quote/table/caption/evidence text, exact/approximate bbox regions, or `figure_ref` plus `caption_text`. Page-plus-reasoning evidence remains reviewable but is visibly labeled weak/attention. Region-bearing evidence must validate finite numeric coordinates, positive pages, nonzero area, normalized-coordinate ranges when applicable, and emit warnings for ambiguous coordinate conventions. Generic rationales and unjustified evidence reuse are handoff-blocking provenance warnings.
 

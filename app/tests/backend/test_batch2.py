@@ -4,6 +4,7 @@ from __future__ import annotations
 import backend.app.parsing as parsing_module
 import json
 import pathlib
+from datetime import datetime, timezone
 from typing import Optional
 from unittest.mock import patch
 
@@ -26,6 +27,7 @@ from backend.app.matching import (
     persist_match_artifacts,
     run_matching,
     score_against_row,
+    score_against_row_breakdown,
     score_all_rows,
 )
 from backend.app.metadata import extract_matching_metadata_debug
@@ -828,6 +830,7 @@ class TestDeterministicScoring:
         # Row 1 (massively parallel) should be top
         assert scores[0].row_index == 1
         assert "title_similarity_score" in scores[0].model_dump()
+        assert "title_containment_score" in scores[0].model_dump()
 
     def test_title_jaccard_symmetric(self):
         t1 = "Hello World Study"
@@ -837,6 +840,91 @@ class TestDeterministicScoring:
     def test_title_jaccard_empty_returns_zero(self):
         assert _title_jaccard("", "Something") == 0.0
         assert _title_jaccard("Something", "") == 0.0
+
+    def test_biorxiv_doi_in_link_matches_despite_bad_parsed_title(self):
+        paper = PaperMetadata(
+            title="TP53 is a transcription factor that controls multiple cellular processes",
+            year=2023,
+            doi="10.1101/2023.07.24.549988;",
+        )
+        row = {
+            "Title": "Optimisation of TP53 reporters by systematic dissection of synthetic TP53 response elements",
+            "Publication Year": "2023",
+            "Authors": "Trauernicht, Max; Rastogi, Chaitanya",
+            "Link": "https://www.biorxiv.org/content/10.1101/2023.07.24.549988v1",
+        }
+
+        breakdown = score_against_row_breakdown(paper, row, row_index=0)
+
+        assert breakdown.doi_score == 1.0
+        assert breakdown.final_score >= 0.45
+
+    def test_strong_title_beats_conflicting_doi_from_unrelated_front_matter(self):
+        paper = PaperMetadata(
+            title="Massively parallel reporter assays and mouse transgenic assays provide complementary information about neuronal enhancer activity",
+            year=2019,
+            doi="10.1101/2023.08.14.553170",
+        )
+        df = pd.DataFrame([
+            {
+                "Title": "Characterization of enhancer activity in early human neurodevelopment using Massively parallel reporter assay and forebrain organoids",
+                "Publication Year": "2023",
+                "Authors": "Capauto, Davide",
+                "Link": "https://www.biorxiv.org/content/10.1101/2023.08.14.553170v1",
+            },
+            {
+                "Title": "Massively parallel reporter assays and mouse transgenic assays provide correlated and complementary information about neuronal enhancer activity",
+                "Publication Year": "2025",
+                "Authors": "Kosicki, Michael",
+                "Link": "https://www.nature.com/articles/s41467-025-60064-1",
+            },
+        ])
+
+        scores = score_all_rows(paper, df)
+        result = assign_match_outcome("paper", "paper.pdf", paper, scores, df)
+
+        assert scores[0].row_index == 1
+        assert scores[0].title_similarity_score >= 0.9
+        assert result.outcome == MatchOutcome.matched
+        assert result.matched_row_index == 1
+
+    def test_long_truncated_title_is_a_high_confidence_match(self):
+        paper = PaperMetadata(title="Competition between binding sites determines gene expression at")
+        row = {
+            "Title": "Competition between binding sites determines gene expression at low transcription factor concentrations",
+            "Publication Year": "2016",
+            "Authors": "Dijk, David van; Sharon, Eilon",
+        }
+
+        breakdown = score_against_row_breakdown(paper, row, row_index=0)
+
+        assert breakdown.title_containment_score == 1.0
+        assert breakdown.final_score >= 0.68
+
+    def test_minor_preprint_to_publication_title_change_is_a_high_confidence_match(self):
+        paper = PaperMetadata(
+            title="Massively parallel reporter assays and mouse transgenic assays provide complementary information about neuronal enhancer activity"
+        )
+        row = {
+            "Title": "Massively parallel reporter assays and mouse transgenic assays provide correlated and complementary information about neuronal enhancer activity",
+            "Publication Year": "2025",
+            "Authors": "Kosicki, Michael",
+        }
+
+        breakdown = score_against_row_breakdown(paper, row, row_index=0)
+
+        assert breakdown.title_similarity_score >= 0.9
+        assert breakdown.final_score >= 0.68
+
+    def test_generic_partial_title_does_not_trigger_high_confidence_lane(self):
+        paper = PaperMetadata(title="Design of novel synthetic promoters")
+        row = {
+            "Title": "Systematic interrogation of human promoters",
+            "Publication Year": "2019",
+            "Authors": "",
+        }
+
+        assert score_against_row(paper, row) < 0.35
 
 
 # ===========================================================================
@@ -1045,8 +1133,36 @@ class TestMatchArtifactPersistence:
         assert data["total_pdfs"] == 3
         assert "matched" in data
         assert "unmatched" in data
+        assert "staged_new_rows" in data
         assert "ambiguous" in data
         assert "duplicate_row_conflict" in data
+
+    def test_staged_new_row_remains_visible_in_unmatched_artifacts(self, tmp_path):
+        run_dir = tmp_path / "run"
+        result = MatchResult(
+            pdf_id="new_paper",
+            pdf_path="new_paper.pdf",
+            outcome=MatchOutcome.matched,
+            matched_row_index=10,
+            matched_row_title="New paper title",
+            score=0.2,
+            runner_up_score=0.1,
+            reasoning="No existing row matched; a new row was staged.",
+            blocked=False,
+            staged_new_row=True,
+            matched_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+        persist_match_artifacts(run_dir, "test_run", [result])
+
+        summary = json.loads((run_dir / "matching" / "match_summary.json").read_text())
+        unmatched = json.loads((run_dir / "matching" / "unmatched.json").read_text())
+        assert summary["matched"] == 0
+        assert summary["unmatched"] == 1
+        assert summary["staged_new_rows"] == 1
+        assert unmatched[0]["staged_new_row"] is True
+        assert unmatched[0]["matched_row_index"] == 10
+        assert unmatched[0]["blocked"] is False
 
     def test_unmatched_json_written(self, tmp_path):
         run_dir = self._run_matching_and_persist(tmp_path)

@@ -37,6 +37,13 @@ def test_central_cli_help_commands_exit_successfully():
         assert completed.returncode == 0, completed.stderr
 
 
+def test_review_command_accepts_initial_runs_directory():
+    cli = _load_cli_module()
+    args = cli.build_parser().parse_args(["review", "--runs-dir", "C:/review-runs"])
+
+    assert args.runs_dir == "C:/review-runs"
+
+
 def test_documented_configs_exist_and_parse():
     json_files = [
         REPO_ROOT / "app" / "config.example.json",

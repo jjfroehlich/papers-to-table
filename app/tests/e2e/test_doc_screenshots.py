@@ -17,7 +17,7 @@ def _open_review_workspace(page: Page, frontend_url: str, run_id: str) -> None:
     run_item = page.locator("[data-testid='run-item']", has_text=run_id)
     expect(run_item).to_be_visible()
     run_item.click()
-    review_tab = page.get_by_role("button", name="Review")
+    review_tab = page.get_by_role("button", name="Review", exact=True)
     expect(review_tab).to_be_enabled()
     review_tab.click()
     expect(page.locator("[data-testid='review-workspace']")).to_be_visible()

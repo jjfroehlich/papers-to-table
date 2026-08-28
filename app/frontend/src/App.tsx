@@ -3,10 +3,19 @@ import { RunLaunchSurface } from './components/RunLaunchSurface'
 import { RunList } from './components/RunList'
 import { RunDetail } from './components/RunDetail'
 import { ReviewWorkspace } from './components/ReviewWorkspace'
+import { RunsDirectorySelector } from './components/RunsDirectorySelector'
 import { api } from './api/client'
 import type { RunData, RunStreamEvent } from './types'
 
 type View = 'run' | 'review'
+const DEFAULT_RUNS_DIRECTORY = './runs'
+const RUNS_DIRECTORY_STORAGE_KEY = 'papers-to-table.runs-directory'
+
+function initialRunsDirectory(): string {
+  const startupDirectory = import.meta.env.VITE_DEFAULT_RUNS_DIR?.trim()
+  if (startupDirectory) return startupDirectory
+  return window.localStorage.getItem(RUNS_DIRECTORY_STORAGE_KEY) || DEFAULT_RUNS_DIRECTORY
+}
 
 function upsertRun(runs: RunData[], nextRun: RunData): RunData[] {
   return [nextRun, ...runs.filter((run) => run.run_id !== nextRun.run_id)].sort((a, b) =>
@@ -21,6 +30,7 @@ export function App() {
   const [loadingRuns, setLoadingRuns] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [abortingRunId, setAbortingRunId] = useState<string | null>(null)
+  const [runsDirectory, setRunsDirectory] = useState(initialRunsDirectory)
 
   const syncSelectedRun = useCallback((nextRuns: RunData[]) => {
     setSelectedRun((current) => {
@@ -31,7 +41,7 @@ export function App() {
 
   const loadRuns = useCallback(async () => {
     try {
-      const resp = await api.listRuns()
+      const resp = await api.listRuns(runsDirectory)
       setRuns(resp.runs)
       syncSelectedRun(resp.runs)
       setLoadError(null)
@@ -40,7 +50,7 @@ export function App() {
     } finally {
       setLoadingRuns(false)
     }
-  }, [syncSelectedRun])
+  }, [runsDirectory, syncSelectedRun])
 
   useEffect(() => {
     void loadRuns()
@@ -48,7 +58,7 @@ export function App() {
 
   useEffect(() => {
     if (typeof EventSource === 'undefined') return
-    const source = api.createRunEventsSource()
+    const source = api.createRunEventsSource(runsDirectory)
 
     const handleBootstrap = (event: MessageEvent<string>) => {
       const payload = JSON.parse(event.data) as { runs: RunData[] }
@@ -82,7 +92,27 @@ export function App() {
       source.removeEventListener('run.updated', handleRunUpdated as EventListener)
       source.close()
     }
-  }, [loadRuns, syncSelectedRun])
+  }, [loadRuns, runsDirectory, syncSelectedRun])
+
+  const activateRunsDirectory = useCallback((path: string) => {
+    window.localStorage.setItem(RUNS_DIRECTORY_STORAGE_KEY, path)
+    setRunsDirectory(path)
+    setRuns([])
+    setSelectedRun(null)
+    setLoadingRuns(true)
+    setLoadError(null)
+    setView('run')
+  }, [])
+
+  const resetRunsDirectory = useCallback(() => {
+    window.localStorage.removeItem(RUNS_DIRECTORY_STORAGE_KEY)
+    setRunsDirectory(DEFAULT_RUNS_DIRECTORY)
+    setRuns([])
+    setSelectedRun(null)
+    setLoadingRuns(true)
+    setLoadError(null)
+    setView('run')
+  }, [])
 
   const handleRunCreated = useCallback((run: RunData) => {
     setRuns((current) => upsertRun(current, run))
@@ -197,15 +227,14 @@ export function App() {
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                    <div>
-                      <h2 className="text-sm font-semibold text-slate-900">Runs</h2>
-                      <p className="mt-0.5 text-xs text-slate-500">Newest first, live updated.</p>
-                    </div>
-                    <button onClick={() => void loadRuns()} className="text-xs font-semibold text-sky-700 hover:underline">
-                      Refresh
-                    </button>
+                  <div className="border-b border-slate-100 px-4 py-3">
+                    <h2 className="text-sm font-semibold text-slate-900">Runs</h2>
                   </div>
+                  <RunsDirectorySelector
+                    activeDirectory={runsDirectory}
+                    onActivate={activateRunsDirectory}
+                    onReset={resetRunsDirectory}
+                  />
                   {loadingRuns ? (
                     <div className="px-5 py-10 text-center text-sm text-slate-400">Loading runs...</div>
                   ) : loadError ? (
@@ -225,7 +254,12 @@ export function App() {
 
               <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 {selectedRun ? (
-                  <RunDetail run={selectedRun} onAbort={handleAbortRun} aborting={abortingRunId === selectedRun.run_id} />
+                  <RunDetail
+                    run={selectedRun}
+                    onAbort={handleAbortRun}
+                    onStartReview={() => setView('review')}
+                    aborting={abortingRunId === selectedRun.run_id}
+                  />
                 ) : (
                   <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
                     <h2 className="text-xl font-semibold tracking-tight text-slate-900">No run selected yet</h2>

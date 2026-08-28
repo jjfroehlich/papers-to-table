@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="390" viewBox="0 0 1440 390" role="img" aria-labelledby="title desc">
-<title id="title">Agent skills v2</title>
-<desc id="desc">Minimal comparison of the local-app and agent-kit skills.</desc>
+<title id="title">Two agent skills: both highlighted</title>
+<desc id="desc">Comparison of the local-app and agent-kit skills, with the skill described on this page highlighted.</desc>
 <defs>
 <filter id="shadow" x="-15%" y="-20%" width="140%" height="155%"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#102033" flood-opacity="0.08"/></filter>
 </defs>
 <rect width="1440" height="390" fill="#F7F8FA"/>
 <text x="48" y="52" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="32" font-weight="700" fill="#102033" text-anchor="start">
-<tspan x="48" dy="0">Agent skills</tspan>
+<tspan x="48" dy="0">Two agent skills</tspan>
 </text>
 <rect x="48" y="104" width="648" height="220" rx="18" fill="#EAF1FF" stroke="#2563EB" stroke-width="1.6" filter="url(#shadow)"/>
 <circle cx="110" cy="214" r="27.0" fill="#FFFFFF" stroke="none" stroke-width="1.5"/>

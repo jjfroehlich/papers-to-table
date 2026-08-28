@@ -355,6 +355,7 @@ export interface MatchingSummary {
   total_pdfs: number
   matched: number
   unmatched: number
+  staged_new_rows?: number
   ambiguous: number
   duplicate_row_conflict: number
 }

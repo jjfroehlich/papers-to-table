@@ -3569,7 +3569,83 @@ def _normalize_rationale(rationale: Optional[str]) -> Optional[str]:
     if not rationale_text:
         return None
     stripped = rationale_text.strip()
-    # If it's already bullet-formatted, return as-is
+
+    # Some local models serialize an intended JSON list into a markdown string,
+    # producing lines such as ``- [.`` and ``- "Sentence.",.``. Recognize
+    # that narrow pattern before accepting an already-bulleted rationale.
+    raw_lines = [line.strip() for line in stripped.splitlines() if line.strip()]
+    has_serialized_list_debris = any(
+        re.fullmatch(r"[-*]\s*\[\s*\.?", line)
+        or re.search(r'"\s*,\s*\.\s*$', line)
+        or (
+            re.match(r'^[-*]\s*\["', line)
+            and re.search(r",\s*\.\s*$", line)
+        )
+        for line in raw_lines
+    )
+    if has_serialized_list_debris:
+        cleaned_lines: list[str] = []
+        for line in raw_lines:
+            value = re.sub(r"^[-*]\s+", "", line).strip()
+
+            # A second observed failure shape places the entire intended list
+            # on one markdown line, for example ``- ["First.", "Second."] ,.``.
+            # Decode only JSON string literals so a partly malformed list can
+            # still be recovered without treating ordinary brackets as syntax.
+            if value.startswith("["):
+                decoder = json.JSONDecoder()
+                cursor = 0
+                decoded_items: list[str] = []
+                while cursor < len(value):
+                    quote_index = value.find('"', cursor)
+                    if quote_index < 0:
+                        break
+                    try:
+                        decoded, consumed = decoder.raw_decode(value[quote_index:])
+                    except json.JSONDecodeError:
+                        cursor = quote_index + 1
+                        continue
+                    cursor = quote_index + consumed
+                    if isinstance(decoded, str) and decoded.strip():
+                        decoded_items.append(decoded.strip())
+
+                if decoded_items:
+                    for item in decoded_items:
+                        # A comma immediately before the model's closing quote
+                        # is list punctuation, not useful sentence punctuation.
+                        item = item.rstrip().removesuffix(",").rstrip()
+                        if item:
+                            cleaned_lines.append(f"- {_ensure_terminal_punctuation(item)}")
+                        if len(cleaned_lines) == 3:
+                            break
+                    if len(cleaned_lines) == 3:
+                        break
+                    continue
+
+            value = re.sub(r"^\[\s*\.?\s*", "", value).strip()
+            value = re.sub(r"\s*\]\s*\.?\s*$", "", value).strip()
+            if not value:
+                continue
+
+            started_with_quote = value.startswith('"')
+            if started_with_quote:
+                value = value[1:].lstrip()
+            # Remove punctuation introduced outside the quoted list item while
+            # preserving terminal punctuation that belongs to the sentence.
+            value = re.sub(r'"\s*,?\s*\.\s*$', "", value).strip()
+            value = re.sub(r",\s*\.\s*$", ".", value).strip()
+            if started_with_quote and value.endswith('"'):
+                value = value[:-1].rstrip()
+            if started_with_quote:
+                value = value.removesuffix(",").rstrip()
+            if not value:
+                continue
+            cleaned_lines.append(f"- {_ensure_terminal_punctuation(value)}")
+            if len(cleaned_lines) == 3:
+                break
+        return "\n".join(cleaned_lines) or None
+
+    # Preserve well-formed markdown bullets exactly.
     if stripped.startswith("- ") or stripped.startswith("* "):
         return stripped
 

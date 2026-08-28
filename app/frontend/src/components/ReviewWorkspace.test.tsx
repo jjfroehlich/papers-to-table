@@ -10,6 +10,7 @@ const mockRecordDecision = vi.fn()
 const mockTriggerExport = vi.fn()
 const mockGetReviewTable = vi.fn()
 const mockBulkAccept = vi.fn()
+const mockBulkDecision = vi.fn()
 
 vi.mock('../api/client', () => ({
   api: {
@@ -38,6 +39,7 @@ vi.mock('../api/client', () => ({
     getAmbiguous: vi.fn().mockResolvedValue({ ambiguous: [] }),
     getConflicts: vi.fn().mockResolvedValue({ conflicts: [] }),
     bulkAccept: (...args: Parameters<typeof mockBulkAccept>) => mockBulkAccept(...args),
+    bulkDecision: (...args: Parameters<typeof mockBulkDecision>) => mockBulkDecision(...args),
   },
 }))
 
@@ -224,6 +226,7 @@ describe('ReviewWorkspace', () => {
     mockTriggerExport.mockReset()
     mockGetReviewTable.mockReset()
     mockBulkAccept.mockReset()
+    mockBulkDecision.mockReset()
 
     const proposalA = makeProposal()
     const proposalB = makeProposal({
@@ -255,6 +258,7 @@ describe('ReviewWorkspace', () => {
     })
     mockRecordDecision.mockResolvedValue({ review_decision_id: 'd1' })
     mockBulkAccept.mockResolvedValue({ run_id: 'run_1', accepted_count: 2, decisions: [] })
+    mockBulkDecision.mockResolvedValue({ run_id: 'run_1', decision: 'rejected', recorded_count: 2, skipped_count: 0, skipped_proposal_ids: [], decisions: [] })
     mockTriggerExport.mockResolvedValue({
       run_id: 'run_1',
       exported_at: '2024-01-02T00:00:00Z',
@@ -299,6 +303,45 @@ describe('ReviewWorkspace', () => {
     })
   })
 
+  it('applies a guarded action to an explicit Ctrl multi-cell selection', async () => {
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
+    fireEvent.click(screen.getByTestId('review-table-cell-p2'), { ctrlKey: true })
+
+    expect(await screen.findByText('2 cells selected')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }))
+    expect(screen.getByText(/decision_source=human_bulk_selection/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm selected cells' }))
+
+    await waitFor(() => {
+      expect(mockBulkDecision).toHaveBeenCalledWith('run_1', ['p1', 'p2'], 'rejected', false, './runs')
+    })
+  })
+
+  it('keeps details and diagnostics open while navigating between proposals', async () => {
+    render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
+
+    fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
+    const detailsSummary = await screen.findByText('Details')
+    const diagnosticsSummary = screen.getAllByText('Diagnostics').find((element) => element.closest('details'))!
+    fireEvent.click(detailsSummary)
+    fireEvent.click(diagnosticsSummary)
+
+    expect(detailsSummary.closest('details')).toHaveAttribute('open')
+    expect(diagnosticsSummary.closest('details')).toHaveAttribute('open')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next proposal' }))
+    await waitFor(() => {
+      expect(mockGetProposalDetail).toHaveBeenCalledWith('run_1', 'p2', './runs')
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Details').closest('details')).toHaveAttribute('open')
+      expect(screen.getAllByText('Diagnostics').find((element) => element.closest('details'))?.closest('details')).toHaveAttribute('open')
+    })
+  })
+
   it('navigates in the active table order instead of the API proposal order', async () => {
     const proposalA = makeProposal({ proposal_id: 'p1', row_id: 'row-1', column_name: 'Outcome', proposed_value: 'A' })
     const proposalB = makeProposal({ proposal_id: 'p2', row_id: 'row-2', column_name: 'Outcome', proposed_value: 'B' })
@@ -324,12 +367,12 @@ describe('ReviewWorkspace', () => {
       }
     }
 
-    mockListProposals.mockResolvedValueOnce({
+    mockListProposals.mockResolvedValue({
       run_id: 'run_1',
       count: 3,
       proposals: [proposalA, proposalB, proposalC],
     })
-    mockGetReviewTable.mockResolvedValueOnce({
+    mockGetReviewTable.mockResolvedValue({
       run_id: 'run_1',
       proposal_count: 3,
       columns: [
@@ -442,7 +485,7 @@ describe('ReviewWorkspace', () => {
     render(<ReviewWorkspace run={baseRun} outputDir="./runs" />)
 
     fireEvent.click(await screen.findByTestId('review-table-cell-p1'))
-    fireEvent.keyDown(document, { key: 'a' })
+    fireEvent.keyDown(document, { key: 'w' })
 
     await waitFor(() => {
       expect(mockRecordDecision).toHaveBeenCalledWith('run_1', 'p1', { decision: 'accepted' }, './runs')

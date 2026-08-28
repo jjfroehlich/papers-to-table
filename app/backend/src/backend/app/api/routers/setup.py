@@ -1,19 +1,53 @@
 from __future__ import annotations
 
+import asyncio
 import pathlib
 from typing import Any
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
 from ...config import apply_overrides, check_readiness, load_config
 from ...ids import generate_run_id
 from ...ingest import load_schema, load_table
 from ...run_executor import get_run_executor
 from ...schemas import RunStatus
-from ..common import load_staged_input_metadata, materialize_staged_input_files, resolve_path_like
-from ..models import CreateRunRequest, CreateRunResponse, RunPreflightRequest, StagedInputResponse
+from ..common import (
+    ensure_local_host_action_allowed,
+    load_staged_input_metadata,
+    materialize_staged_input_files,
+    pick_local_directory,
+    resolve_path_like,
+    validate_runs_directory,
+)
+from ..models import (
+    CreateRunRequest,
+    CreateRunResponse,
+    RunPreflightRequest,
+    RunsDirectoryRequest,
+    RunsDirectoryResponse,
+    StagedInputResponse,
+)
 
 router = APIRouter()
+
+
+@router.post('/api/runs-directory', response_model=RunsDirectoryResponse)
+async def resolve_runs_directory(payload: RunsDirectoryRequest, request: Request):
+    ensure_local_host_action_allowed(request.client.host if request.client else None)
+
+    selected_path = payload.path
+    if payload.browse:
+        try:
+            selected_path = await asyncio.to_thread(pick_local_directory, payload.path)
+        except RuntimeError as exc:
+            raise HTTPException(status_code=501, detail=str(exc)) from exc
+        if not selected_path:
+            return RunsDirectoryResponse(status='cancelled', path=None)
+    elif not selected_path or not selected_path.strip():
+        raise HTTPException(status_code=422, detail='A runs directory path is required.')
+
+    validated = validate_runs_directory(selected_path)
+    return RunsDirectoryResponse(status='selected', path=str(validated))
 
 
 @router.post('/api/staged-inputs', response_model=StagedInputResponse)

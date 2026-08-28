@@ -80,6 +80,7 @@ class ReviewDecision(str, Enum):
 class DecisionSource(str, Enum):
     human_individual = "human_individual"
     human_bulk_accept = "human_bulk_accept"
+    human_bulk_selection = "human_bulk_selection"
     automation_accept_all = "automation_accept_all"
 
     @classmethod

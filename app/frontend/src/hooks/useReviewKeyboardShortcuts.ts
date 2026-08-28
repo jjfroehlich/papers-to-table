@@ -31,34 +31,38 @@ export function useReviewKeyboardShortcuts({
       const tag = target?.tagName
       if (target?.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
-      if (e.altKey && e.key.toLowerCase() === 'n') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowRight') {
         e.preventDefault()
         onNextEvidence()
         return
       }
 
-      if (e.altKey && e.key.toLowerCase() === 'p') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowLeft') {
         e.preventDefault()
         onPrevEvidence()
         return
       }
 
-      switch (e.key) {
-        case ']':
-        case 'n':
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+
+      switch (e.key.toLowerCase()) {
+        case 'd':
+        case 'arrowright':
           e.preventDefault()
           onNext()
           break
-        case '[':
-        case 'p':
+        case 'a':
+        case 'arrowleft':
           e.preventDefault()
           onPrev()
           break
-        case 'a':
+        case 'w':
+        case 'arrowup':
           e.preventDefault()
           onAccept()
           break
-        case 'r':
+        case 's':
+        case 'arrowdown':
           e.preventDefault()
           onReject()
           break

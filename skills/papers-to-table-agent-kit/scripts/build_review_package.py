@@ -56,8 +56,6 @@ FIELD_TYPE_ALIASES = {
     "category": "categorical",
     "bool": "boolean",
 }
-
-
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
@@ -101,8 +99,7 @@ def _load_schema_columns(run_dir: Path, payload: dict[str, Any]) -> list[dict[st
         return []
     columns: Any
     if schema_path.suffix.lower() == ".csv":
-        _headers, rows = read_csv(schema_path)
-        columns = rows
+        columns, _headers = read_csv(schema_path)
     else:
         schema_payload = read_json(schema_path)
         if not isinstance(schema_payload, dict):
@@ -125,7 +122,7 @@ def _load_schema_columns(run_dir: Path, payload: dict[str, Any]) -> list[dict[st
                 "column_name": name,
                 "description": item.get("description"),
                 "field_type": _normalize_field_type(item.get("field_type") or item.get("type") or item.get("format")),
-                "allowed_values": item.get("allowed_values"),
+                "allowed_values": _normalize_allowed_values(item.get("allowed_values")),
                 "is_target": bool(item.get("is_target", True)),
             }
         )
@@ -139,6 +136,21 @@ def _normalize_field_type(value: Any) -> str | None:
     return FIELD_TYPE_ALIASES.get(raw, raw if raw in {"text", "number", "categorical", "boolean"} else None)
 
 
+def _normalize_allowed_values(value: Any) -> list[str] | None:
+    if value is None or value == "":
+        return None
+    parsed = value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            parsed = [part.strip() for part in value.split("|") if part.strip()]
+    if not isinstance(parsed, list):
+        return None
+    normalized = [str(item) for item in parsed if is_non_empty(item)]
+    return normalized or None
+
+
 def _source_table(run_dir: Path, payload: dict[str, Any]) -> tuple[list[dict[str, str]], list[str]]:
     path_value = str(payload.get("source_table_path") or "").strip()
     if not path_value:
@@ -147,6 +159,22 @@ def _source_table(run_dir: Path, payload: dict[str, Any]) -> tuple[list[dict[str
     if not path.exists():
         return [], []
     return read_csv(path)
+
+
+def _baseline_provenance(run_dir: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    path_value = str(payload.get("baseline_manifest_path") or "").strip()
+    if not path_value:
+        return {"preexisting_human_reviewed_cells": 0, "baseline_manifest_path": None}
+    path = resolve_input_path(run_dir, path_value)
+    manifest = read_json(path)
+    return {
+        "preexisting_human_reviewed_cells": int(manifest.get("preexisting_human_reviewed_cells") or 0),
+        "baseline_manifest_path": str(path),
+        "original_template_path": manifest.get("original_template_path"),
+        "authoritative_source_table_path": manifest.get("authoritative_source_table_path"),
+        "authoritative_source_sheet": manifest.get("authoritative_source_sheet"),
+        "template_only_override": bool(manifest.get("template_only_override")),
+    }
 
 
 def _row_label(row: dict[str, Any], row_id: str, index: int) -> str:
@@ -259,7 +287,7 @@ def _normalize_columns(
                 "column_name": name,
                 "description": column.get("description"),
                 "field_type": _normalize_field_type(column.get("field_type") or column.get("type") or column.get("format")),
-                "allowed_values": column.get("allowed_values"),
+                "allowed_values": _normalize_allowed_values(column.get("allowed_values")),
                 "is_target": bool(column.get("is_target", is_target)),
             }
         )
@@ -377,11 +405,21 @@ def _normalize_proposals(
     payload: dict[str, Any],
     rows: list[dict[str, Any]],
     columns: list[dict[str, Any]],
+    table_rows: list[dict[str, str]],
     generated_at: str,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     raw_proposals = payload.get("proposals") if isinstance(payload.get("proposals"), list) else []
     row_pdf = _row_pdf_lookup(rows)
     column_defs = {item["column_name"]: item for item in columns}
+    existing_values: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        row_id = str(row.get("row_id") or "").strip()
+        if row_id:
+            existing_values[row_id] = dict(row.get("values") if isinstance(row.get("values"), dict) else {})
+    for table_index, table_row in enumerate(table_rows):
+        row_id = str(table_row.get("row_id") or "").strip() or stable_id("row", table_index, table_row)
+        existing_values.setdefault(row_id, {}).update(table_row)
+    extraction_mode = str(payload.get("extraction_mode") or "fill_blanks")
     proposals: list[dict[str, Any]] = []
     evidence: list[dict[str, Any]] = []
 
@@ -431,6 +469,36 @@ def _normalize_proposals(
         if semantics["evidence_status"] in {"direct_weak", "inferred_weak", "no_evidence"} and "weak_evidence" not in warning_flags:
             warning_flags.append("weak_evidence")
         column_def = column_defs.get(column_name, {})
+        existing_value = existing_values.get(row_id, {}).get(column_name)
+        is_verify_mode = extraction_mode == "fill_and_verify" and is_non_empty(existing_value)
+        derivation_codes = set(explicit_reason_codes)
+        evidence_status = item.get("evidence_status") or semantics["evidence_status"]
+        review_bucket = item.get("review_bucket") or semantics["review_bucket"]
+        numeric_value_form = item.get("numeric_value_form")
+        if "calculation" in derivation_codes:
+            if "calculation" not in reason_codes:
+                reason_codes.append("calculation")
+            if semantics["evidence_status"] == "direct_strong":
+                evidence_status = "inferred_strong"
+            else:
+                evidence_status = "inferred_weak"
+                review_bucket = "attention"
+        if "figure_estimate" in derivation_codes:
+            numeric_value_form = "approximate"
+            evidence_status = "direct_weak"
+            review_bucket = "attention"
+            if "figure_estimate" not in warning_flags:
+                warning_flags.append("figure_estimate")
+        if "protocol_inference" in derivation_codes:
+            evidence_status = "inferred_weak"
+            review_bucket = "attention"
+            if "protocol_inference" not in warning_flags:
+                warning_flags.append("protocol_inference")
+        if "absence_inference" in derivation_codes:
+            evidence_status = "inferred_weak"
+            review_bucket = "attention"
+            if "absence_inference" not in warning_flags:
+                warning_flags.append("absence_inference")
         proposals.append(
             {
                 "proposal_schema_version": NORMALIZED_PROPOSAL_SCHEMA_VERSION,
@@ -441,12 +509,15 @@ def _normalize_proposals(
                 "column_name": column_name,
                 "cell_id": cell_id,
                 "proposal_status": proposal_status,
-                "evidence_status": item.get("evidence_status") or semantics["evidence_status"],
-                "review_bucket": item.get("review_bucket") or semantics["review_bucket"],
+                "evidence_status": evidence_status,
+                "review_bucket": review_bucket,
                 "reason_codes": reason_codes,
                 "proposed_value": proposed_value,
                 "rationale": _proposal_rationale(item, normalized_evidence),
                 "calculation": item.get("calculation"),
+                "numeric_value_form": numeric_value_form,
+                "is_verify_mode": is_verify_mode,
+                "existing_value": existing_value if is_verify_mode else None,
                 "primary_evidence_id": evidence_ids[0] if evidence_ids else None,
                 "ordered_supporting_evidence_ids": evidence_ids[1:],
                 "evidence_ids": evidence_ids,
@@ -474,6 +545,7 @@ def _build_review_package(
     columns: list[dict[str, Any]],
     proposals: list[dict[str, Any]],
     evidence: list[dict[str, Any]],
+    baseline: dict[str, Any],
 ) -> dict[str, Any]:
     evidence_by_proposal: dict[str, list[dict[str, Any]]] = {}
     for row in evidence:
@@ -494,6 +566,7 @@ def _build_review_package(
             "schema_path": payload.get("schema_path"),
             "output_table_name": output_name,
             "output_table_path": payload.get("output_table_path"),
+            **baseline,
         },
         "pdfs": pdfs,
         "columns": columns,
@@ -558,6 +631,8 @@ def _write_filled_table(
 ) -> Path:
     out_rows, fieldnames, rows_by_id = _draft_rows_and_fields(table_rows, table_fieldnames, rows, columns)
     for proposal in proposals:
+        if proposal.get("is_verify_mode"):
+            continue
         if not is_non_empty(proposal.get("proposed_value")):
             continue
         row_id = str(proposal.get("row_id") or "").strip()
@@ -575,7 +650,8 @@ def _write_filled_table(
             continue
         if column_name not in fieldnames:
             fieldnames.append(column_name)
-        rows_by_id[row_id][column_name] = proposal.get("proposed_value") or ""
+        value = proposal.get("proposed_value")
+        rows_by_id[row_id][column_name] = value if is_non_empty(value) else ""
 
     out_path = filled_table_path(run_dir, payload)
     write_csv(out_path, out_rows, fieldnames)
@@ -649,7 +725,10 @@ def _write_extraction_summary(
     proposals: list[dict[str, Any]],
     evidence: list[dict[str, Any]],
     filled_table: Path,
+    baseline: dict[str, Any],
 ) -> Path:
+    preexisting_cells = int(baseline.get("preexisting_human_reviewed_cells") or 0)
+    mixed_provenance = preexisting_cells > 0
     summary = {
         "schema_version": "papers_to_table.extraction_summary.v1",
         "run_id": run_id,
@@ -660,7 +739,19 @@ def _write_extraction_summary(
         "proposal_count": len(proposals),
         "evidence_count": len(evidence),
         "review_status": "not_human_reviewed",
-        "notes": "The filled table is agent-extracted from proposed values and has not been human-reviewed.",
+        "value_provenance": (
+            "mixed_preexisting_human_reviewed_and_agent_extracted"
+            if mixed_provenance
+            else "agent_extracted"
+        ),
+        "preexisting_human_reviewed_cell_count": preexisting_cells,
+        "baseline_manifest_path": baseline.get("baseline_manifest_path"),
+        "notes": (
+            "The filled table preserves pre-existing human-reviewed values and adds agent-extracted proposals; "
+            "the new proposals have not been human-reviewed."
+            if mixed_provenance
+            else "The filled table is agent-extracted from proposed values and has not been human-reviewed."
+        ),
     }
     path = extraction_summary_path(run_dir)
     write_json(path, summary)
@@ -680,12 +771,13 @@ def build_review_package(run_dir: Path, *, from_review_input: bool = True, with_
     generated_at = utc_now()
     run_id = str(payload.get("run_id") or run_dir.name)
     table_rows, table_fieldnames = _source_table(run_dir, payload)
+    baseline = _baseline_provenance(run_dir, payload)
     schema_columns = _load_schema_columns(run_dir, payload)
     raw_proposals = payload.get("proposals") if isinstance(payload.get("proposals"), list) else []
     pdfs = _normalize_pdfs(run_dir, payload)
     rows = _normalize_rows(payload, table_rows, table_fieldnames, raw_proposals)
     columns = _normalize_columns(payload, schema_columns, table_fieldnames, raw_proposals)
-    proposals, evidence = _normalize_proposals(run_id, payload, rows, columns, generated_at)
+    proposals, evidence = _normalize_proposals(run_id, payload, rows, columns, table_rows, generated_at)
     package = _build_review_package(
         run_id,
         generated_at,
@@ -697,6 +789,7 @@ def build_review_package(run_dir: Path, *, from_review_input: bool = True, with_
         columns,
         proposals,
         evidence,
+        baseline,
     )
 
     write_jsonl(proposals_path(run_dir), proposals)
@@ -710,6 +803,7 @@ def build_review_package(run_dir: Path, *, from_review_input: bool = True, with_
         proposals=proposals,
         evidence=evidence,
         filled_table=filled_path,
+        baseline=baseline,
     )
     html_path: Path | None = None
     review_pkg_path: Path | None = None

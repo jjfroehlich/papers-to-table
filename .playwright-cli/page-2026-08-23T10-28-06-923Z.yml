@@ -1,0 +1,220 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#papers-to-table-local-app-skill"
+  - banner [ref=e3]:
+    - navigation "Header" [ref=e4]:
+      - link "papers-to-table manual" [ref=e5] [cursor=pointer]:
+        - /url: ../..
+        - img "logo" [ref=e6]
+      - generic [ref=e8]:
+        - generic [ref=e9]: papers-to-table manual
+        - generic: Papers-to-Table Local App Skill
+      - dialog [ref=e11]:
+        - search [ref=e12]:
+          - generic [ref=e13]:
+            - textbox "Search" [ref=e14]
+            - navigation "Search":
+              - button "Clear"
+          - generic: Initializing search
+  - generic [ref=e18]:
+    - main [ref=e19]:
+      - generic [ref=e20]:
+        - navigation "Navigation" [ref=e24]:
+          - list [ref=e25]:
+            - listitem [ref=e26]:
+              - link "Start" [ref=e28] [cursor=pointer]:
+                - /url: ../..
+              - navigation [ref=e30]:
+                - list [ref=e31]
+            - listitem [ref=e32]:
+              - generic: Getting Started
+              - navigation "Getting Started" [ref=e33]:
+                - list [ref=e34]:
+                  - listitem [ref=e35]:
+                    - link "Model Provider (LM Studio)" [ref=e36] [cursor=pointer]:
+                      - /url: ../../getting-started/lm-studio/
+                  - listitem [ref=e38]:
+                    - link "Model Choice" [ref=e39] [cursor=pointer]:
+                      - /url: ../../getting-started/model-choice/
+                  - listitem [ref=e41]:
+                    - link "Installation" [ref=e42] [cursor=pointer]:
+                      - /url: ../../getting-started/installation/
+                  - listitem [ref=e44]:
+                    - link "Prepare Table and Schema" [ref=e45] [cursor=pointer]:
+                      - /url: ../../getting-started/prepare-schema/
+                  - listitem [ref=e47]:
+                    - link "Configuration" [ref=e48] [cursor=pointer]:
+                      - /url: ../../getting-started/configuration/
+                  - listitem [ref=e50]:
+                    - link "Preflight And Run Commands" [ref=e51] [cursor=pointer]:
+                      - /url: ../../getting-started/preflight-and-run/
+                  - listitem [ref=e53]:
+                    - link "Troubleshooting" [ref=e54] [cursor=pointer]:
+                      - /url: ../../getting-started/troubleshooting/
+            - listitem [ref=e56]:
+              - generic: Main App
+              - navigation "Main App" [ref=e57]:
+                - list [ref=e58]:
+                  - listitem [ref=e59]:
+                    - link "Browser Review" [ref=e60] [cursor=pointer]:
+                      - /url: ../../main-app/browser-review/
+                  - listitem [ref=e62]:
+                    - link "Headless and Accept-All" [ref=e63] [cursor=pointer]:
+                      - /url: ../../main-app/headless/
+                  - listitem [ref=e65]:
+                    - link "Outputs and Artifacts" [ref=e66] [cursor=pointer]:
+                      - /url: ../../main-app/outputs-and-artifacts/
+                  - listitem [ref=e68]:
+                    - link "Architecture" [ref=e69] [cursor=pointer]:
+                      - /url: ../../main-app/architecture/
+            - listitem [ref=e71]:
+              - generic: Companion Tools
+              - navigation "Companion Tools" [ref=e72]:
+                - list [ref=e73]:
+                  - listitem [ref=e74]:
+                    - link "Benchmark Datasets" [ref=e75] [cursor=pointer]:
+                      - /url: ../benchmark-datasets/
+                  - listitem [ref=e77]:
+                    - link "Eval" [ref=e78] [cursor=pointer]:
+                      - /url: ../eval/
+                  - listitem [ref=e80]:
+                    - link "Optimizer" [ref=e81] [cursor=pointer]:
+                      - /url: ../optimizer/
+                  - listitem [ref=e83]:
+                    - link "Papers-to-Table Agent Kit" [ref=e84] [cursor=pointer]:
+                      - /url: ../papers-to-table-agent-kit/
+                  - listitem [ref=e86]:
+                    - link "Papers-to-Table Local App Skill" [ref=e87] [cursor=pointer]:
+                      - /url: ./
+                    - navigation "Table of contents" [ref=e89]:
+                      - list [ref=e90]:
+                        - listitem [ref=e91]:
+                          - link "Why Use It" [ref=e92] [cursor=pointer]:
+                            - /url: "#why-use-it"
+                        - listitem [ref=e94]:
+                          - link "Good Use Cases" [ref=e95] [cursor=pointer]:
+                            - /url: "#good-use-cases"
+                        - listitem [ref=e97]:
+                          - link "Installation" [ref=e98] [cursor=pointer]:
+                            - /url: "#installation"
+                        - listitem [ref=e100]:
+                          - link "What Your Agent Will Do" [ref=e101] [cursor=pointer]:
+                            - /url: "#what-your-agent-will-do"
+                        - listitem [ref=e103]:
+                          - link "What You Get" [ref=e104] [cursor=pointer]:
+                            - /url: "#what-you-get"
+                        - listitem [ref=e106]:
+                          - link "When To Choose The Agent Kit Instead" [ref=e107] [cursor=pointer]:
+                            - /url: "#when-to-choose-the-agent-kit-instead"
+                        - listitem [ref=e109]:
+                          - link "Important Boundaries" [ref=e110] [cursor=pointer]:
+                            - /url: "#important-boundaries"
+        - article [ref=e113]:
+          - heading [level=1] [ref=e114]:
+            - text: Papers-To-Table Local App Skill
+            - link "¶" [ref=e115] [cursor=pointer]:
+              - /url: "#papers-to-table-local-app-skill"
+          - paragraph [ref=e116]:
+            - text: The
+            - strong [ref=e117]: Local App
+            - text: skill lets an agent operate an installed papers-to-table pipeline for you. It combines the app's repeatable extraction workflow and diagnostics with a local LLM provider, normally LM Studio.
+          - paragraph [ref=e118]: Choose it when privacy, reproducibility, batch processing, and standard run artifacts matter more than the convenience of letting a hosted agent perform the extraction itself.
+          - paragraph [ref=e119]:
+            - img "Two agent skills, with the local app skill highlighted" [ref=e120]
+          - heading [level=2] [ref=e121]:
+            - text: Why Use It
+            - link "¶" [ref=e122] [cursor=pointer]:
+              - /url: "#why-use-it"
+          - list [ref=e123]:
+            - listitem [ref=e124]:
+              - strong [ref=e125]: Keep inference local.
+              - text: PDFs and prompts can stay on your machine when you use a local LM Studio model.
+            - listitem [ref=e126]:
+              - strong [ref=e127]: Reuse a controlled pipeline.
+              - text: The same configuration, schema, matching logic, and extraction stages can be applied across papers and reruns.
+            - listitem [ref=e128]:
+              - strong [ref=e129]: Scale beyond an interactive chat.
+              - text: The agent can launch long-running or batch jobs through the app's headless workflow.
+            - listitem [ref=e130]:
+              - strong [ref=e131]: Get full diagnostics.
+              - text: Standard run bundles preserve matching outcomes, proposals, evidence, warnings, decisions, and export records.
+            - listitem [ref=e132]:
+              - strong [ref=e133]: Let the agent handle the mechanics.
+              - text: It checks readiness, runs extraction, inspects problems, and reports the output rather than merely giving you commands.
+          - heading [level=2] [ref=e134]:
+            - text: Good Use Cases
+            - link "¶" [ref=e135] [cursor=pointer]:
+              - /url: "#good-use-cases"
+          - list [ref=e136]:
+            - listitem [ref=e137]: Private or unpublished PDFs that should be processed with a local model.
+            - listitem [ref=e138]: Repeatable extraction from one spreadsheet, schema, and PDF collection.
+            - listitem [ref=e139]: Larger unattended jobs where a persistent run bundle and diagnostics matter.
+            - listitem [ref=e140]: Experiments comparing local models, prompts, or extraction settings.
+          - heading [level=2] [ref=e141]:
+            - text: Installation
+            - link "¶" [ref=e142] [cursor=pointer]:
+              - /url: "#installation"
+          - paragraph [ref=e143]:
+            - text: First install the
+            - link "papers-to-table app" [ref=e144] [cursor=pointer]:
+              - /url: ../../getting-started/installation/
+            - text: and configure
+            - link "LM Studio" [ref=e145] [cursor=pointer]:
+              - /url: ../../getting-started/lm-studio/
+            - text: ". Then tell your agent:"
+          - generic [ref=e147]:
+            - navigation [ref=e148]:
+              - button "Copy to clipboard" [ref=e149] [cursor=pointer]
+            - code [ref=e150]: Install the papers-to-table Local App skill from https://github.com/jjfroehlich/papers-to-table/tree/main/skills/papers-to-table-local-app/
+          - paragraph [ref=e151]:
+            - text: Alternatively, copy
+            - code [ref=e152]: skills/papers-to-table-local-app/
+            - text: into the agent system's skill directory and keep its
+            - code [ref=e153]: references/
+            - text: files with it.
+          - heading [level=2] [ref=e154]:
+            - text: What Your Agent Will Do
+            - link "¶" [ref=e155] [cursor=pointer]:
+              - /url: "#what-your-agent-will-do"
+          - list [ref=e156]:
+            - listitem [ref=e157]: Confirm that the app, inputs, configuration, and local model are ready.
+            - listitem [ref=e158]: Inspect field descriptions because they become extraction instructions.
+            - listitem [ref=e159]: Run preflight and stop on a real readiness problem instead of silently degrading.
+            - listitem [ref=e160]: Launch the headless extraction workflow and monitor it to completion.
+            - listitem [ref=e161]: Inspect matching outcomes, evidence quality, missing values, provider warnings, and export diagnostics.
+            - listitem [ref=e162]: Report the exported table, run bundle, acceptance mode, important caveats, and recommended next step.
+          - paragraph [ref=e163]: The skill normally uses the app's headless command surface. You do not need to remember the command or inspect every artifact yourself.
+          - heading [level=2] [ref=e164]:
+            - text: What You Get
+            - link "¶" [ref=e165] [cursor=pointer]:
+              - /url: "#what-you-get"
+          - list [ref=e166]:
+            - listitem [ref=e167]: A new exported table rather than an overwritten source file.
+            - listitem [ref=e168]: A standard run bundle containing proposals, evidence, summaries, and diagnostics.
+            - listitem [ref=e169]: Clear reporting of unmatched papers, uncertain fields, degraded provider behavior, and whether values were automatically accepted.
+            - listitem [ref=e170]: Artifacts that can be reopened in the main browser app when human review is needed.
+          - heading [level=2] [ref=e171]:
+            - text: When To Choose The Agent Kit Instead
+            - link "¶" [ref=e172] [cursor=pointer]:
+              - /url: "#when-to-choose-the-agent-kit-instead"
+          - paragraph [ref=e173]:
+            - text: Choose the standalone
+            - link "Agent Kit" [ref=e174] [cursor=pointer]:
+              - /url: ../papers-to-table-agent-kit/
+            - text: when the local app or LM Studio is not installed, when you want Codex or Claude to use its own extraction capabilities, or when you want a lightweight evidence-backed CSV plus optional browser review without running the full backend pipeline.
+          - heading [level=2] [ref=e175]:
+            - text: Important Boundaries
+            - link "¶" [ref=e176] [cursor=pointer]:
+              - /url: "#important-boundaries"
+          - list [ref=e177]:
+            - listitem [ref=e178]: This skill requires an installed papers-to-table app and a ready provider.
+            - listitem [ref=e179]: Auto-accepted values are not human-reviewed.
+            - listitem [ref=e180]: Provider-readiness failures are blockers, not harmless warnings.
+            - listitem [ref=e181]: Evidence makes results auditable but does not guarantee scientific correctness.
+            - listitem [ref=e182]: Papers-to-table is experimental; inspect important outputs before relying on them.
+      - button "Back to top"
+    - contentinfo [ref=e183]:
+      - generic [ref=e186]:
+        - text: Made with
+        - link "Material for MkDocs" [ref=e187] [cursor=pointer]:
+          - /url: https://squidfunk.github.io/mkdocs-material/

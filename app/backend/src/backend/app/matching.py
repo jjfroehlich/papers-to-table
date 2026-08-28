@@ -59,6 +59,7 @@ class MatchResult(BaseModel):
     reasoning: str
     blocked: bool            # True when extraction must be blocked
     blocked_reason: Optional[str] = None
+    staged_new_row: bool = False
     matched_at: str
     extracted_metadata: dict[str, object] = {}
     metadata_field_diagnostics: dict[str, object] = {}
@@ -74,6 +75,7 @@ class RowMatchScoreBreakdown(BaseModel):
     doi_score: float = 0.0
     exact_title_bonus: float = 0.0
     title_similarity_score: float = 0.0
+    title_containment_score: float = 0.0
     year_score: float = 0.0
     first_author_score: float = 0.0
     author_overlap_score: float = 0.0
@@ -87,6 +89,7 @@ class MatchSummary(BaseModel):
     matched: int
     ambiguous: int
     unmatched: int
+    staged_new_rows: int = 0
     duplicate_row_conflict: int
     generated_at: str
 
@@ -114,6 +117,15 @@ def _title_jaccard(t1: str, t2: str) -> float:
     intersection = words1 & words2
     union = words1 | words2
     return len(intersection) / len(union)
+
+
+def _title_containment(t1: str, t2: str) -> float:
+    """Return how completely the shorter normalized title is contained in the longer one."""
+    words1 = set(_norm(t1).split())
+    words2 = set(_norm(t2).split())
+    if not words1 or not words2:
+        return 0.0
+    return len(words1 & words2) / min(len(words1), len(words2))
 
 
 def _author_overlap(paper_authors: list[str], row_authors_str: str) -> float:
@@ -146,7 +158,13 @@ def _normalize_doi(value: str) -> str:
     text = value.strip().lower()
     text = re.sub(r"^https?://(dx\.)?doi\.org/", "", text)
     text = re.sub(r"^doi:\s*", "", text)
-    return text.rstrip(".")
+    match = _DOI_PATTERN.search(text)
+    if match:
+        text = match.group(1)
+    text = text.rstrip(".,;:)]}>")
+    if text.startswith("10.1101/"):
+        text = re.sub(r"v\d+$", "", text)
+    return text
 
 
 def _extract_row_doi(row: dict) -> Optional[str]:
@@ -154,6 +172,11 @@ def _extract_row_doi(row: dict) -> Optional[str]:
         value = str(row.get(key, "") or "").strip()
         if value:
             return value
+    for key in ("Link", "URL", "Url", "url"):
+        value = str(row.get(key, "") or "").strip()
+        match = _DOI_PATTERN.search(value)
+        if match:
+            return match.group(1)
     return None
 
 
@@ -268,9 +291,11 @@ def score_against_row_breakdown(paper: PaperMetadata, row: dict, *, row_index: i
         score += _DOI_WEIGHT * doi_match
 
     title_sim = 0.0
+    title_containment = 0.0
     exact_title_bonus = 0.0
     if paper.title and row_title:
         title_sim = _title_jaccard(paper.title, row_title)
+        title_containment = _title_containment(paper.title, row_title)
         score += _TITLE_WEIGHT * title_sim
         if _norm(paper.title) == _norm(row_title):
             exact_title_bonus = _EXACT_TITLE_BONUS
@@ -300,7 +325,14 @@ def score_against_row_breakdown(paper: PaperMetadata, row: dict, *, row_index: i
         overlap = _author_overlap(paper.authors, row_authors)
         score += _AUTHOR_WEIGHT * overlap
 
-    if doi_match >= 1.0:
+    doi_title_conflict = bool(
+        doi_match >= 1.0
+        and paper.title
+        and row_title
+        and title_sim < 0.4
+        and title_containment < 0.6
+    )
+    if doi_match >= 1.0 and not doi_title_conflict:
         score = max(score, 0.95)
     elif title_sim >= 0.999:
         title_floor = 0.62
@@ -309,6 +341,13 @@ def score_against_row_breakdown(paper: PaperMetadata, row: dict, *, row_index: i
         elif year_score > 0.0:
             title_floor += 0.04
         score = max(score, title_floor)
+    elif min(len(set(_norm(paper.title or "").split())), len(set(_norm(row_title).split()))) >= 6 and (
+        title_sim >= 0.85 or title_containment >= 0.9
+    ):
+        # Preprint and journal titles often differ by one qualifier, while parsers
+        # can truncate a title at a line or page boundary. A long near-complete
+        # title is sufficient evidence when it remains a clear winner.
+        score = max(score, 0.68)
     elif title_sim >= 0.75 and year_score >= 1.0:
         score = max(score, 0.6)
 
@@ -321,6 +360,7 @@ def score_against_row_breakdown(paper: PaperMetadata, row: dict, *, row_index: i
         doi_score=round(doi_match, 6),
         exact_title_bonus=round(exact_title_bonus, 6),
         title_similarity_score=round(title_sim, 6),
+        title_containment_score=round(title_containment, 6),
         year_score=round(year_score, 6),
         first_author_score=round(first_author_score, 6),
         author_overlap_score=round(overlap, 6),
@@ -726,9 +766,10 @@ def persist_match_artifacts(
         )
 
     # Partition by outcome
-    matched = [r for r in results if r.outcome == MatchOutcome.matched]
+    staged_new_rows = [r for r in results if r.staged_new_row]
+    matched = [r for r in results if r.outcome == MatchOutcome.matched and not r.staged_new_row]
     ambiguous = [r for r in results if r.outcome == MatchOutcome.ambiguous]
-    unmatched = [r for r in results if r.outcome == MatchOutcome.unmatched]
+    unmatched = [r for r in results if r.outcome == MatchOutcome.unmatched or r.staged_new_row]
     conflicts = [r for r in results if r.outcome == MatchOutcome.duplicate_row_conflict]
 
     # Summary
@@ -738,6 +779,7 @@ def persist_match_artifacts(
         matched=len(matched),
         ambiguous=len(ambiguous),
         unmatched=len(unmatched),
+        staged_new_rows=len(staged_new_rows),
         duplicate_row_conflict=len(conflicts),
         generated_at=now,
     )
@@ -753,6 +795,9 @@ def persist_match_artifacts(
                 "score": r.score,
                 "reasoning": r.reasoning,
                 "blocked_reason": r.blocked_reason,
+                "blocked": r.blocked,
+                "staged_new_row": r.staged_new_row,
+                "matched_row_index": r.matched_row_index,
                 "extracted_metadata": r.extracted_metadata,
                 "missing_metadata_fields": r.missing_metadata_fields,
                 "top_candidates": r.top_candidates,

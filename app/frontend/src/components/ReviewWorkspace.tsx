@@ -4,6 +4,7 @@ import { RunSummaryPanel } from './RunSummaryPanel'
 import { ProposalQueue } from './ProposalQueue'
 import { ProposalDetailPane } from './ProposalDetailPane'
 import { ReviewActionArea } from './ReviewActionArea'
+import { BulkSelectionBar } from './BulkSelectionBar'
 import { EvidenceViewer } from './EvidenceViewer'
 import { useReviewKeyboardShortcuts } from '../hooks/useReviewKeyboardShortcuts'
 import { api } from '../api/client'
@@ -62,12 +63,12 @@ function KeyboardHelpModal({ onClose }: { onClose: () => void }) {
         <table className="w-full text-xs text-slate-700">
           <tbody className="divide-y divide-slate-100">
             {[
-              ['A', 'Accept'],
-              ['R', 'Reject'],
-              ['] or N', 'Next proposal'],
-              ['[ or P', 'Previous proposal'],
-              ['Alt+N', 'Next evidence'],
-              ['Alt+P', 'Previous evidence'],
+              ['A or ←', 'Previous proposal'],
+              ['D or →', 'Next proposal'],
+              ['W or ↑', 'Accept proposal'],
+              ['S or ↓', 'Reject proposal'],
+              ['Ctrl/⌘ + ←', 'Previous evidence'],
+              ['Ctrl/⌘ + →', 'Next evidence'],
               ['E', 'Focus edit input'],
               ['?', 'This help'],
             ].map(([key, description]) => (
@@ -123,6 +124,7 @@ function DiagnosticsDrawer({
 export function ReviewWorkspace({ run, outputDir }: Props) {
   const layoutRef = useRef<HTMLDivElement | null>(null)
   const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null)
+  const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([])
   const [selectedCell, setSelectedCell] = useState<SelectedReviewCell | null>(null)
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null)
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceItem | null>(null)
@@ -130,6 +132,8 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   const [currentPdfId, setCurrentPdfId] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
+  const [detailDisclosureOpen, setDetailDisclosureOpen] = useState(false)
+  const [proposalDiagnosticsOpen, setProposalDiagnosticsOpen] = useState(false)
   const [proposalList, setProposalList] = useState<EnrichedProposal[]>([])
   const [visibleProposalOrder, setVisibleProposalOrder] = useState<string[]>([])
   const [reviewProgress, setReviewProgress] = useState<ReviewProgress | null>(null)
@@ -175,6 +179,9 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
             proposalResponse.proposals[0].proposal_id
           )
         })
+        setSelectedProposalIds((current) => current.filter((proposalId) =>
+          proposalResponse.proposals.some((proposal) => proposal.proposal_id === proposalId)
+        ))
       })
       .catch((err) => { setWorkspaceError(err instanceof Error ? err.message : String(err)) })
   }, [outputDir, run.run_id])
@@ -193,6 +200,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   }, [proposalList, visibleProposalOrder])
   const currentIndex = navigationProposals.findIndex((proposal) => proposal.proposal_id === selectedProposalId)
   const currentProposal = proposalList.find((proposal) => proposal.proposal_id === selectedProposalId) ?? null
+  const selectedProposals = proposalList.filter((proposal) => selectedProposalIds.includes(proposal.proposal_id))
   const actionableTotal = reviewProgress?.total_proposals ?? proposalList.length
   const actionableReviewed = reviewProgress?.reviewed ?? proposalList.filter((proposal) => proposal.latest_decision).length
   const actionablePending = Math.max(actionableTotal - actionableReviewed, 0)
@@ -203,6 +211,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
     if (navigationProposals.length === 0) return
     const nextIndex = currentIndex >= 0 && currentIndex < navigationProposals.length - 1 ? currentIndex + 1 : 0
     setSelectedProposalId(navigationProposals[nextIndex].proposal_id)
+    setSelectedProposalIds([navigationProposals[nextIndex].proposal_id])
     setSelectedCell(null)
   }
 
@@ -210,6 +219,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
     if (navigationProposals.length === 0) return
     const previousIndex = currentIndex > 0 ? currentIndex - 1 : navigationProposals.length - 1
     setSelectedProposalId(navigationProposals[previousIndex].proposal_id)
+    setSelectedProposalIds([navigationProposals[previousIndex].proposal_id])
     setSelectedCell(null)
   }
 
@@ -233,6 +243,7 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
             : navigationProposals
           const nextPending = ordered.find((proposal) => proposal.proposal_id !== selectedProposalId && !proposal.latest_decision)
           setSelectedProposalId(nextPending?.proposal_id ?? pendingCandidates[0].proposal_id)
+          setSelectedProposalIds([nextPending?.proposal_id ?? pendingCandidates[0].proposal_id])
           setSelectedCell(null)
         }
       }
@@ -273,19 +284,35 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
     onReject: () => recordQuickDecision('rejected'),
     onFocusEdit: () => setFocusEditSignal((signal) => signal + 1),
     onShowHelp: () => setShowHelp(true),
-    enabled: !!selectedProposalId,
+    enabled: !!selectedProposalId && selectedProposalIds.length <= 1,
   })
 
   function handleProposalSelect(proposalId: string) {
-    if (proposalId === selectedProposalId) return
+    if (proposalId === selectedProposalId) {
+      setSelectedProposalIds([proposalId])
+      setSelectedCell(null)
+      return
+    }
     setSelectedProposalId(proposalId)
+    setSelectedProposalIds([proposalId])
     setSelectedCell(null)
     setSelectedEvidenceId(null)
     setSelectedEvidence(null)
     setCurrentEvidenceList([])
   }
 
+  function handleProposalSelectionChange(proposalIds: string[], primaryProposalId: string | null) {
+    setSelectedProposalIds(proposalIds)
+    setSelectedProposalId(primaryProposalId)
+    setSelectedCell(null)
+    setSelectedEvidenceId(null)
+    setSelectedEvidence(null)
+    setCurrentEvidenceList([])
+    if (!primaryProposalId) setCurrentPdfId(null)
+  }
+
   function handleCellSelect(cell: SelectedReviewCell) {
+    setSelectedProposalIds([])
     setSelectedCell(cell)
     setSelectedProposalId(null)
     setSelectedEvidenceId(null)
@@ -295,11 +322,13 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
   }
 
   function handleLeftPaneModeChange(mode: LeftPaneMode) {
+    setSelectedProposalIds(selectedProposalId ? [selectedProposalId] : [])
     setLeftPaneMode(mode)
     storeValue('papersToTable.review.leftPaneMode', mode)
   }
 
   function handleLeftPaneFilterChange(filter: ReviewFilter) {
+    setSelectedProposalIds(selectedProposalId ? [selectedProposalId] : [])
     setLeftPaneFilter(filter)
     storeValue('papersToTable.review.leftPaneFilter', filter)
   }
@@ -451,7 +480,9 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
                 runId={run.run_id}
                 outputDir={outputDir}
                 selectedProposalId={selectedProposalId}
+                selectedProposalIds={selectedProposalIds}
                 onSelect={handleProposalSelect}
+                onSelectionChange={handleProposalSelectionChange}
                 onVisibleProposalOrderChange={handleVisibleProposalOrderChange}
                 mode={leftPaneMode}
                 filter={leftPaneFilter}
@@ -466,9 +497,21 @@ export function ReviewWorkspace({ run, outputDir }: Props) {
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
               <div className="min-h-0 flex-1 overflow-hidden">
-                <ProposalDetailPane proposalId={selectedProposalId} selectedCell={selectedCell} runId={run.run_id} outputDir={outputDir} selectedEvidenceId={selectedEvidenceId} onEvidenceSelect={handleEvidenceSelect} key={`${selectedProposalId ?? selectedCell?.rowId ?? 'none'}-${selectedCell?.columnName ?? ''}-${decisionVersion}`} />
+                <ProposalDetailPane proposalId={selectedProposalId} selectedCell={selectedCell} runId={run.run_id} outputDir={outputDir} selectedEvidenceId={selectedEvidenceId} onEvidenceSelect={handleEvidenceSelect} detailsOpen={detailDisclosureOpen} diagnosticsOpen={proposalDiagnosticsOpen} onDetailsOpenChange={setDetailDisclosureOpen} onDiagnosticsOpenChange={setProposalDiagnosticsOpen} key={`${selectedProposalId ?? selectedCell?.rowId ?? 'none'}-${selectedCell?.columnName ?? ''}-${decisionVersion}`} />
               </div>
-              {currentProposal && (
+              {selectedProposals.length > 1 ? (
+                <BulkSelectionBar
+                  proposals={selectedProposals}
+                  runId={run.run_id}
+                  outputDir={outputDir}
+                  onApplied={() => {
+                    setSelectedProposalIds([])
+                    setSelectedProposalId(null)
+                    setDecisionVersion((version) => version + 1)
+                  }}
+                  onClear={() => handleProposalSelectionChange([], null)}
+                />
+              ) : currentProposal && (
                 <ReviewActionArea proposal={currentProposal} runId={run.run_id} outputDir={outputDir} onDecisionRecorded={handleDecisionRecorded} onNext={goNext} onPrev={goPrev} visibleProposals={navigationProposals} focusEditSignal={focusEditSignal} />
               )}
             </div>

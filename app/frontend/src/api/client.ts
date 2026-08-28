@@ -28,6 +28,12 @@ function qs(params: Record<string, string | boolean | undefined>): string {
 export const api = {
   health: () => request<{ status: string }>('/api/health'),
 
+  resolveRunsDirectory: (path?: string, browse = false) =>
+    request<import('../types').RunsDirectoryResponse>('/api/runs-directory', {
+      method: 'POST',
+      body: JSON.stringify({ path, browse }),
+    }),
+
   listRuns: (outputDir?: string) => {
     const params = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
     return request<import('../types').ListRunsResponse>(`/api/runs${params}`)
@@ -144,6 +150,27 @@ export const api = {
     return request<{ run_id: string; accepted_count: number; decisions: import('../types').DecisionRecord[] }>(
       `/api/runs/${runId}/proposals/bulk-accept${q}`,
       { method: 'POST', body: JSON.stringify({ proposal_ids: proposalIds }) }
+    )
+  },
+
+  bulkDecision: (
+    runId: string,
+    proposalIds: string[],
+    decision: 'accepted' | 'rejected' | 'confirmed_no_data',
+    replaceExisting: boolean,
+    outputDir?: string
+  ) => {
+    const q = outputDir ? `?output_dir=${encodeURIComponent(outputDir)}` : ''
+    return request<{
+      run_id: string
+      decision: string
+      recorded_count: number
+      skipped_count: number
+      skipped_proposal_ids: string[]
+      decisions: import('../types').DecisionRecord[]
+    }>(
+      `/api/runs/${runId}/proposals/bulk-decision${q}`,
+      { method: 'POST', body: JSON.stringify({ proposal_ids: proposalIds, decision, replace_existing: replaceExisting }) }
     )
   },
 

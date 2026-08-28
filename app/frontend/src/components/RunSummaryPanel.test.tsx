@@ -68,6 +68,7 @@ describe('RunSummaryPanel', () => {
       total_pdfs: 4,
       matched: 2,
       unmatched: 1,
+      staged_new_rows: 1,
       ambiguous: 0,
       duplicate_row_conflict: 1,
     })
@@ -88,16 +89,18 @@ describe('RunSummaryPanel', () => {
     expect(screen.getByText('2 / 6')).toBeInTheDocument()
     expect(screen.getByText('Attempted')).toBeInTheDocument()
     expect(screen.getAllByText('9').length).toBeGreaterThan(0)
+    expect(screen.getByText('New rows')).toBeInTheDocument()
   })
 
-  it('does not surface run warning counts in the review summary', async () => {
+  it('shows run warning truth in diagnostics', async () => {
     render(<RunSummaryPanel run={baseRun} outputDir="./runs" />)
 
     await waitFor(() => {
-      expect(screen.getByText('Runtime details')).toBeInTheDocument()
+      expect(screen.getByText('Run warnings')).toBeInTheDocument()
     })
-    expect(screen.queryByText('Run warnings')).toBeNull()
-    expect(screen.queryByText('3 warnings')).toBeNull()
+    expect(screen.getByText('3 warnings')).toBeInTheDocument()
+    expect(screen.getByText('partial extraction')).toBeInTheDocument()
+    expect(screen.getByText('Parser fallback used for paper_1.')).toBeInTheDocument()
   })
 
   it('shows runtime details without hiding warning truth', async () => {

@@ -1911,6 +1911,41 @@ class TestExtractionOrchestrator:
         persisted = load_proposals(run_dir)
         assert any(item.proposal_id == proposal.proposal_id for item in persisted)
 
+    async def test_extraction_normalizes_rationale_before_persistence(
+        self,
+        run_dir: pathlib.Path,
+        minimal_doc_dict: dict,
+    ):
+        provider = self._make_mock_provider(response={
+            "proposed_value": "Tibial defect",
+            "state": "found",
+            "rationale": '- [.\n- "The scaffold was implanted in the tibial defect.",.',
+            "calculation": None,
+            "quotes": [{
+                "text": "scaffold was implanted in the tibial defect",
+                "page": 1,
+                "source_type": "direct_quote",
+            }],
+        })
+
+        proposal = await extract_cell(
+            run_id="run_test",
+            pdf_id="paper_test",
+            row_id="row_test",
+            cell_id="cell_test",
+            column_name="Integration site",
+            column_description="Site of scaffold implantation",
+            row_context={"Title": "Scaffold study"},
+            doc_dict=minimal_doc_dict,
+            run_dir=run_dir,
+            provider=provider,
+            text_model_id="test-model",
+        )
+
+        assert proposal.rationale == "- The scaffold was implanted in the tibial defect."
+        persisted = next(item for item in load_proposals(run_dir) if item.proposal_id == proposal.proposal_id)
+        assert persisted.rationale == proposal.rationale
+
     async def test_provider_error_yields_error_proposal(self, run_dir: pathlib.Path, minimal_doc_dict: dict):
         """T058: provider error produces error state proposal."""
         provider = self._make_mock_provider(raise_exc=ProviderError("Connection refused"))
@@ -2217,6 +2252,64 @@ class TestExtractionOrchestrator:
         rationale = "- Scaffold implanted in tibial defect.\n- BVF was 45.3%."
         normalized = _normalize_rationale(rationale)
         assert normalized == rationale
+
+    def test_rationale_serialized_list_debris_is_removed(self):
+        from backend.app.extraction import _normalize_rationale
+
+        rationale = (
+            '- [.\n'
+            '- "The provided text describes biological parameters such as burst size and transcription rates.",.\n'
+            '- "There is no mention of sequencing depth or read counts per variant.",.'
+        )
+
+        assert _normalize_rationale(rationale) == (
+            "- The provided text describes biological parameters such as burst size and transcription rates.\n"
+            "- There is no mention of sequencing depth or read counts per variant."
+        )
+
+    def test_rationale_serialized_list_cleanup_preserves_sentence_punctuation(self):
+        from backend.app.extraction import _normalize_rationale
+
+        rationale = '- [.\n- "The text names sites on episomes.".\n- "Was the assay replicated?",.'
+
+        assert _normalize_rationale(rationale) == (
+            "- The text names sites on episomes.\n"
+            "- Was the assay replicated?"
+        )
+
+    def test_rationale_inline_serialized_list_is_recovered(self):
+        from backend.app.extraction import _normalize_rationale
+
+        rationale = '- ["The assay used barcodes.", "Their length was not reported."] ,.'
+
+        assert _normalize_rationale(rationale) == (
+            "- The assay used barcodes.\n"
+            "- Their length was not reported."
+        )
+
+    def test_rationale_inline_partly_malformed_list_ignores_empty_item(self):
+        from backend.app.extraction import _normalize_rationale
+
+        rationale = '- ["The cloning method was not specified.", "")],.'
+
+        assert _normalize_rationale(rationale) == "- The cloning method was not specified."
+
+    def test_rationale_serialized_item_drops_wrapper_comma(self):
+        from backend.app.extraction import _normalize_rationale
+
+        rationale = '- [.\n- "The barcode was placed in the 3\' UTR,",.\n- "Its length was not reported.",.'
+
+        assert _normalize_rationale(rationale) == (
+            "- The barcode was placed in the 3' UTR.\n"
+            "- Its length was not reported."
+        )
+
+    def test_rationale_legitimate_brackets_and_quotes_are_preserved(self):
+        from backend.app.extraction import _normalize_rationale
+
+        rationale = '- The construct contained variants [A, B].\n- The authors called the result "robust".'
+
+        assert _normalize_rationale(rationale) == rationale
 
     def test_rationale_list_is_normalized(self):
         from backend.app.extraction import _normalize_rationale

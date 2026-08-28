@@ -32,7 +32,7 @@ const mockRun: RunData = {
 describe('RunList', () => {
   it('shows empty state when no runs', () => {
     render(<RunList runs={[]} selectedRunId={null} onSelect={vi.fn()} />)
-    expect(screen.getByText(/No runs yet/)).toBeTruthy()
+    expect(screen.getByText(/No runs found in this directory/)).toBeTruthy()
   })
 
   it('renders run items', () => {

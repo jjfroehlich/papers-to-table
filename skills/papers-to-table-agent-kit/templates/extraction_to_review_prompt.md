@@ -47,9 +47,12 @@ Prepare the output workspace before extracting values:
 python skills/papers-to-table-agent-kit/scripts/prepare_output_workspace.py --output-dir OUTPUT_DIR --run-id RUN_ID --json
 ```
 
+Before scaffolding, inventory all PDFs and audit which schema-target cells are blank or populated. Match every PDF to exactly one table row using DOI first, then normalized title, authors, and year from PDF front matter. Resolve title/preprint variants explicitly and write the canonical PDF stem into the matched row's `pdf_id`. A larger table may retain rows with no supplied PDF and blank `pdf_id`, but no supplied PDF may remain unused or map twice. Do not assign papers from filename similarity or row order. Stop on ambiguity; use the scaffold's positional fallback only when there are no explicit mappings, counts are equal, and the order was independently verified.
+
 Before extracting any value, create `extraction/review_input.json` with:
 
 - `schema_version`
+- optional `extraction_mode` (`fill_blanks` by default; `fill_and_verify` only when explicitly requested)
 - `run_id`
 - `output_table_name`
 - `output_table_path`
@@ -69,8 +72,11 @@ Use a cell-by-cell evidence loop. For each target cell, verify the row's paper, 
 - Preserve original row order and row identifiers.
 - Preserve all original columns in the root filled CSV.
 - Fill only supported target value columns.
+- Treat populated target cells as preserved data, not source evidence or examples to imitate. Keep metadata and manually curated columns as context unless the schema explicitly makes them targets.
+- Confirm that evidence describes the present study; background, previous-study, comparison-only, and future-option passages cannot classify the current assay.
 - Do not guess values that are not supported by the PDFs.
 - Use schema allowed values when provided.
+- Use finite JSON numbers for `number` fields and exact labels for categorical `allowed_values`; keep approximation in `numeric_value_form` and rationale rather than formatting a numeric value as prose.
 - Leave unavailable values blank in the filled CSV unless a supported no-data proposal should be recorded.
 - Use `proposal_status="no_data"` only when the paper explicitly indicates absence.
 - Keep per-cell proposals row-aware: evidence from one paper must not support another row.
@@ -79,6 +85,10 @@ Use a cell-by-cell evidence loop. For each target cell, verify the row's paper, 
 - Add proposal-level `rationale` for every value-bearing proposal; it is mandatory for interpretation, normalization to schema labels, calculation, weak/inferred evidence, or no-data conclusions. Avoid boilerplate like `Extracted from the provided PDF evidence for <column>`; explain the value-specific extraction judgment.
 - A useful rationale is an evidence-grounded summary, not private step-by-step chain-of-thought. It names the source support, the proposed value, and the column: `The source [quote/table/caption/page context] supports [value] for [column] because [specific reason or schema normalization].`
 - If validation warns about a generic rationale or reused evidence set, revise the affected proposals instead of handing off the warning.
+- Record one derivation `reason_codes` value: `direct`, `calculation`, `figure_estimate`, `protocol_inference`, or `absence_inference`. Calculations require a reviewer-readable `calculation` and compatible evidence for every operand. Figure estimates require page-specific `figure_ref`, caption and/or rendered-panel region evidence, and `numeric_value_form="approximate"`. Absence inference requires a documented field-specific audit and is routed to reviewer attention with an `absence_inference` diagnostic.
+- Before finishing each paper, reconcile design category, delivery/integration, readout, reporter-barcode role, UMI role, scale, and construct count against the same current-study assay stage, population, units, and QC state.
+
+Under `fill_blanks`, never propose against a populated source cell and preserve its original value exactly. Under explicitly requested `fill_and_verify`, verify the populated value independently from its matched PDF and schema, then record any candidate correction with its own evidence; the builder preserves the existing value in the unreviewed filled CSV, exposes `is_verify_mode=true` and `existing_value` in review, and applies a correction only after acceptance into the reviewed CSV.
 
 ## Evidence Requirements
 

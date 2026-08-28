@@ -65,6 +65,24 @@ describe('ReviewActionArea', () => {
     mockBulkAccept.mockResolvedValue({ accepted_count: 2, decisions: [] })
   })
 
+  it('centers the decision controls', () => {
+    render(
+      <ReviewActionArea
+        proposal={mockProposal}
+        runId="r1"
+        outputDir="./runs"
+        onDecisionRecorded={onDecisionRecorded}
+        onNext={onNext}
+        onPrev={onPrev}
+        visibleProposals={[mockProposal, makeProposal({ proposal_id: 'p2' })]}
+        focusEditSignal={0}
+      />
+    )
+
+    expect(screen.getByTestId('decision-controls')).toHaveClass('justify-center')
+    expect(screen.getByText(/Bulk accept 1 pending/i).parentElement).toHaveClass('justify-center')
+  })
+
   it('accept button calls recordDecision with accepted', async () => {
     render(
       <ReviewActionArea

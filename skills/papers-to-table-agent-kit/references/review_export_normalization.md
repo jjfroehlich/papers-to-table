@@ -59,6 +59,7 @@ Supported decision sources:
 
 - `human_individual`
 - `human_bulk_accept`
+- `human_bulk_selection`
 - `automation_accept_all`
 
 ## Evidence Shape

@@ -15,6 +15,17 @@ const toneClass: Record<Tone, string> = {
   sky: 'bg-sky-100 text-sky-800 ring-sky-200',
 }
 
+const mutedToneClass: Record<Tone, string> = {
+  slate: 'bg-slate-50 text-slate-600 ring-slate-200',
+  green: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  amber: 'bg-amber-50 text-amber-700 ring-amber-200',
+  orange: 'bg-amber-50 text-amber-700 ring-amber-200',
+  red: 'bg-rose-50 text-rose-700 ring-rose-200',
+  violet: 'bg-violet-50 text-violet-700 ring-violet-200',
+  teal: 'bg-teal-50 text-teal-700 ring-teal-200',
+  sky: 'bg-sky-50 text-sky-700 ring-sky-200',
+}
+
 function words(value: string) {
   return value.replace(/_/g, ' ')
 }
@@ -32,15 +43,17 @@ export function ReviewTag({
   value,
   tone = 'slate',
   size = 'sm',
+  muted = false,
 }: {
   category: string
   value: string
   tone?: Tone
   size?: Size
+  muted?: boolean
 }) {
   return (
     <span
-      className={`inline-flex max-w-full items-center rounded-md px-2 py-1 font-semibold ring-1 ring-inset ${toneClass[tone]} ${
+      className={`inline-flex max-w-full items-center rounded-md px-2 py-1 font-semibold ring-1 ring-inset ${muted ? mutedToneClass[tone] : toneClass[tone]} ${
         size === 'xs' ? 'text-[9px]' : 'text-[11px]'
       }`}
       title={`${category}: ${value}`}
@@ -51,8 +64,8 @@ export function ReviewTag({
   )
 }
 
-export function ReviewStatusTag({ decision, size = 'sm' }: { decision: ReviewDecision | null | undefined; size?: Size }) {
-  if (!decision) return <ReviewTag category="Review" value="pending" tone="sky" size={size} />
+export function ReviewStatusTag({ decision, size = 'sm', muted = false }: { decision: ReviewDecision | null | undefined; size?: Size; muted?: boolean }) {
+  if (!decision) return <ReviewTag category="Review" value="pending" tone="sky" size={size} muted={muted} />
   const map: Record<ReviewDecision, { value: string; tone: Tone }> = {
     accepted: { value: 'accepted', tone: 'green' },
     accepted_with_edit: { value: 'edited', tone: 'teal' },
@@ -60,7 +73,7 @@ export function ReviewStatusTag({ decision, size = 'sm' }: { decision: ReviewDec
     rejected: { value: 'rejected', tone: 'slate' },
   }
   const info = map[decision]
-  return <ReviewTag category="Review" value={info.value} tone={info.tone} size={size} />
+  return <ReviewTag category="Review" value={info.value} tone={info.tone} size={size} muted={muted} />
 }
 
 export function ReviewStatusIndicator({
@@ -118,7 +131,7 @@ export function isGreenProposalStatus(status: ProposalStatus): boolean {
   return status === 'value_proposed'
 }
 
-export function ProposalStatusTag({ status, size = 'sm' }: { status: ProposalStatus; size?: Size }) {
+export function ProposalStatusTag({ status, size = 'sm', muted = false }: { status: ProposalStatus; size?: Size; muted?: boolean }) {
   const tone: Record<ProposalStatus, Tone> = {
     value_proposed: 'green',
     no_data: 'violet',
@@ -127,7 +140,7 @@ export function ProposalStatusTag({ status, size = 'sm' }: { status: ProposalSta
     not_attempted: 'slate',
     error: 'red',
   }
-  return <ReviewTag category="Proposal" value={words(status)} tone={tone[status] ?? 'slate'} size={size} />
+  return <ReviewTag category="Proposal" value={words(status)} tone={tone[status] ?? 'slate'} size={size} muted={muted} />
 }
 
 export function EvidenceStatusIndicator({
@@ -159,12 +172,14 @@ export function EvidenceStatusTag({
   evidenceStatus,
   isFallback,
   size = 'sm',
+  muted = false,
 }: {
   evidenceStatus: EvidenceStatus
   isFallback?: boolean
   size?: Size
+  muted?: boolean
 }) {
-  if (isFallback) return <ReviewTag category="Evidence" value="anchor fallback" tone="orange" size={size} />
+  if (isFallback) return <ReviewTag category="Evidence" value="anchor fallback" tone="orange" size={size} muted={muted} />
   const map: Record<EvidenceStatus, { value: string; tone: Tone }> = {
     direct_strong: { value: 'direct strong', tone: 'green' },
     direct_weak: { value: 'direct weak', tone: 'orange' },
@@ -174,7 +189,7 @@ export function EvidenceStatusTag({
     not_applicable: { value: 'not applicable', tone: 'slate' },
   }
   const info = map[evidenceStatus]
-  return <ReviewTag category="Evidence" value={info.value} tone={info.tone} size={size} />
+  return <ReviewTag category="Evidence" value={info.value} tone={info.tone} size={size} muted={muted} />
 }
 
 export function EvidenceSourceTag({ sourceType, size = 'sm' }: { sourceType: EvidenceSourceType | string; size?: Size }) {

@@ -54,6 +54,8 @@ Local agent systems such as Hermes or Codex running with local models could be a
 
 *Papers-to-table enables long-running extractions with local LLMs, while the tested Codex Local and Hermes Local configurations did not complete a scorable extraction. Content-correctness [Eval scores](eval.md) for completed local papers-to-table runs in optimizer run `20260615_004637_compare_models`. Numbers above the boxes give mean scores to one decimal percentage point. “Failed” means the specific Codex App and Hermes configurations described below produced no complete scorable result.*
 
+These local-agent attempts used the same installed GGUF variants as the papers-to-table comparison. See the [model quantization table](optimizer.md#model-quantization): Gemma 12B QAT used `Q4_0`; regular Gemma 12B, Gemma 26B A4B, and Qwen 3.6 27B used `Q4_K_M`.
+
 - **Codex App with local models**
 
     Failed so far. Codex App v26.707.31123 was tested with `google/gemma-4-12b-qat`, `google/gemma-4-12b`, and `qwen/qwen3.6-27b`. Using the same prompt as for the commercial agents above. Configurations included 32K and 64K contexts and different tool-calling limits. Runs usually stopped before filling target information and frequently reported connection errors in the response stream. No complete scorable result was produced.

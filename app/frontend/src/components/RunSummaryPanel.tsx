@@ -121,6 +121,7 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
           <DetailRow label="PDFs" value={matching?.total_pdfs ?? '—'} />
           <DetailRow label="Matched" value={matching?.matched ?? '—'} />
           <DetailRow label="Unmatched" value={matching?.unmatched ?? '—'} />
+          <DetailRow label="New rows" value={matching?.staged_new_rows ?? 0} />
           <DetailRow label="Ambiguous" value={matching?.ambiguous ?? '—'} />
           <DetailRow label="Duplicates" value={matching?.duplicate_row_conflict ?? '—'} />
         </DiagnosticBox>
@@ -149,6 +150,26 @@ export function RunSummaryPanel({ run, outputDir }: Props) {
         </DiagnosticBox>
 
       </div>
+
+      {run.warnings.length > 0 && (
+        <div className="mt-3">
+          <DiagnosticBox title="Run warnings">
+            <p className="text-sm font-semibold text-amber-800">
+              {run.warnings.length} {run.warnings.length === 1 ? 'warning' : 'warnings'}
+            </p>
+            <ul className="mt-3 divide-y divide-amber-100 rounded-xl border border-amber-200 bg-amber-50/70 px-3">
+              {run.warnings.map((warning, index) => (
+                <li key={`${warning.category}-${index}`} className="py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">
+                    {formatLabel(warning.category)}
+                  </p>
+                  <p className="mt-1 text-sm leading-5 text-amber-950">{warning.message}</p>
+                </li>
+              ))}
+            </ul>
+          </DiagnosticBox>
+        </div>
+      )}
 
       <div className="mt-3">
         <section className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">

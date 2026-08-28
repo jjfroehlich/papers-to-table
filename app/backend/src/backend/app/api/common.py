@@ -48,6 +48,100 @@ def validate_output_dir_access(output_dir: str) -> pathlib.Path:
     return requested
 
 
+def validate_runs_directory(path_value: str) -> pathlib.Path:
+    requested = validate_output_dir_access(path_value)
+    if not requested.exists():
+        raise HTTPException(status_code=422, detail=f"Runs directory does not exist: {requested}")
+    if not requested.is_dir():
+        raise HTTPException(status_code=422, detail=f"Runs directory is not a directory: {requested}")
+    return requested
+
+
+def _directory_picker_error(detail: str) -> RuntimeError:
+    return RuntimeError(f'{detail} Enter the directory path manually instead.')
+
+
+def _valid_initial_directory(initial_directory: str | None) -> str | None:
+    if not initial_directory:
+        return None
+    candidate = pathlib.Path(initial_directory).resolve()
+    return str(candidate) if candidate.is_dir() else None
+
+
+def _pick_directory_with_tkinter(initial_directory: str | None = None) -> str | None:
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except ImportError as exc:
+        raise _directory_picker_error('The native folder chooser requires Python tkinter support.') from exc
+
+    try:
+        root = tk.Tk()
+        root.withdraw()
+    except Exception as exc:
+        raise _directory_picker_error('The native folder chooser could not connect to a graphical desktop.') from exc
+    try:
+        try:
+            root.attributes('-topmost', True)
+        except Exception:
+            pass
+        try:
+            selected = filedialog.askdirectory(
+                parent=root,
+                title='Select papers-to-table runs directory',
+                initialdir=_valid_initial_directory(initial_directory),
+                mustexist=True,
+            )
+        except Exception as exc:
+            raise _directory_picker_error('The native folder chooser could not be opened.') from exc
+    finally:
+        root.destroy()
+    return selected or None
+
+
+def _pick_directory_with_macos(initial_directory: str | None = None) -> str | None:
+    script = '''
+on run argv
+    if (count of argv) > 0 then
+        set selectedFolder to choose folder with prompt "Select papers-to-table runs directory" default location (POSIX file (item 1 of argv))
+    else
+        set selectedFolder to choose folder with prompt "Select papers-to-table runs directory"
+    end if
+    return POSIX path of selectedFolder
+end run
+'''.strip()
+    command = ['osascript', '-']
+    initial_path = _valid_initial_directory(initial_directory)
+    if initial_path:
+        command.append(initial_path)
+    try:
+        completed = subprocess.run(
+            command,
+            input=script,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise _directory_picker_error('The macOS Finder folder chooser could not be started.') from exc
+
+    if completed.returncode == 0:
+        return completed.stdout.strip() or None
+
+    error_text = (completed.stderr or completed.stdout).strip()
+    if 'User canceled' in error_text or '(-128)' in error_text:
+        return None
+    raise _directory_picker_error(
+        f'The macOS Finder folder chooser failed{f": {error_text}" if error_text else "."}'
+    )
+
+
+def pick_local_directory(initial_directory: str | None = None) -> str | None:
+    if sys.platform == 'darwin':
+        return _pick_directory_with_macos(initial_directory)
+    return _pick_directory_with_tkinter(initial_directory)
+
+
 def ensure_local_host_action_allowed(client_host: str | None) -> None:
     if os.environ.get("P2T_ALLOW_NONLOCAL_HOST_ACTIONS", "").lower() in {"1", "true", "yes"}:
         return

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import { api } from '../api/client'
 import type { EnrichedProposal } from '../types'
 import { ReviewTableView, type ReviewFilter, type SelectedReviewCell } from './ReviewTableView'
@@ -15,7 +15,9 @@ interface Props {
   runId: string
   outputDir: string
   selectedProposalId: string | null
+  selectedProposalIds: string[]
   onSelect: (proposalId: string) => void
+  onSelectionChange: (proposalIds: string[], primaryProposalId: string | null) => void
   onVisibleProposalOrderChange?: (proposalIds: string[]) => void
   mode: LeftPaneMode
   filter: ReviewFilter
@@ -106,7 +108,9 @@ export function ProposalQueue({
   runId,
   outputDir,
   selectedProposalId,
+  selectedProposalIds,
   onSelect,
+  onSelectionChange,
   onVisibleProposalOrderChange,
   mode,
   filter,
@@ -120,6 +124,7 @@ export function ProposalQueue({
   const [error, setError] = useState<string | null>(null)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const selectionAnchorRef = useRef<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -166,6 +171,36 @@ export function ProposalQueue({
       return bPending - aPending
     })
   }, [filtered, mode])
+  const orderedProposalIds = useMemo(
+    () => groups.flatMap(([, items]) => items.map((item) => item.proposal_id)),
+    [groups],
+  )
+
+  useEffect(() => {
+    selectionAnchorRef.current = null
+  }, [filter, mode])
+
+  function handleProposalClick(event: ReactMouseEvent, proposalId: string) {
+    if (event.shiftKey && selectionAnchorRef.current) {
+      const anchorIndex = orderedProposalIds.indexOf(selectionAnchorRef.current)
+      const targetIndex = orderedProposalIds.indexOf(proposalId)
+      if (anchorIndex >= 0 && targetIndex >= 0) {
+        const start = Math.min(anchorIndex, targetIndex)
+        const end = Math.max(anchorIndex, targetIndex)
+        onSelectionChange(orderedProposalIds.slice(start, end + 1), proposalId)
+        return
+      }
+    }
+    selectionAnchorRef.current = proposalId
+    if (event.ctrlKey || event.metaKey) {
+      const next = selectedProposalIds.includes(proposalId)
+        ? selectedProposalIds.filter((item) => item !== proposalId)
+        : [...selectedProposalIds, proposalId]
+      onSelectionChange(next, next.includes(proposalId) ? proposalId : (next.at(-1) ?? null))
+      return
+    }
+    onSelect(proposalId)
+  }
 
   useEffect(() => {
     if (mode === 'table') return
@@ -224,7 +259,7 @@ export function ProposalQueue({
       <div className="shrink-0 space-y-2 border-b border-slate-200 bg-white px-3 py-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Review list</p>
-          <p className="mt-0.5 text-xs leading-5 text-slate-500">Select a cell, verify evidence, decide.</p>
+          <p className="mt-0.5 text-xs leading-5 text-slate-500">Select one cell, or use Ctrl/Shift/drag for several.</p>
         </div>
         {/* Group toggle */}
         <div className="flex gap-1">
@@ -266,9 +301,11 @@ export function ProposalQueue({
           runId={runId}
           outputDir={outputDir}
           selectedProposalId={selectedProposalId}
+          selectedProposalIds={selectedProposalIds}
           filter={filter}
           onFilterChange={onFilterChange}
           onSelect={onSelect}
+          onSelectionChange={onSelectionChange}
           onVisibleProposalOrderChange={onVisibleProposalOrderChange}
           onSelectCell={onSelectCell}
           refreshVersion={refreshVersion}
@@ -330,10 +367,10 @@ export function ProposalQueue({
                     <button
                       key={p.proposal_id}
                       data-proposal-id={p.proposal_id}
-                      onClick={() => onSelect(p.proposal_id)}
+                      onClick={(event) => handleProposalClick(event, p.proposal_id)}
                       title={proposalConclusionLabel(p)}
                       className={`w-full rounded-md border px-2.5 py-2 text-left transition-colors ${stateColor(p)} ${
-                        selectedProposalId === p.proposal_id
+                        selectedProposalIds.includes(p.proposal_id)
                           ? 'border-sky-400 bg-sky-100 shadow-sm ring-2 ring-sky-300'
                           : 'bg-white hover:bg-slate-50'
                       }`}

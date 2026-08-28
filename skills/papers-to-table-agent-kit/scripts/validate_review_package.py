@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import sys
@@ -31,10 +32,12 @@ from review_package_common import (  # noqa: E402
     load_review_input,
     normalized_regions,
     proposals_path,
+    read_csv,
     read_json,
     read_jsonl,
     resolve_input_path,
     review_package_path,
+    stable_id,
     validation_report_path,
     write_json,
 )
@@ -129,12 +132,97 @@ GENERIC_RATIONALE_SUBSTRINGS = (
     "evidence specifically describes that field",
     "is recorded because the cited",
 )
+EXTRACTION_MODES = {"fill_blanks", "fill_and_verify"}
+NUMERIC_VALUE_FORMS = {"exact", "range", "approximate"}
+FIELD_TYPE_ALIASES = {
+    "string": "text",
+    "free_text": "text",
+    "numeric": "number",
+    "enum": "categorical",
+    "category": "categorical",
+    "bool": "boolean",
+}
+
+
+def _normalize_field_type(value: Any) -> str | None:
+    if value is None:
+        return None
+    raw = str(value).strip().lower()
+    return FIELD_TYPE_ALIASES.get(raw, raw if raw in {"text", "number", "categorical", "boolean"} else None)
+
+
+def _normalize_allowed_values(value: Any) -> list[str]:
+    if value is None or value == "":
+        return []
+    parsed = value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            parsed = [part.strip() for part in value.split("|") if part.strip()]
+    if not isinstance(parsed, list):
+        return []
+    return [str(item) for item in parsed if is_non_empty(item)]
+
+
+def _authoring_columns(run_dir: Path, payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    definitions: dict[str, dict[str, Any]] = {}
+    schema_value = str(payload.get("schema_path") or "").strip()
+    if schema_value:
+        schema_path = resolve_input_path(run_dir, schema_value)
+        if schema_path.exists():
+            if schema_path.suffix.lower() == ".csv":
+                schema_items, _fieldnames = read_csv(schema_path)
+            else:
+                schema_payload = read_json(schema_path)
+                schema_items = schema_payload.get("columns", []) if isinstance(schema_payload, dict) else schema_payload
+                if isinstance(schema_items, dict):
+                    schema_items = [{"column_name": name, **(value or {})} for name, value in schema_items.items()]
+            if isinstance(schema_items, list):
+                for item in schema_items:
+                    if isinstance(item, dict):
+                        name = str(item.get("column_name") or item.get("name") or "").strip()
+                        if name:
+                            definitions[name] = item
+    for item in payload.get("columns", []) if isinstance(payload.get("columns"), list) else []:
+        if isinstance(item, dict):
+            name = str(item.get("column_name") or item.get("name") or "").strip()
+            if name:
+                definitions[name] = item
+    return definitions
+
+
+def _existing_values(run_dir: Path, payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    values_by_row: dict[str, dict[str, Any]] = {}
+    for item in payload.get("rows", []) if isinstance(payload.get("rows"), list) else []:
+        if not isinstance(item, dict):
+            continue
+        row_id = str(item.get("row_id") or "").strip()
+        if row_id:
+            values_by_row[row_id] = dict(item.get("values") if isinstance(item.get("values"), dict) else {})
+    source_value = str(payload.get("source_table_path") or "").strip()
+    if source_value:
+        source_path = resolve_input_path(run_dir, source_value)
+        if source_path.exists():
+            source_rows, _fieldnames = read_csv(source_path)
+            for index, row in enumerate(source_rows):
+                row_id = str(row.get("row_id") or "").strip() or stable_id("row", index, row)
+                values_by_row.setdefault(row_id, {}).update(row)
+    return values_by_row
 
 
 def _compact_text(value: Any) -> str:
     if value is None:
         return ""
     return " ".join(str(value).split())
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _is_generic_rationale(value: Any) -> bool:
@@ -199,6 +287,12 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
     if not version:
         warnings.append("review_input.json is missing schema_version; assuming papers_to_table.review_input.v1.")
 
+    extraction_mode = str(payload.get("extraction_mode") or "fill_blanks").strip()
+    if extraction_mode not in EXTRACTION_MODES:
+        errors.append(
+            f"Unsupported extraction_mode {extraction_mode!r}; expected 'fill_blanks' or 'fill_and_verify'."
+        )
+
     output_name = str(payload.get("output_table_name") or "").strip()
     if not output_name:
         errors.append("review_input.json must include output_table_name.")
@@ -233,16 +327,19 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
                 errors.append(f"PDF file does not exist for pdf_id={pdf_id}: {path_value}")
     counts["pdfs"] = len(pdf_ids)
 
-    for field_name in ("source_table_path", "schema_path"):
+    resolved_inputs: dict[str, Path] = {}
+    for field_name in ("source_table_path", "schema_path", "baseline_manifest_path"):
         value = str(payload.get(field_name) or "").strip()
         if not value:
             continue
         path = resolve_input_path(run_dir, value)
         if not path.exists():
             errors.append(f"{field_name} does not exist: {value}")
+        else:
+            resolved_inputs[field_name] = path
 
-    columns = payload.get("columns") if isinstance(payload.get("columns"), list) else []
-    column_names = {str(item.get("column_name") or "").strip() for item in columns if isinstance(item, dict)}
+    column_definitions = _authoring_columns(run_dir, payload)
+    column_names = set(column_definitions)
     column_names.discard("")
     counts["columns"] = len(column_names)
 
@@ -266,6 +363,43 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
             if pdf_id not in pdf_ids:
                 errors.append(f"rows[{index}] references unknown pdf_id: {pdf_id}")
     counts["rows"] = len(row_ids)
+    existing_values = _existing_values(run_dir, payload)
+
+    source_path = resolved_inputs.get("source_table_path")
+    manifest_path = resolved_inputs.get("baseline_manifest_path")
+    if manifest_path is not None:
+        try:
+            manifest = read_json(manifest_path)
+            expected_hash = str(manifest.get("effective_source_table_sha256") or "").strip()
+            if source_path is None:
+                errors.append("baseline_manifest_path requires source_table_path.")
+            elif not expected_hash:
+                errors.append("baseline manifest is missing effective_source_table_sha256.")
+            elif _sha256(source_path) != expected_hash:
+                errors.append("source_table_path no longer matches the baseline manifest SHA-256; re-scaffold before extraction.")
+        except Exception as exc:
+            errors.append(f"Could not validate baseline manifest: {exc}")
+
+    if source_path is not None and rows:
+        source_rows, _fieldnames = read_csv(source_path)
+        authored_values = {
+            str(item.get("row_id") or "").strip(): dict(item.get("values") if isinstance(item.get("values"), dict) else {})
+            for item in rows
+            if isinstance(item, dict) and str(item.get("row_id") or "").strip()
+        }
+        for index, source_row in enumerate(source_rows):
+            row_id = str(source_row.get("row_id") or "").strip() or f"row_{index + 1}"
+            if row_id not in authored_values:
+                continue
+            for column_name in column_names:
+                source_value = source_row.get(column_name)
+                if not is_non_empty(source_value):
+                    continue
+                if authored_values[row_id].get(column_name) != source_value:
+                    errors.append(
+                        f"rows[].values does not preserve source target value byte-for-byte for "
+                        f"row_id={row_id} column={column_name}; re-scaffold from the authoritative baseline."
+                    )
 
     proposals = payload.get("proposals")
     if not isinstance(proposals, list) or not proposals:
@@ -303,6 +437,38 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
             errors.append(f"proposals[{proposal_index}] references unknown pdf_id: {proposal_pdf_id}")
 
         proposed_value = proposal.get("proposed_value")
+        existing_value = existing_values.get(row_id, {}).get(column_name)
+        if is_non_empty(existing_value) and extraction_mode == "fill_blanks":
+            errors.append(
+                f"proposals[{proposal_index}] targets populated cell {row_id}/{column_name}; "
+                "use extraction_mode='fill_and_verify' only when existing-value verification was explicitly requested."
+            )
+
+        column_definition = column_definitions.get(column_name, {})
+        field_type = _normalize_field_type(
+            column_definition.get("field_type") or column_definition.get("type") or column_definition.get("format")
+        )
+        allowed_values = _normalize_allowed_values(column_definition.get("allowed_values"))
+        if is_non_empty(proposed_value) and field_type == "number" and not is_finite_number(proposed_value):
+            errors.append(
+                f"proposals[{proposal_index}].proposed_value must be a finite JSON number for number field {column_name!r}."
+            )
+        if is_non_empty(proposed_value) and field_type == "categorical" and allowed_values:
+            if proposed_value not in allowed_values:
+                errors.append(
+                    f"proposals[{proposal_index}].proposed_value {proposed_value!r} is not an allowed value for "
+                    f"{column_name!r}: {allowed_values!r}."
+                )
+
+        numeric_value_form = proposal.get("numeric_value_form")
+        if numeric_value_form is not None and str(numeric_value_form) not in NUMERIC_VALUE_FORMS:
+            errors.append(
+                f"proposals[{proposal_index}].numeric_value_form must be exact, range, or approximate."
+            )
+        raw_reason_codes = proposal.get("reason_codes") if isinstance(proposal.get("reason_codes"), list) else []
+        reason_codes = {str(code).strip() for code in raw_reason_codes if str(code).strip()}
+        if "calculation" in reason_codes and not is_non_empty(proposal.get("calculation")):
+            errors.append(f"proposals[{proposal_index}] uses reason code 'calculation' but has no calculation.")
         evidence_items = proposal.get("evidence") if isinstance(proposal.get("evidence"), list) else []
         signature = _evidence_signature(evidence_items, inherited_pdf_id=proposal_pdf_id)
         if signature and row_id and column_name:
@@ -310,6 +476,7 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
             evidence_signature_groups.setdefault(group_key, []).append((f"proposals[{proposal_index}]", column_name))
         counts["evidence"] += len(evidence_items)
         valid_evidence_count = 0
+        has_figure_evidence = False
         evidence_tiers: list[dict[str, Any]] = []
         for evidence_index, evidence in enumerate(evidence_items):
             if not isinstance(evidence, dict):
@@ -344,11 +511,34 @@ def validate_authoring(run_dir: Path) -> dict[str, Any]:
             evidence_tiers.append(tier)
             if tier["tier"] != "D":
                 valid_evidence_count += 1
+            if (
+                is_non_empty(evidence.get("figure_ref"))
+                and _page_number(evidence.get("page_number")) is not None
+                and (
+                    is_non_empty(evidence.get("caption_text"))
+                    or bool(evidence.get("exact_highlight_regions"))
+                    or bool(evidence.get("approximate_highlight_regions"))
+                    or bool(evidence.get("bbox"))
+                )
+            ):
+                has_figure_evidence = True
         if is_non_empty(proposed_value) and valid_evidence_count == 0:
             errors.append(
                 f"proposals[{proposal_index}] has non-empty proposed_value but no structured Tier A/B/C evidence."
             )
         has_rationale = is_non_empty(proposal.get("rationale"))
+        if "figure_estimate" in reason_codes and not has_figure_evidence:
+            errors.append(
+                f"proposals[{proposal_index}] uses reason code 'figure_estimate' but lacks page-specific figure_ref plus caption or rendered-panel region evidence."
+            )
+        if "figure_estimate" in reason_codes and numeric_value_form not in {None, "approximate"}:
+            errors.append(
+                f"proposals[{proposal_index}] figure estimates must use numeric_value_form='approximate'."
+            )
+        if "absence_inference" in reason_codes and (not has_rationale or valid_evidence_count == 0):
+            errors.append(
+                f"proposals[{proposal_index}] absence inference requires a reviewer-facing rationale and structured evidence for the audited scope."
+            )
         if _is_generic_rationale(proposal.get("rationale")):
             warnings.append(
                 f"proposals[{proposal_index}] has a generic proposal-level rationale; explain why the value follows from the specific evidence."

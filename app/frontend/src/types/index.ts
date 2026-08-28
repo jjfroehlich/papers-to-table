@@ -186,6 +186,11 @@ export interface StagedInputResponse {
   runtime_locator: string
 }
 
+export interface RunsDirectoryResponse {
+  status: 'selected' | 'cancelled'
+  path: string | null
+}
+
 export interface ListRunsResponse {
   runs: RunData[]
 }
@@ -352,6 +357,7 @@ export interface MatchingSummary {
   total_pdfs: number
   matched: number
   unmatched: number
+  staged_new_rows?: number
   ambiguous: number
   duplicate_row_conflict: number
 }
